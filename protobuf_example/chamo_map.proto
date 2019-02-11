@@ -1,0 +1,12 @@
+syntax = "proto2";
+
+package chamo;
+
+message MapData {
+    required string name = 1;
+    message Child {
+        required string child_name = 1;
+        required int32 child_id =2;
+    }
+    repeated Child children = 2;
+}
