@@ -1,0 +1,6 @@
+syntax = "proto2";
+
+package visual_map;
+
+message Frame {
+}
