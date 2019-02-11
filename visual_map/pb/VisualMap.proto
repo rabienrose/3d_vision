@@ -1,5 +1,5 @@
 syntax = "proto2";
-package visual_map;
+package proto;
 
 import "Frame.proto";
 import "MapPoint.proto";

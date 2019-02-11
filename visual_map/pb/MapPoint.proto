@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package visual_map;
+package proto;
 
 message Track {
     required int32 frame_id=1;

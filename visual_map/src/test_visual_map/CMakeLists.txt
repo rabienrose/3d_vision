@@ -21,6 +21,7 @@ include_directories(
     ${OpenCV_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIR}
     ${PROJECT_SOURCE_DIR}/../../pb
+    ${PROJECT_SOURCE_DIR}/../visual_map/include
 )
 
 link_directories(

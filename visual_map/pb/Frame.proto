@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package visual_map;
+package proto;
 
 message Pose {
     required double x=1;
@@ -16,7 +16,7 @@ message KeyPoint {
     required float u=1;
     required float v=2;
     optional float desc_float=3;
-    optional string desc_byte=4;
+    optional bytes desc_byte=4;
     optional int32 obs=5;
     optional int32 desc_length=6;
     optional int32 desc_type=7;
