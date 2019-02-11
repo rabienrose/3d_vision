@@ -1,0 +1,16 @@
+syntax = "proto2";
+
+package visual_map;
+
+message Track {
+    required int32 frame_id=1;
+    required int32 kp_id=2;
+}
+
+message MapPoint {
+    required double x=1;
+    required double y=2;
+    required double z=3;
+    repeated Track tracks=4;
+}
+

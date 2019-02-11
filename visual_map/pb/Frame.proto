@@ -1,0 +1,30 @@
+syntax = "proto2";
+
+package visual_map;
+
+message Pose {
+    required double x=1;
+    required double y=2;
+    required double z=3;
+    required double qw=4;
+    required double qx=5;
+    required double qy=6;
+    required double qz=7;
+}
+
+message KeyPoint {
+    required float u=1;
+    required float v=2;
+    optional float desc_float=3;
+    optional string desc_byte=4;
+    optional int32 obs=5;
+    optional int32 desc_length=6;
+    optional int32 desc_type=7;
+}
+
+message Frame {
+    optional string img_name=1;
+    optional double timestamp=2;
+    optional Pose pose=3;
+    repeated KeyPoint kps=4;
+}

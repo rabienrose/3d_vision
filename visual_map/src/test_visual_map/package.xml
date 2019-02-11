@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package format="2">
+  <name>test_visual_map</name>
+  <version>0.0.0</version>
+  <description>A plugin to show how to add new console plugins</description>
+  <maintainer email="your-email@domain.tld">Maplab user</maintainer>
+  <license>Apache 2.0</license>
+  <buildtool_depend>catkin</buildtool_depend>
+</package>

@@ -1,3 +1,8 @@
 build
 *.kdev4
 .kdev4
+devel
+logs
+*.pb.h
+*.pb.cc
+.catkin_tools

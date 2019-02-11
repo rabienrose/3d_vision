@@ -1,0 +1,11 @@
+syntax = "proto2";
+package visual_map;
+
+import "Frame.proto";
+import "MapPoint.proto";
+
+message VisualMap {
+    repeated Frame frames=1;
+    repeated MapPoint mappoints=2;
+}
+
