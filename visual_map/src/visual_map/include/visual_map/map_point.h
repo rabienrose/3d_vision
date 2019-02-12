@@ -4,6 +4,7 @@
 namespace vm{
     class Frame;
     class TrackItem{
+    public:
         std::shared_ptr<Frame> frame;
         int kp_ind;
     };
