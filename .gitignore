@@ -6,3 +6,4 @@ logs
 *.pb.h
 *.pb.cc
 .catkin_tools
+3rd_party
