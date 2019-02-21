@@ -15,10 +15,12 @@
 #include <math.h>
 #include "descriptor-projection/build-projection-matrix.h"
 
-
 void get_eigen_desc(cv::Mat descs, int index, Eigen::MatrixXf& desc_eigen ){
-    cv2eigen(descs.row(index).t(), desc_eigen);
-}
+        Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> desc_eigen_temp;
+        cv2eigen(descs.row(index).t(), desc_eigen_temp);
+        desc_eigen.resize(desc_eigen_temp.rows()*8, 1);
+        descriptor_projection::DescriptorToEigenMatrix(desc_eigen_temp, desc_eigen);
+    }
 
 void append_eigen_desc(Eigen::MatrixXf& desc_eigen, Eigen::MatrixXf& new_desc_eigen ){
     int old_count=desc_eigen.cols();
@@ -53,7 +55,7 @@ int main(int argc, char* argv[]) {
     rosbag::View view(bag, rosbag::TopicQuery(topics));
     rosbag::View::iterator it= view.begin();
     int img_count=100000;
-    int max_frame_count=10;
+    int max_frame_count=100;
     int start_frame=0;
     cv::Mat last_descriptors;
     std::vector<cv::KeyPoint> last_keypoints;
@@ -103,6 +105,25 @@ int main(int argc, char* argv[]) {
                 {
                     good_matches.push_back(matches[j]);
                 }
+                std::vector<cv::Point2f> points1(good_matches.size());
+                std::vector<cv::Point2f> points2(good_matches.size());
+                for(int i=0; i< good_matches.size();i++){
+                    int kpInd1=good_matches[i].queryIdx;
+                    int kpInd2=good_matches[i].trainIdx;
+                    points1[i] =last_keypoints[kpInd1].pt;
+                    points2[i] =keypoints[kpInd2].pt;
+                }
+                cv::Mat inliers;
+                findFundamentalMat(points1, points2, cv::FM_RANSAC, 3., 0.99, inliers);//inliers.rows is the number of inlier
+                std::vector<cv::DMatch> temp_good_matches;
+                for(int i=0; i<inliers.rows; i++){
+                    if(inliers.at<char>(i,1)==1){
+                        temp_good_matches.push_back(good_matches[i]);
+                    }
+                }
+                std::cout<<"ransac before: "<<good_matches.size()<<" | ransac after: "<<temp_good_matches.size()<<std::endl;
+                good_matches = temp_good_matches;
+                
                 std::unordered_map<int, int> last_local_id_to_global_id_temp;
                 for(int j=0; j<good_matches.size(); j++){
                     int last_local_id=good_matches[j].queryIdx;
@@ -154,6 +175,23 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    
+    std::vector<descriptor_projection::DescriptorMatch> matches;
+    std::vector<descriptor_projection::DescriptorMatch> non_matches;
+    descriptor_projection::BuildListOfMatchesAndNonMatches(global_descs, tracks, &matches, &non_matches);
+    std::cout<<"match count: "<<matches.size()<<" | non match count: "<<non_matches.size()<<std::endl;
+    unsigned int sample_size_matches;
+    unsigned int sample_size_non_matches;
+    Eigen::MatrixXf cov_matches;
+    Eigen::MatrixXf cov_non_matches;
+    descriptor_projection::BuildCovarianceMatricesOfMatchesAndNonMatches(global_descs.rows(), global_descs, tracks, 
+                                                  &sample_size_matches, &sample_size_non_matches,
+                                                  &cov_matches, &cov_non_matches
+                                                 );
+    Eigen::MatrixXf A;
+    descriptor_projection::ComputeProjectionMatrix(cov_matches, cov_non_matches, &A);
+    std::cout<<A<<std::endl;
+    
     cv::RNG rng(12345);
     for (int i=0; i<tracks.size(); i++){
         std::vector<int> track=tracks[i];
@@ -166,7 +204,7 @@ int main(int argc, char* argv[]) {
             Eigen::MatrixXf desc=global_descs.col(global_id).transpose();
             
             std::vector<cv::KeyPoint>& kp=kps[frame_id];
-            std::cout<<desc<<std::endl;
+            //std::cout<<desc<<std::endl;
             cv::cvtColor(img,img, CV_GRAY2BGRA);
             cv::circle(img, kp[kp_id].pt, 2, color,2);
             cv::imshow("chamo", img);

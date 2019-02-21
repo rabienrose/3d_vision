@@ -29,5 +29,14 @@ namespace descriptor_projection {
     void ComputeProjectionMatrix(
         const Eigen::MatrixXf& cov_matches, const Eigen::MatrixXf& cov_non_matches,
         Eigen::MatrixXf* A);
+    
+    void ProjectDescriptor(
+        const Eigen::Matrix<unsigned char, Eigen::Dynamic, 1>& raw_descriptor,
+        const Eigen::MatrixXf& projection_matrix, int target_dimensions,
+        Eigen::VectorXf& projected_descriptor);
+    
+    void DescriptorToEigenMatrix(
+        const Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& descriptor,
+        Eigen::MatrixXf& matrix_const);
 }  // namespace descriptor_projection
 #endif  // DESCRIPTOR_PROJECTION_BUILD_PROJECTION_MATRIX_H_

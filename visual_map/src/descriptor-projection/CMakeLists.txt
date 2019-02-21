@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 project(descriptor_projection)
 set (CMAKE_CXX_STANDARD 11)
 find_package(catkin_simple REQUIRED)
-catkin_simple()
+catkin_simple(ALL_DEPS_REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
