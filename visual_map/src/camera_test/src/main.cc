@@ -17,6 +17,7 @@
 #include <maplab-common/binary-serialization.h>
 #include "descriptor-projection/build-projection-matrix.h"
 #include "inverted-multi-index/inverted_multi_index.pb.h"
+#include "two_frame_pose.h"
 
 #include "opencv2/opencv.hpp"
 #include <opencv2/core/eigen.hpp>
@@ -113,7 +114,7 @@ void FindRT(const cv::Mat& img1, const cv::Mat& img2,
     matcher.match(descriptors1, descriptors2, matches);
     std::sort(matches.begin(), matches.end());
     std::vector<cv::DMatch> good_matches;
-    const int ptsPairs = std::min(1000, (int)(matches.size() * 0.2f));
+    const int ptsPairs = std::min(1000, (int)(matches.size() * 0.6f));
     for( int j = 0; j < ptsPairs; j++ ){
         good_matches.push_back(matches[j]);
     }
@@ -122,6 +123,20 @@ void FindRT(const cv::Mat& img1, const cv::Mat& img2,
     std::vector<cv::Point2f> points2(good_matches.size());
     std::vector<int> points1_ind(good_matches.size());
     std::vector<int> points2_ind(good_matches.size());
+    
+//     std::vector<std::pair<int,int>> mvMatches12;
+//     for(int i=0; i< good_matches.size();i++){
+//         std::pair<int,int> match;
+//         match.first=good_matches[i].queryIdx;
+//         match.second=good_matches[i].trainIdx;
+//         mvMatches12.push_back(match);
+//     }
+//     cv::Mat R21;
+//     cv::Mat t21;
+//     cv::Mat outlier_cv;
+//     std::vector<bool> vbMatchesInliers;
+//     orb_slam::FindRT(keypoints1, keypoints2, vbMatchesInliers, R21, t21, mvMatches12 , cam_m);
+    
     for(int i=0; i< good_matches.size();i++){
         int kpInd1=good_matches[i].queryIdx;
         int kpInd2=good_matches[i].trainIdx;
@@ -130,13 +145,15 @@ void FindRT(const cv::Mat& img1, const cv::Mat& img2,
         points1[i] =keypoints1[kpInd1].pt;
         points2[i] =keypoints2[kpInd2].pt;
     }
-    
     cv::Mat outlier_cv;
     cv::Mat E;
     E = cv::findEssentialMat(points1, points2, cam_m, cv::RANSAC, 0.999, 5.0, outlier_cv);
     cv::Mat R21;
     cv::Mat t21;
     cv::recoverPose(E, points1, points2, cam_m, R21, t21,outlier_cv);
+    
+    
+    std::cout<<R21<<std::endl;
     for (int i=0; i<3; i++){
         for (int j=0; j<3; j++){
             R(i,j)=R21.at<double>(i,j);
@@ -194,7 +211,7 @@ int main(int argc, char** argv){
     tracker.reset(new feature_tracking::FeatureDetectorExtractor(camera_system->getCamera(0)));
     std::vector<std::shared_ptr<aslam::VisualNFrame>> frame_list;
     int count_input=0;
-    for(int i=FLAGS_start_frame; i<FLAGS_end_frame ;i++)
+    for(int i=FLAGS_start_frame; i<FLAGS_end_frame ;i=i+1)
     {
         std::stringstream ss;
         ss<<"img_"<<i<<".jpg";
@@ -231,12 +248,12 @@ int main(int argc, char** argv){
                 Eigen::VectorXf projected_desc;
                 descriptor_projection::ProjectDescriptor(desc.col(i), projection_matrix_, 10, projected_desc);
                 Eigen::VectorXi out_indices;
-                out_indices.resize(5);
+                out_indices.resize(15);
                 Eigen::VectorXf out_distances;
-                out_distances.resize(5);
+                out_distances.resize(15);
                 Eigen::Matrix<float, 10 ,1> projected_desc_fix;
                 projected_desc_fix=projected_desc;
-                index_->GetNNearestNeighbors(projected_desc_fix, 5, out_indices, out_distances);
+                index_->GetNNearestNeighbors(projected_desc_fix, 25, out_indices, out_distances);
                 
                 for(int j=0; j<out_indices.size(); j++){
                     
@@ -385,7 +402,7 @@ int main(int argc, char** argv){
         aslam::MatchingEngineExclusive<aslam::MatchingProblemFrameToFrame> matching_engine_;
         aslam::VisualFrame::Ptr apple_frame_;
         aslam::VisualFrame::Ptr banana_frame_;
-        double image_space_distance_threshold_=20.0;
+        double image_space_distance_threshold_=40.0;
         int hamming_distance_threshold_=60;
         
         int track_id=0;

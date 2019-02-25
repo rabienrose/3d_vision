@@ -2,11 +2,11 @@
 namespace orb_slam
 {
 void FindRT(std::vector<cv::KeyPoint>& mvKeys1, std::vector<cv::KeyPoint>& mvKeys2, std::vector<bool> &vbMatchesInliers,
-            cv::Mat &R21, cv::Mat &t21, std::vector<Match>& mvMatches12, cv::Mat mK
+            cv::Mat &R21, cv::Mat &t21, std::vector<Match>& mvMatches12, cv::Mat mK, cv::Mat debug_img
 ){
-    R21=cv::Mat::eye(3, 3, CV_32FC1);
-    t21=cv::Mat::zeros(3, 1, CV_32FC1);
-    int mMaxIterations=100;
+    //R21=cv::Mat::eye(3, 3, CV_32FC1);
+    //t21=cv::Mat::zeros(3, 1, CV_32FC1);
+    int mMaxIterations=200;
     float mSigma =1;
     const int N = mvMatches12.size();
     std::vector<bool> vbMatchesInliersH, vbMatchesInliersF;
@@ -44,19 +44,41 @@ void FindRT(std::vector<cv::KeyPoint>& mvKeys1, std::vector<cv::KeyPoint>& mvKey
     cv::Mat H, F;
     FindFundamental(vbMatchesInliersF, SF, F, mvKeys1, mvKeys2, mvSets, mMaxIterations, mSigma, mvMatches12);
     FindHomography(vbMatchesInliersH, SH, H, mvKeys1, mvKeys2, mvSets, mMaxIterations, mSigma, mvMatches12);
-    std::cout<<SH<<":"<<SF<<std::endl;
+    
+//     cv::cvtColor(debug_img, debug_img, cv::COLOR_GRAY2BGR);
+//     for(int i=0; i<vbMatchesInliersF.size(); i++){
+//         if(vbMatchesInliersF[i]==true){
+//             int ind1=mvMatches12[i].first;
+//             int ind2=mvMatches12[i].second;
+//             cv::line(debug_img, mvKeys1[ind1].pt, mvKeys2[ind2].pt, CV_RGB(255,0,255));
+//         }
+//     }
+//     for(int i=0; i<mvMatches12.size(); i++){
+//         int ind1=mvMatches12[i].first;
+//         int ind2=mvMatches12[i].second;
+//         cv::line(debug_img, mvKeys1[ind1].pt, mvKeys2[ind2].pt, CV_RGB(255,0,255));
+//     }
+    
+//     for(int i=0; i<mvKeys1.size(); i++){
+//         cv::circle(debug_img, mvKeys1[i].pt, 1, CV_RGB(0,0,255), 2);
+//     }
+    
+//     cv::imshow("chamo", debug_img);
+//     cv::waitKey(-1);
+
+    //std::cout<<SH<<":"<<SF<<std::endl;
 
     float RH = SH/(SH+SF);
 
     // Try to reconstruct from homography or fundamental depending on the ratio (0.40-0.45)
-    if(RH>0.60){
-        std::cout<<"initial with Homegrahpy"<<std::endl;
-    }else{
-        std::cout<<"initial with Foundamental"<<std::endl;
-    }
+//     if(RH>0.60){
+//         std::cout<<"initial with Homegrahpy"<<std::endl;
+//     }else{
+//         std::cout<<"initial with Foundamental"<<std::endl;
+//     }
     std::vector<cv::Point3f> vP3D;
     std::vector<bool> vbTriangulated;
-    if(RH>0.60){
+    if(RH>0.40){
         ReconstructH(vbMatchesInliersH,H,mK,R21,t21,vP3D,vbTriangulated, mvKeys1, mvKeys2, mSigma, 1.0,50, mvMatches12);
     }else{
         ReconstructF(vbMatchesInliersF,F,mK,R21,t21,vP3D,vbTriangulated, mvKeys1, mvKeys2, mSigma, 1.0,50, mvMatches12);
@@ -157,15 +179,16 @@ void FindFundamental(std::vector<bool> &vbMatchesInliers, float &score, cv::Mat 
 
         cv::Mat Fn = ComputeF21(vPn1i,vPn2i);
 
-        F21i = Fn;
+        F21i = T2t*Fn*T1;
 
-        currentScore = CheckFundamental(F21i, vbCurrentInliers, mSigma, mvKeys1, mvKeys2,mvMatches12);
+        currentScore = CheckFundamental(F21i, vbCurrentInliers, mSigma, mvKeys1, mvKeys2,mvMatches12, false);
 
         if(currentScore>score)
         {
             F21 = F21i.clone();
             vbMatchesInliers = vbCurrentInliers;
             score = currentScore;
+            CheckFundamental(F21i, vbCurrentInliers, mSigma, mvKeys1, mvKeys2,mvMatches12, true);
         }
     }
 }
@@ -339,7 +362,7 @@ float CheckHomography(const cv::Mat &H21, const cv::Mat &H12, std::vector<bool> 
 
 float CheckFundamental(const cv::Mat &F21, std::vector<bool> &vbMatchesInliers, float sigma,
                        std::vector<cv::KeyPoint>& mvKeys1, std::vector<cv::KeyPoint>& mvKeys2,
-                       std::vector<Match>& mvMatches12
+                       std::vector<Match>& mvMatches12, bool debug
 )
 {
     const int N = mvMatches12.size();
@@ -362,7 +385,12 @@ float CheckFundamental(const cv::Mat &F21, std::vector<bool> &vbMatchesInliers, 
     const float thScore = 5.991;
 
     const float invSigmaSquare = 1.0/(sigma*sigma);
-
+    if(debug){
+        //std::cout<<"================"<<std::endl;
+    }
+    
+    int inlier_count=0;
+    
     for(int i=0; i<N; i++)
     {
         bool bIn = true;
@@ -388,6 +416,10 @@ float CheckFundamental(const cv::Mat &F21, std::vector<bool> &vbMatchesInliers, 
 
         const float chiSquare1 = squareDist1*invSigmaSquare;
 
+        if(debug){
+            //std::cout<<"chiSquare1: "<<chiSquare1<<std::endl;
+        }
+        
         if(chiSquare1>th)
             bIn = false;
         else
@@ -411,12 +443,16 @@ float CheckFundamental(const cv::Mat &F21, std::vector<bool> &vbMatchesInliers, 
         else
             score += thScore - chiSquare2;
 
-        if(bIn)
+        if(bIn){
+            inlier_count++;
             vbMatchesInliers[i]=true;
+        }
         else
             vbMatchesInliers[i]=false;
     }
-
+    if(debug){
+        //std::cout<<"Inlier: "<<inlier_count<<std::endl;
+    }
     return score;
 }
 
@@ -453,8 +489,8 @@ bool ReconstructF(std::vector<bool> &vbMatchesInliers, cv::Mat &F21, cv::Mat &K,
 
     int maxGood = std::max(nGood1,std::max(nGood2,std::max(nGood3,nGood4)));
     
-    std::cout<<nGood1<<":"<<nGood2<<":"<<nGood3<<":"<<nGood4<<std::endl;
-    std::cout<<parallax1<<":"<<parallax2<<":"<<parallax3<<":"<<parallax4<<std::endl;
+    //std::cout<<nGood1<<":"<<nGood2<<":"<<nGood3<<":"<<nGood4<<std::endl;
+    //std::cout<<parallax1<<":"<<parallax2<<":"<<parallax3<<":"<<parallax4<<std::endl;
 
     int nMinGood = std::max(static_cast<int>(0.9*N),minTriangulated);
 
@@ -549,8 +585,6 @@ bool ReconstructH(std::vector<bool> &vbMatchesInliers, cv::Mat &H21, cv::Mat &K,
     float d3 = w.at<float>(2);
     if(d1/d2<1.00001 || d2/d3<1.00001)
     {
-        R21=cv::Mat::eye(3, 3, CV_32FC1);
-        t21=cv::Mat::zeros(3, 1, CV_32FC1);
         return false;
     }
     std::vector<cv::Mat> vR, vt, vn;
@@ -675,9 +709,6 @@ bool ReconstructH(std::vector<bool> &vbMatchesInliers, cv::Mat &H21, cv::Mat &K,
         vbTriangulated = bestTriangulated;
 
         return true;
-    }else{
-        R21=cv::Mat::eye(3, 3, CV_32FC1);
-        t21=cv::Mat::zeros(3, 1, CV_32FC1);
     }
 
     return false;
@@ -779,9 +810,10 @@ int CheckRT(const cv::Mat &R, const cv::Mat &t, const std::vector<cv::KeyPoint> 
 
     int nGood=0;
     int stat[5]={0,0,0,0,0};
-
+    //std::cout<<"vMatches12.size(): "<<vMatches12.size()<<std::endl;
     for(size_t i=0, iend=vMatches12.size();i<iend;i++)
     {
+        
         if(!vbMatchesInliers[i])
             continue;
 
@@ -830,7 +862,7 @@ int CheckRT(const cv::Mat &R, const cv::Mat &t, const std::vector<cv::KeyPoint> 
         float squareError1 = (im1x-kp1.pt.x)*(im1x-kp1.pt.x)+(im1y-kp1.pt.y)*(im1y-kp1.pt.y);
 
         if(squareError1>th2){
-            std::cout<<squareError1<<std::endl;
+            //std::cout<<squareError1<<std::endl;
             stat[3]++;
             continue;
         }
@@ -844,7 +876,7 @@ int CheckRT(const cv::Mat &R, const cv::Mat &t, const std::vector<cv::KeyPoint> 
         float squareError2 = (im2x-kp2.pt.x)*(im2x-kp2.pt.x)+(im2y-kp2.pt.y)*(im2y-kp2.pt.y);
 
         if(squareError2>th2){
-            std::cout<<squareError1<<std::endl;
+            //std::cout<<squareError1<<std::endl;
             stat[4]++;
             continue;
         }
@@ -867,7 +899,7 @@ int CheckRT(const cv::Mat &R, const cv::Mat &t, const std::vector<cv::KeyPoint> 
     else
         parallax=0;
 
-    std::cout<<"3d creator filter sum: "<<stat[0]<<":"<<stat[1]<<":"<<stat[2]<<":"<<stat[3]<<":"<<stat[4]<<std::endl;
+    //std::cout<<"3d creator filter sum: "<<stat[0]<<":"<<stat[1]<<":"<<stat[2]<<":"<<stat[3]<<":"<<stat[4]<<std::endl;
     return nGood;
 }
 

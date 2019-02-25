@@ -8,7 +8,7 @@ namespace orb_slam
 typedef std::pair<int,int> Match;
 
 void FindRT(std::vector<cv::KeyPoint>& mvKeys1, std::vector<cv::KeyPoint>& mvKeys2, std::vector<bool> &vbMatchesInliers,
-            cv::Mat &R21, cv::Mat &t21, std::vector<Match>& mvMatches12, cv::Mat mK
+            cv::Mat &R21, cv::Mat &t21, std::vector<Match>& mvMatches12, cv::Mat mK, cv::Mat debug_img
 );
 
 void FindHomography(std::vector<bool> &vbMatchesInliers, float &score, cv::Mat &H21,
@@ -32,7 +32,7 @@ float CheckHomography(const cv::Mat &H21, const cv::Mat &H12, std::vector<bool> 
 
 float CheckFundamental(const cv::Mat &F21, std::vector<bool> &vbMatchesInliers, float sigma,
                        std::vector<cv::KeyPoint>& mvKeys1, std::vector<cv::KeyPoint>& mvKeys2,
-                       std::vector<Match>& mvMatches12
+                       std::vector<Match>& mvMatches12, bool debug
 );
 
 bool ReconstructF(std::vector<bool> &vbMatchesInliers, cv::Mat &F21, cv::Mat &K,
