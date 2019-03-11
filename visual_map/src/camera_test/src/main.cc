@@ -195,6 +195,7 @@ int main(int argc, char** argv){
     common::Deserialize(&projection_matrix_, &in_stream);
     common::Deserialize(&words_first_half_, &in_stream);
     common::Deserialize(&words_second_half_, &in_stream);
+    std::cout<<words_first_half_.rows()<<":"<<words_second_half_.rows()<<std::endl;
 
     const Eigen::MatrixXf& words_1 = words_first_half_;
     const Eigen::MatrixXf& words_2 = words_second_half_;

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <unordered_map>
+#include <iostream>
 
 #include <Eigen/QR>
 #include <Eigen/SVD>
@@ -191,13 +192,14 @@ namespace descriptor_projection {
     }
     
     template <typename DerivedIn, typename DerivedOut>
-    void DescriptorToEigenMatrix(
+    void DescriptorToEigenMatrixDef(
         const Eigen::MatrixBase<DerivedIn>& descriptor,
         const Eigen::MatrixBase<DerivedOut>& matrix_const) {
         EIGEN_STATIC_ASSERT(
             !(Eigen::internal::traits<DerivedOut>::Flags & Eigen::RowMajorBit),
             "This method is only valid for column major matrices");
         CHECK_EQ(descriptor.cols(), 1);
+
         Eigen::MatrixBase<DerivedOut>& matrix =
             const_cast<Eigen::MatrixBase<DerivedOut>&>(matrix_const);
         const int num_descriptor_bytes = descriptor.rows();
@@ -209,7 +211,7 @@ namespace descriptor_projection {
         matrix.setZero();
 
         CHECK_EQ(num_descriptor_bytes % 16, 0);
-
+        
         // Define a set of macros to NEON and SSE instructions so we can use the same
         // code further down for both platforms.
         #ifdef ANDROID
@@ -292,13 +294,11 @@ namespace descriptor_projection {
         Eigen::Matrix<float, Eigen::Dynamic, 1> descriptor;
         const int descriptor_bits = raw_descriptor.size() * 8;
         descriptor.resize(descriptor_bits, Eigen::NoChange);
-        DescriptorToEigenMatrix(raw_descriptor, descriptor);
+        DescriptorToEigenMatrixDef(raw_descriptor, descriptor);
         projected_descriptor = projection_matrix.block(0, 0, target_dimensions, descriptor.rows()) * descriptor;
     }
     
-    void DescriptorToEigenMatrix(
-        const Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& descriptor,
-        Eigen::MatrixXf& matrix_out){
-            DescriptorToEigenMatrix(descriptor, matrix_out);
+    void DescriptorToEigenMatrix( const Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& descriptor, Eigen::MatrixXf& matrix_out){
+        DescriptorToEigenMatrixDef(descriptor, matrix_out);
     }
 }  // namespace descriptor_projection
