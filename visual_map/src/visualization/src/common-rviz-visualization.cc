@@ -334,8 +334,6 @@ void publishVerticesFromPoseVector(
     const std::string& name_space, const std::string& topic) {
   CHECK(!topic.empty());
   const size_t num_poses = poses.size();
-  std::cout<<"num_poses: "<<poses.size()<<std::endl;
-  std::cout<<"topic: "<<topic<<std::endl;
   if (num_poses == 0u) {
     return;
   }

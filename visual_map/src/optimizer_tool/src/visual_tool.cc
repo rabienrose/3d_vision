@@ -7,12 +7,13 @@
 #include "visualization/common-rviz-visualization.h"
 #include "test_imu_tool/visual_tool.h"
 
-void show_pose_as_marker(std::vector<ORB_SLAM2::NavState>& states, Eigen::Matrix3d Rwi_, std::string topic){
+void show_pose_as_marker(std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& pose_vec, std::string topic){
     visualization::PoseVector poses_vis;
-    for(int i=0; i<states.size(); i=i+1){
+    for(int i=0; i<pose_vec.size(); i=i+1){
         visualization::Pose pose;
-        pose.G_p_B = Rwi_.transpose()*states[i].Get_P();
-        Eigen::Quaterniond rot_q(Rwi_.transpose()*states[i].Get_RotMatrix());
+        pose.G_p_B = pose_vec[i].block(0,3,3,1);
+        Eigen::Matrix3d rot_m = pose_vec[i].block(0,0,3,3);
+        Eigen::Quaterniond rot_q(rot_m);
         pose.G_q_B = rot_q;
 
         pose.id =poses_vis.size();

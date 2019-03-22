@@ -445,14 +445,14 @@ SimpleKmeans<Feature, Distance, FeatureAllocator>::ClusterOnce(
     }
 
     if (is_stable) {
-      LOG(WARNING) << "\t#" << iter << " Stable!" << std::endl;
+      //LOG(WARNING) << "\t#" << iter << " Stable!" << std::endl;
       break;
     }
 
     if (features.size() > 1000) {
-      LOG(WARNING) << "\t#" << iter
-                   << " Recomputing centers. (Unstable: " << num_unstable << ")"
-                   << std::endl;
+//       LOG(WARNING) << "\t#" << iter
+//                    << " Recomputing centers. (Unstable: " << num_unstable << ")"
+//                    << std::endl;
     }
 
     auto mean_functor = [&new_center_counts, &new_centers,

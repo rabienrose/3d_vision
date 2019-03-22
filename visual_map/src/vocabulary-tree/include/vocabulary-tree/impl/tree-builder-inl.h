@@ -70,6 +70,7 @@ void TreeBuilder<Feature, Distance, FeatureAllocator>::Build(
           break;
         }
       }
+      std::cout<<"unique_clusters.size(): "<<unique_clusters.size()<<std::endl;
       // If the subset already has k or fewer elements, just use those as the
       // centers.
       if (unique_clusters.size() <= k) {
@@ -94,7 +95,8 @@ void TreeBuilder<Feature, Distance, FeatureAllocator>::Build(
 
         // Cluster the current subset into k centers.
         kmeans_.ClusterPointers(subset, k, random_seed, &centers, &membership);
-
+        std::cout<<"centers.size(): "<<centers->size()<<std::endl;
+        std::cout<<"subset.size(): "<<subset.size()<<std::endl;
         // Add the centers and mark them as valid.
         tree_.centers().insert(
             tree_.centers().end(), centers->begin(), centers->end());

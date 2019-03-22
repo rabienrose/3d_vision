@@ -17,7 +17,6 @@
 #include <maplab-common/binary-serialization.h>
 #include "descriptor-projection/build-projection-matrix.h"
 #include "inverted-multi-index/inverted_multi_index.pb.h"
-#include "two_frame_pose.h"
 
 #include "opencv2/opencv.hpp"
 #include <opencv2/core/eigen.hpp>

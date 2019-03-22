@@ -1,29 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package format="2">
-  <name>sfm</name>
+  <name>optimizer_tool</name>
   <version>0.0.0</version>
   <description>A plugin to show how to add new console plugins</description>
   <maintainer email="your-email@domain.tld">Maplab user</maintainer>
   <license>Apache 2.0</license>
-
   <buildtool_depend>catkin_simple</buildtool_depend>
   <buildtool_depend>catkin</buildtool_depend>
-  
-  <depend>maplab_common</depend>
+  <depend>roscpp</depend>
+  <depend>cv_bridge</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rosbag</depend>
   <depend>gflags_catkin</depend>
   <depend>glog_catkin</depend>
   <depend>opencv3_catkin</depend>
-  <depend>aslam_cv_cameras</depend>
-  <depend>aslam_cv_common</depend>
-  <depend>aslam_cv_frames</depend>
-  <depend>aslam_cv_matcher</depend>
-  <depend>feature_tracking</depend>
-  <depend>inverted_multi_index</depend>
-  <depend>rosbag</depend>
-  <depend>cv_bridge</depend>
-  <depend>geometry_msgs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>roscpp</depend>
-  <depend>descriptor_projection</depend>
-
+  <depend>eigen_catkin</depend>
+  <depend>imu_visual_lib</depend>
+  <depend>visualization</depend>
+  <depend>read_write_data_lib</depend>
+  <depend>g2o_catkin</depend>
 </package>

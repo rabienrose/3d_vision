@@ -116,9 +116,11 @@ class InvertedMultiIndex {
           closest_word[0].first * words_2_.cols() + closest_word[0].second;
       frame_indice.push_back(frame_id);
       track_indice.push_back(track_id);
+      //std::cout<<"word_index: "<<word_index<<std::endl;
       common::AddDescriptor<float, 2 * kDimSubVectors>(
           descriptors.col(i), max_db_descriptor_index_, word_index,
           &word_index_map_, &inverted_files_);
+      //std::cout<<"inverted_files_: "<<inverted_files_.size()<<std::endl;
       ++max_db_descriptor_index_;
     }
   }
@@ -161,6 +163,7 @@ class InvertedMultiIndex {
     nearest_neighbors.reserve(num_neighbors + 1);
     const int num_words_to_use = static_cast<int>(closest_words.size());
     std::unordered_map<int, int>::const_iterator word_index_map_it;
+    
 
     for (int i = 0; i < num_words_to_use; ++i) {
       const int word_index =
@@ -168,9 +171,10 @@ class InvertedMultiIndex {
       word_index_map_it = word_index_map_.find(word_index);
       if (word_index_map_it == word_index_map_.end())
         continue;
-
+        
       const InvFile& inverted_file = inverted_files_[word_index_map_it->second];
       const size_t num_descriptors = inverted_file.descriptors_.size();
+
       for (size_t j = 0; j < num_descriptors; ++j) {
         const float distance =
             (inverted_file.descriptors_[j] - query_feature).squaredNorm();

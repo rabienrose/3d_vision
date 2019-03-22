@@ -15,7 +15,7 @@
 #include <maplab-common/binary-serialization.h>
 
 DEFINE_int32(
-    lc_kmeans_splits, 10, "Number of splits in the kmeans step per level.");
+    lc_kmeans_splits, 6, "Number of splits in the kmeans step per level.");
 
 DEFINE_int32(lc_kmeans_levels, 4, "Number of levels in the vocabulary tree.");
 
@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
     typedef aslam::common::FeatureDescriptorRef desc_type;
     typedef loop_closure::TreeBuilder<desc_type, loop_closure::distance::Hamming<desc_type> > TreeBuilderChamo;
     TreeBuilderChamo::FeatureVector descriptor_refs;
-    std::string desc_addr="/home/chamo/Documents/work/orb_mapping_loc/track_desc/desc.txt";
+    std::string desc_addr="/home/chamo/Documents/work/orb_mapping_loc/desc.txt";
     std::ifstream infile_desc(desc_addr);
     std::string line;
     int descriptor_size= -1;
@@ -76,17 +76,17 @@ int main(int argc, char* argv[]) {
         descriptor_refs.push_back(descriptor);
     }
     
+    std::ifstream in_stream("/home/chamo/Documents/work/orb_mapping_loc/orb_project_mat.dat", std::ios_base::binary);
+    Eigen::MatrixXf projection_matrix_;
+    common::Deserialize(&projection_matrix_, &in_stream);
+    
     desc_type descriptor_zero(descriptor_size);
     descriptor_zero.SetZero();
     TreeBuilderChamo builder(descriptor_zero);
     builder.kmeans().SetRestarts(FLAGS_lc_num_kmeans_restarts);
-    std::cout<<(int)descriptor_refs[100][2]<<std::endl;
     builder.Build(descriptor_refs, FLAGS_lc_kmeans_splits, FLAGS_lc_kmeans_levels);
-    std::cout<<"descriptor_refs: "<<descriptor_refs.size()<<std::endl;
     printf("%lu centers\n", builder.tree().centers().size());
-    std::ifstream in_stream("/home/chamo/Documents/work/orb_mapping_loc/track_desc/orb_project_mat.dat", std::ios_base::binary);
-    Eigen::MatrixXf projection_matrix_;
-    common::Deserialize(&projection_matrix_, &in_stream);
+    
     in_stream.close();
     const TreeBuilderChamo::Tree& tree = builder.tree();
     std::vector<desc_type> centers = tree.centers();
@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
         //std::cout<<projected_descriptor_1_item.transpose()<<std::endl;
     }
 
-    std::ofstream out_stream("/home/chamo/Documents/work/orb_mapping_loc/track_desc/words.dat", std::ios_base::binary);
+    std::ofstream out_stream("/home/chamo/Documents/work/orb_mapping_loc/words.dat", std::ios_base::binary);
     int deserialized_version=0;
     int serialized_target_dimensionality=5;
     common::Serialize(deserialized_version, &out_stream);

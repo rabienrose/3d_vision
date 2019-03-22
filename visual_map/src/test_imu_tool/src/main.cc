@@ -11,39 +11,11 @@
 #include "Converter.h"
 
 #include "test_imu_tool/visual_tool.h"
+#include "read_write_data_lib/read_write.h"
 #include "visualization/common-rviz-visualization.h"
+#include "visualization/color-palette.h"
+#include "visualization/color.h"
 
-std::vector<std::string> split(const std::string& str, const std::string& delim)
-{
-    std::vector<std::string> tokens;
-    size_t prev = 0, pos = 0;
-    do
-    {
-        pos = str.find(delim, prev);
-        if (pos == std::string::npos) pos = str.length();
-        std::string token = str.substr(prev, pos-prev);
-        if (!token.empty()) tokens.push_back(token);
-        prev = pos + delim.length();
-    }
-    while (pos < str.length() && prev < str.length());
-    return tokens;
-}
-
-Eigen::Matrix3d getRotFromVector(Eigen::Vector3d a, Eigen::Vector3d b){
-     Eigen::Vector3d v = a.cross(b);
-     Eigen::Matrix3d v_hat;
-     v_hat <<   0, -v(2), v(1),
-                v(2), 0, -v(0),
-                -v(1), v(0), 0;
-     double c= a.dot(b);
-     Eigen::Matrix3d re=Eigen::Matrix3d::Identity()+v_hat+v_hat*v_hat/(1+c);
-     return re;
-}
-
-double interDouble(double v1, double v2, double t1, double t2, double t3)
-{
-    return v1 + (v2 - v1) * (t3 - t1) / (t2 - t1);
-}
 
 Eigen::Vector3d interEigenV(Eigen::Vector3d v1, Eigen::Vector3d v2, double t1, double t2, double t3){
     return v1 + (v2 - v1) * (t3 - t1) / (t2 - t1);
@@ -69,144 +41,46 @@ int main(int argc, char* argv[]) {
     visualization::RVizVisualizationSink::init();
     std::string save_addr;
     std::string line;
-    std::string img_time_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/11_26/camera_1_image_time.txt";
-    std::ifstream infile_img_time(img_time_addr.c_str());
+    
     Eigen::Matrix4d Tbc= Eigen::Matrix4d::Identity();
     Tbc<<-0.99999518, -0.00310315,  0.00007742,  0.05310734,
-           -0.00124823,  0.42483127,  0.90527169,  0.00929943,
-           -0.00284208,  0.90526723, -0.4248331,  -0.01557671,
-           0.0,          0.0,          0.0,         1.0;
-   float fx=541.39699791; 
-   float fy=540.86222539; 
-   float cx=474.6630494; 
-   float cy=306.8632145; 
-   std::unordered_map<std::string, double> img_time_map;
-    while (true)
-    {
-        std::getline(infile_img_time, line);
-        if (line==""){
-            break;
-        }
-        std::vector<std::string> splited = split(line, ",");
-        img_time_map[splited[0]]=atof(splited[1].c_str());
-    }
+        -0.00124823,  0.42483127,  0.90527169,  0.00929943,
+        -0.00284208,  0.90526723, -0.4248331,  -0.01557671,
+        0.0,          0.0,          0.0,         1.0;
+    float fx=541.39699791; 
+    float fy=540.86222539; 
+    float cx=474.6630494; 
+    float cy=306.8632145; 
     
-    std::map<double, int> pose_list;
-    std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> pose_vec;
-    std::map<int, int> frame_ids;
+    std::string img_time_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/11_26/camera_1_image_time.txt";
     std::string pose_addr="/home/chamo/Documents/work/orb_mapping_loc/traj.txt";
-    std::ifstream infile_pose(pose_addr.c_str());
-    while (true)
-    {
-        std::getline(infile_pose, line);
-        if (line==""){
-            break;
-        }
-        std::vector<std::string> splited = split(line, ",");
-        std::string file_name= splited[0];
-        Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
-        int frame_id=atoi(splited[1].c_str());
-        pose(0,0)=atof(splited[2].c_str());
-        pose(0,1)=atof(splited[3].c_str());
-        pose(0,2)=atof(splited[4].c_str());
-        pose(0,3)=atof(splited[5].c_str());
-        pose(1,0)=atof(splited[6].c_str());
-        pose(1,1)=atof(splited[7].c_str());
-        pose(1,2)=atof(splited[8].c_str());
-        pose(1,3)=atof(splited[9].c_str());
-        pose(2,0)=atof(splited[10].c_str());
-        pose(2,1)=atof(splited[11].c_str());
-        pose(2,2)=atof(splited[12].c_str());
-        pose(2,3)=atof(splited[13].c_str());
-        pose_vec.push_back(pose);
-        frame_ids[frame_id]=pose_vec.size()-1;
-        if(img_time_map.count(file_name)!=0){
-            pose_list[img_time_map[file_name]]=pose_vec.size()-1;
-        }else{
-            std::cout<<"image not exist!!"<<std::endl;
-            return 0;
-        }        
-    }
+    std::map<double, int> pose_list;
+    std::map<int, int> frame_ids;
+    std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> pose_vec;
+    CHAMO::read_pose_list(pose_list, frame_ids, pose_vec, pose_addr, img_time_addr);
 
     std::string imu_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/11_26/imu.txt";
-    std::ifstream infile_imu(imu_addr.c_str());
-    
-    std::vector<ORB_SLAM2::IMUData> imu_datas;
-    int imu_count=0;
-    Eigen::Vector3d gravity(0,0,-9.8);
-    Eigen::Vector3d bg=Eigen::Vector3d::Zero();
-    Eigen::Vector3d ba=Eigen::Vector3d::Zero();
-    
-    while (true)
-    {
-        std::getline(infile_imu, line);
-        if (line==""){
-            break;
-        }
-        std::vector<std::string> splited = split(line, ",");
-        double timestamp=atof(splited[0].c_str());
-        double gx=atof(splited[1].c_str());
-        double gy=atof(splited[2].c_str());
-        double gz=atof(splited[3].c_str());
-        double ax=atof(splited[4].c_str());
-        double ay=atof(splited[5].c_str());
-        double az=atof(splited[6].c_str());
-        ORB_SLAM2::IMUData imu_data(gx, gy, gz, ax, ay, az, timestamp);
-        imu_datas.push_back(imu_data);
-    }
+    std::vector<Eigen::Matrix<double, 7, 1>> imu_datas_raw;
+    CHAMO::read_imu_data(imu_addr, imu_datas_raw);
+
     std::string posi_addr="/home/chamo/Documents/work/orb_mapping_loc/posi.txt";
-    std::ifstream infile_posi(posi_addr.c_str());
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
-    while (true)
-    {
-        std::getline(infile_posi, line);
-        if (line==""){
-            break;
-        }
-        std::vector<std::string> splited = split(line, ",");
-        Eigen::Vector3d mp_posi;
-        mp_posi.x()=atof(splited[0].c_str());
-        mp_posi.y()=atof(splited[1].c_str());
-        mp_posi.z()=atof(splited[2].c_str());
-        mp_posis.push_back(mp_posi);
-    }
+    CHAMO::read_mp_posi(posi_addr, mp_posis);
+    
     std::string kp_addr="/home/chamo/Documents/work/orb_mapping_loc/kps.txt";
-    std::ifstream infile_kp(kp_addr.c_str());
-    std::vector<cv::Point2f> kp_uvs;
+    std::vector<Eigen::Vector2f> kp_uvs;
     std::vector<int> kp_frameids;
     std::vector<int> kp_octoves;
-    while (true)
-    {
-        std::getline(infile_kp, line);
-        if (line==""){
-            break;
-        }
-        std::vector<std::string> splited = split(line, ",");
-        cv::Point2f uv;
-        uv.x=atof(splited[0].c_str());
-        uv.y=atof(splited[1].c_str());
-        int octove=atoi(splited[2].c_str());
-        int frame_id=atoi(splited[3].c_str());
-        kp_uvs.push_back(uv);
-        kp_octoves.push_back(octove);
-        kp_frameids.push_back(frame_id);
-    }
+    CHAMO::read_kp_info(kp_addr, kp_uvs, kp_frameids, kp_octoves);
+    
     std::string track_addr="/home/chamo/Documents/work/orb_mapping_loc/track.txt";
     std::vector<std::vector<int>> tracks;
-    std::ifstream infile_track(track_addr);
-    while (true)
-    {
-        std::getline(infile_track, line);
-        if (line==""){
-            break;
-        }
-        std::vector<std::string> splited = split(line, ",");
-        std::vector<int> track;
-        for(auto str: splited){
-            track.push_back(atoi(str.c_str()));
-        }
-        tracks.push_back(track);
-    }
+    CHAMO::read_track_info(track_addr, tracks);
+    
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
+    std::vector<Eigen::Quaterniond> lidar_dirs;
+    std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/11_26/wayz_2018_11_26_result/interpolation_traj_camera_right.txt";
+    CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis);
     
     std::vector<std::vector<ORB_SLAM2::MP_INFO>> mp_infos;
     for(int i=0; i<tracks.size(); i++){
@@ -214,8 +88,8 @@ int main(int argc, char* argv[]) {
         for(int j=0; j<tracks[i].size(); j++){
             int kp_id=tracks[i][j];
             ORB_SLAM2::MP_INFO info;
-            info.u=kp_uvs[kp_id].x;
-            info.v=kp_uvs[kp_id].y;
+            info.u=kp_uvs[kp_id].x();
+            info.v=kp_uvs[kp_id].y();
             info.octove=kp_octoves[kp_id];
             info.frame_id=frame_ids[kp_frameids[kp_id]];
             info.mp_id=i;
@@ -224,49 +98,19 @@ int main(int argc, char* argv[]) {
         mp_infos.push_back(track_info);
     }
     
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
-    std::vector<Eigen::Quaterniond> lidar_dirs;
-    std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/11_26/wayz_2018_11_26_result/interpolation_traj_camera_right.txt";
-    std::ifstream infile_lidar(lidar_addr);
-    while (true)
-    {
-        std::getline(infile_lidar, line);
-        if (line==""){
-            break;
-        }
-        std::vector<std::string> splited = split(line, ",");
-        Eigen::Vector3d posi;
-        posi.x()=atof(splited[6].c_str());
-        posi.y()=atof(splited[10].c_str());
-        posi.z()=atof(splited[14].c_str());
-        lidar_posis.push_back(posi);
+    std::vector<ORB_SLAM2::IMUData> imu_datas;
+    for(int i=0; i<imu_datas_raw.size(); i++){
+        double timestamp=imu_datas_raw[i](0);
+        double gx=imu_datas_raw[i](1);
+        double gy=imu_datas_raw[i](2);
+        double gz=imu_datas_raw[i](3);
+        double ax=imu_datas_raw[i](4);
+        double ay=imu_datas_raw[i](5);
+        double az=imu_datas_raw[i](6);
+        ORB_SLAM2::IMUData imu_data(gx, gy, gz, ax, ay, az, timestamp);
+        imu_datas.push_back(imu_data);
     }
-    
-//     Eigen::Matrix<double, 3, 4> proj_m=Eigen::Matrix<double, 3, 4>::Zero();
-//     proj_m(0,0)=fx;
-//     proj_m(1,1)=fy;
-//     proj_m(0,2)=cx;
-//     proj_m(1,2)=cy;
-//     proj_m(2,2)=1;
-//     double tot_err=0;
-//     int proj_err_count=0;
-//     for(int i=0; i<mp_infos.size(); i++){
-//         for (int j=0; j<mp_infos[i].size(); j++){
-//             Eigen::Matrix4d pose = pose_vec[mp_infos[i][j].frame_id].inverse();
-//             Eigen::Vector3d posi=mp_posis[mp_infos[i][j].mp_id];
-//             Eigen::Vector4d pose_homo; 
-//             pose_homo(3,1)=1;
-//             pose_homo.block<3,1>(0,0)=posi;
-//             Eigen::Vector3d projected_vec= proj_m*pose*pose_homo;
-//             double u=projected_vec(0)/projected_vec(2);
-//             double v=projected_vec(1)/projected_vec(2);
-//             double dist=sqrt((u-mp_infos[i][j].u)*(u-mp_infos[i][j].u)+(v-mp_infos[i][j].v)*(v-mp_infos[i][j].v));
-//             tot_err=tot_err+dist;
-//             proj_err_count++;
-//         }
-//     }
-    //std::cout<<"tot proj err: "<<tot_err/proj_err_count<<std::endl;
-    
+
     std::vector<std::vector<ORB_SLAM2::IMUData>> sycn_imu_datas_all;
     int procceing_imu_id=0;
     double last_time=0;
@@ -298,8 +142,10 @@ int main(int argc, char* argv[]) {
     
     for(int i=0; i<pose_vec.size(); i++){
         pose_vec_mat.push_back(ORB_SLAM2::Converter::toCvMat(pose_vec[i]));
-        //sycn_imu_datas.push_back(sycn_imu_datas_all[i]);
     }
+    
+    Eigen::Vector3d bg=Eigen::Vector3d::Zero();
+    Eigen::Vector3d ba=Eigen::Vector3d::Zero();
     std::vector<ORB_SLAM2::IMUPreintegrator> preints;
     updatePreInt(preints, sycn_imu_datas, ba, bg);
     Eigen::Vector3d new_bg = OptimizeInitialGyroBias(pose_vec_mat, preints, Tbc);
@@ -375,16 +221,9 @@ int main(int argc, char* argv[]) {
         last_v=veleig;
     }
     
-    
-    
     for(int i=0; i<mp_posis.size(); i++){
         mp_posis[i]=mp_posis[i]*sstar;
     }
-    //std::cout<<ORB_SLAM2::IMUData::getGyrBiasRW2()<<std::endl;       // Gyroscope bias random walk, covariance INVERSE
-    //std::cout<<ORB_SLAM2::IMUData::getAccBiasRW2()<<std::endl;
-//     for (int i=0; i<states.size(); i=i+10){
-//         std::cout<<states[i].Get_V().norm()<<std::endl;
-//     }
     show_pose_as_marker(states, Rwi_, "before_opti");
     show_mp_as_cloud(mp_posis, Rwi_, "chamo_target");
     show_mp_as_cloud(lidar_posis, Eigen::Matrix3d::Identity(), "/chamo/gps");
@@ -401,43 +240,5 @@ int main(int argc, char* argv[]) {
     }
     
     ros::spin();
-
-//     Eigen::Vector3d g_c=Eigen::Vector3d::Zero();
-//     Eigen::Vector3d a_c=Eigen::Vector3d::Zero();
-//     for(int i=100; i<1100;i++){
-//         g_c = g_c+sycn_imu_datas[0][i]._g;
-//         a_c = a_c+sycn_imu_datas[0][i]._a;
-//     }
-//     Eigen::Vector3d g_av=g_c/1000;
-//     Eigen::Vector3d a_av=a_c/1000;
-//     std::cout<<g_av.transpose()<<std::endl;
-//     
-//     std::cout<<"gravity norm: "<<cv::norm(gwstar)<<std::endl;
-//     std::cout<<"imu ori: "<<a_av.transpose()<<std::endl;
-//     bg=new_bg;
-    //ba=bias_a;
-    
-//     Eigen::Vector3d a_b_norm = a_av.normalized();
-//     Eigen::Vector3d a_w(0,0,1);
-//     Eigen::Matrix3d Rib = getRotFromVector(a_b_norm, a_w);
-//     
-//     ORB_SLAM2::NavState ns;
-//     ns.Set_Pos(Eigen::Vector3d::Zero());
-//     ns.Set_Vel(Eigen::Vector3d::Zero());
-//     ns.Set_BiasGyr(bg);
-//     ns.Set_BiasAcc(ba);
-//     Eigen::Matrix3d Rcb=Tbc.block(0,0,3,3).transpose();
-//     ns.Set_Rot(Rcb);
-//     //ns.Set_Rot(Rib);
-//     for(int i=1; i<1000;i++){
-//         const ORB_SLAM2::IMUData& cur_imu = imu_datas[i];
-//         const ORB_SLAM2::IMUData& last_imu = imu_datas[i-1];
-//         double dt = cur_imu._t - last_imu._t;
-//         ORB_SLAM2::IMUPreintegrator imupreint;
-//         imupreint.update(cur_imu._g - bg, cur_imu._a - ba, dt);
-//         ORB_SLAM2::Converter::updateNS(ns, imupreint, Rwi*g_b);
-//         //ORB_SLAM2::Converter::updateNS(ns, imupreint, gravity);
-//     }
-//     std::cout<<ns.Get_P().transpose()<<std::endl;
         
 }

@@ -4,6 +4,7 @@
 
 #include <Eigen/QR>
 #include <Eigen/SVD>
+#include <Eigen/Eigenvalues>
 #include <descriptor-projection/build-projection-matrix.h>
 #include <descriptor-projection/flags.h>
 
@@ -90,34 +91,36 @@ namespace descriptor_projection {
             // Centering.
             constexpr int kMaxNumSamples = 50000;
             for (const std::vector<int>& track : tracks) {
-            if (track.size() < kMinTrackLength) {
-                ++too_short_tracks;
-                continue;
+                if (track.size() < kMinTrackLength) {
+                    ++too_short_tracks;
+                    continue;
+                }
+                if (number_of_used_tracks >= kMaxNumSamples) {
+                    LOG(WARNING) << "Truncated descriptors to " << kMaxNumSamples << ".";
+                    break;
+                }
+                ++long_enough_tracks;
+
+                Eigen::Matrix<float, Eigen::Dynamic, 1> mean;
+                mean.resize(descriptor_size, Eigen::NoChange);
+                mean.setZero();
+
+                for (const size_t& descriptor_idx : track) {
+                    descriptors_from_tracks.push_back(descriptor_idx);
+                    mean += all_descriptors.block(0, descriptor_idx, descriptor_size, 1);
+                }
+
+                mean /= track.size();
+                CHECK_LE(mean.maxCoeff(), 1.0);
+                CHECK_GE(mean.minCoeff(), 0.0);
+
+                Eigen::MatrixXf mu_sq_current = (mean * mean.transpose()).eval();
+
+                sumMuMu += mu_sq_current * track.size();
+                ++number_of_used_tracks;
             }
-            if (number_of_used_tracks >= kMaxNumSamples) {
-                LOG(WARNING) << "Truncated descriptors to " << kMaxNumSamples << ".";
-                break;
-            }
-            ++long_enough_tracks;
-
-            Eigen::Matrix<float, Eigen::Dynamic, 1> mean;
-            mean.resize(descriptor_size, Eigen::NoChange);
-            mean.setZero();
-
-            for (const size_t& descriptor_idx : track) {
-                descriptors_from_tracks.push_back(descriptor_idx);
-                mean += all_descriptors.block(0, descriptor_idx, descriptor_size, 1);
-            }
-
-            mean /= track.size();
-            CHECK_LE(mean.maxCoeff(), 1.0);
-            CHECK_GE(mean.minCoeff(), 0.0);
-
-            Eigen::MatrixXf mu_sq_current = (mean * mean.transpose()).eval();
-
-            sumMuMu += mu_sq_current * track.size();
-            ++number_of_used_tracks;
-            }
+            
+            std::cout<<"number_of_used_tracks: "<<number_of_used_tracks<<std::endl;
 
             VLOG(3) << "Got " << long_enough_tracks << " tracks out of "
                     << tracks.size() << " (dropped " << too_short_tracks
@@ -189,6 +192,15 @@ namespace descriptor_projection {
         *A = (eye - singular_values_sqrt_inv) * svd_d.matrixV().transpose() *
             svd.singularValues().cwiseInverse().asDiagonal() *
             svd.matrixV().transpose();
+        Eigen::MatrixXf temp_mat = (*A)*cov_non_matches*(*A).transpose();
+        Eigen::EigenSolver<Eigen::MatrixXf> es(temp_mat);
+        Eigen::MatrixXcf eigen_vec_c = es.eigenvectors();
+        Eigen::MatrixXf eigen_vec_r=eigen_vec_c.real();
+        Eigen::MatrixXf trimed_A = eigen_vec_r.block(0,0,(*A).cols(),10).transpose()*(*A);
+        //std::cout<<es.eigenvectors().row(0)<<std::endl;
+        std::cout<<trimed_A.row(0)<<std::endl;
+        std::cout<<(*A).col(0).transpose()<<std::endl;
+        *A=trimed_A;
     }
     
     template <typename DerivedIn, typename DerivedOut>

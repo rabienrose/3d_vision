@@ -172,6 +172,7 @@ inline void FindClosestWords(
   words_1_index.knn(
       query, indices_1, distances_1, num_neighbors, FLAGS_lc_knn_epsilon,
       kSearchOptionsDefault, FLAGS_lc_knn_max_radius);
+  //std::cout<<distances_1.transpose()<<std::endl;
 
   num_neighbors = std::min<int>(num_words_2, num_closest_words);
   CHECK_GT(num_neighbors, 0) << num_words_2 << " " << num_closest_words;
@@ -230,6 +231,7 @@ void AddDescriptor(
     inverted_files_ref[word_index_it->second].indices_.emplace_back(
         descriptor_id);
   }
+  //std::cout<<word_index<<" : "<<descriptor.transpose()<<std::endl;
 }
 
 }  // namespace common
