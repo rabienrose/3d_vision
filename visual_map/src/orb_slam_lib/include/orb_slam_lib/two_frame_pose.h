@@ -58,6 +58,10 @@ void DecomposeE(const cv::Mat &E, cv::Mat &R1, cv::Mat &R2, cv::Mat &t);
 void ExtractOrb(std::string img_name, cv::Mat& desc_list, std::vector<cv::KeyPoint>& kps_list,
                     std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
                     cv::Mat cam_m, cv::Mat cam_dis);
+
+void ExtractOrb(cv::Mat img, cv::Mat& desc_list, std::vector<cv::KeyPoint>& kps_list,
+                    std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
+                    cv::Mat cam_m, cv::Mat cam_dis);
 }
 
 

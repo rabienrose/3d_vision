@@ -209,6 +209,7 @@ int main(int argc, char** argv){
             cv::Mat cam_distort_cv;
             convert_eigen_double_mat_float(cam_inter, cam_inter_cv);
             convert_eigen_double_mat_float(cam_distort, cam_distort_cv);
+            std::vector<std::vector<std::vector<std::size_t>>> mGrid;
             orb_slam::ExtractOrb(img_addr, desc_list, kps_list, mGrid, cam_inter_cv, cam_distort_cv);
             
             std::map<int, int> match_count_per_frame;

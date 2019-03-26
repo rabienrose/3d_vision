@@ -1002,8 +1002,16 @@ namespace orb_slam
             kps_cv.push_back(key);
         }
     }
-
+    
     void ExtractOrb(std::string img_name, cv::Mat& desc_list, std::vector<cv::KeyPoint>& kps_list,
+                    std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
+                    cv::Mat cam_m, cv::Mat cam_dis){
+        cv::Mat img = cv::imread(img_name);
+        cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
+        ExtractOrb(img, desc_list, kps_list, mGrid, cam_m, cam_dis);
+    }
+
+    void ExtractOrb(cv::Mat img, cv::Mat& desc_list, std::vector<cv::KeyPoint>& kps_list,
                     std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
                     cv::Mat cam_m, cv::Mat cam_dis){
         int features_count=2000;
@@ -1011,9 +1019,6 @@ namespace orb_slam
         int features_level=8;
         int ini_cell_fast=20;
         int min_cell_fast=7;
-        cv::Mat img = cv::imread(img_name);
-        cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
-        //cv::resize(img,img,cv::Size(img.cols/scale_rate, img.rows/scale_rate));
         cv::Mat img_undistort;
         cv::undistort(img, img_undistort, cam_m, cam_dis);
         float width_img=img_undistort.cols;
