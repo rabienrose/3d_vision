@@ -775,9 +775,6 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       }
     }  // while end
     
-    if(FLAGS_summary_time){
-        std::cout <<"chamo,"<<"match features," << 1000 *(std::clock() - time) / (float)CLOCKS_PER_SEC <<","<<filterState.t_-1540000000<< std::endl;
-    }
     if(ID >= mtState::nMax_){
       isFinished = true;
     }
@@ -951,9 +948,6 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       }
     }
     
-    if(FLAGS_summary_time){
-        std::cout <<"chamo,"<<"extract patch," << 1000 *(std::clock() - time) / (float)CLOCKS_PER_SEC <<","<<filterState.t_-1540000000<< std::endl;
-    }
     time=std::clock();
 
     // Remove bad feature.
@@ -990,9 +984,6 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       }
     }
     if(verbose_) std::cout << std::endl;
-    if(FLAGS_summary_time){
-        std::cout <<"chamo,"<<"remove old features," << 1000 *(std::clock() - time) / (float)CLOCKS_PER_SEC <<","<<filterState.t_-1540000000<< std::endl;
-    }
     time=std::clock();
 
     // Get new features
@@ -1072,9 +1063,6 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
           }
         }
       }
-    }
-    if(FLAGS_summary_time){
-        std::cout <<"chamo,"<<"add new features," << 1000 *(std::clock() - time) / (float)CLOCKS_PER_SEC <<","<<filterState.t_-1540000000<< std::endl;
     }
     for(unsigned int i=0;i<mtState::nMax_;i++){
       if(filterState.fsm_.isValid_[i]){

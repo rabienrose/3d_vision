@@ -190,6 +190,11 @@ class VelocityUpdate: public LWF::Update<VelocityInnovation,FILTERSTATE,Velocity
     G.setZero();
     G.template block<3,3>(mtInnovation::template getId<mtInnovation::_vel>(),mtNoise::template getId<mtNoise::_vel>()) = Eigen::Matrix3d::Identity();
   }
+  
+  void preProcess(mtFilterState& filterstate, const mtMeas& meas, bool& isFinished){
+  }
+  void postProcess(mtFilterState& filterstate, const mtMeas& meas, const mtOutlierDetection& outlierDetection, bool& isFinished){
+  }
 };
 
 }

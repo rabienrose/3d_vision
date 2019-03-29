@@ -22,7 +22,7 @@ namespace ORB_SLAM2
     
     void GlobalBundleAdjustmentNavStatePRV(std::vector<IMUPreintegrator>& preints, std::vector<NavState>& states, Matrix4d Tbc,
                                        std::vector<std::vector<MP_INFO>> mp_infos, float fx, float fy, float cx, float cy,
-                                       std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& mp_posis,
+                                       std::vector<Eigen::Vector3d>& mp_posis,
                                        const cv::Mat& gw, int nIterations);
 
     void CalAccBias(const std::vector<cv::Mat>& vTwc, const std::vector<IMUPreintegrator>& vImuPreInt, 

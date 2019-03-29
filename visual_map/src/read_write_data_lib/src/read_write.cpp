@@ -133,7 +133,7 @@ namespace CHAMO
         }
     }
     
-    void read_mp_posi(std::string posi_addr, std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& mp_posis){
+    void read_mp_posi(std::string posi_addr, std::vector<Eigen::Vector3d>& mp_posis){
         std::string line;
         std::ifstream infile_posi(posi_addr.c_str());
         while (true)
@@ -191,7 +191,7 @@ namespace CHAMO
     }
     
     void read_lidar_pose(std::string lidar_addr, std::vector<Eigen::Quaterniond>& lidar_dirs,
-        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& lidar_posis,
+        std::vector<Eigen::Vector3d>& lidar_posis,
         std::vector<double>& time_stamp
     ){
         std::string line;
@@ -220,7 +220,7 @@ namespace CHAMO
     }
     
     void read_lidar_pose1(std::string lidar_addr, std::vector<Eigen::Quaterniond>& lidar_dirs,
-        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& lidar_posis,
+        std::vector<Eigen::Vector3d>& lidar_posis,
         std::vector<double>& time_stamp
     ){
         std::string line;

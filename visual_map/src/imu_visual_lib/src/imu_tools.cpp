@@ -228,7 +228,7 @@ void CalGravityAndScale(const vector<cv::Mat>& vTwc, const vector<IMUPreintegrat
 
 void GlobalBundleAdjustmentNavStatePRV(std::vector<IMUPreintegrator>& preints, std::vector<NavState>& states, Matrix4d Tbc,
                                        std::vector<std::vector<MP_INFO>> mp_infos, float fx, float fy, float cx, float cy,
-                                       std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& mp_posis,
+                                       std::vector<Eigen::Vector3d>& mp_posis,
                                        const cv::Mat& gw, int nIterations)
 {
     int nlevels=8;

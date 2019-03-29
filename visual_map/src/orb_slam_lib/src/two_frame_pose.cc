@@ -1014,7 +1014,7 @@ namespace orb_slam
     void ExtractOrb(cv::Mat img, cv::Mat& desc_list, std::vector<cv::KeyPoint>& kps_list,
                     std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
                     cv::Mat cam_m, cv::Mat cam_dis){
-        int features_count=2000;
+        int features_count=700;
         float features_scale_rate=1.2;
         int features_level=8;
         int ini_cell_fast=20;

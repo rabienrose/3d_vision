@@ -21,4 +21,5 @@
   <depend>descriptor_projection</depend>
   <depend>read_write_data_lib</depend>
   <depend>orb_slam_lib</depend>
+  <depend>visualization</depend>
 </package>

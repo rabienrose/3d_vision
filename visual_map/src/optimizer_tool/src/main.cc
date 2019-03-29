@@ -116,7 +116,7 @@ namespace g2o {
 }
 
 void doOpti(std::vector<Eigen::Matrix4d> lidar_poses,
-    std::vector<std::vector<ORB_SLAM2::MP_INFO>> mp_infos, std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& mp_posis,
+    std::vector<std::vector<ORB_SLAM2::MP_INFO>> mp_infos, std::vector<Eigen::Vector3d>& mp_posis,
     std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& pose_vec, Eigen::Matrix3d cam_inter
 ){
 //     std::vector<Eigen::Vector3d> traj_lidar;
@@ -373,44 +373,44 @@ void doOpti(std::vector<Eigen::Matrix4d> lidar_poses,
 }
 
 int main(int argc, char* argv[]) {
-    std::cout<<"chamo"<<std::endl;
+    std::string res_root=argv[0];
     visualization::RVizVisualizationSink::init();
     std::string save_addr;
     std::string line;
     
-    std::string cam_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/camera_config.txt";
+    std::string cam_addr=res_root+"/camera_config.txt";
     Eigen::Matrix3d cam_inter;
     Eigen::Vector4d cam_distort;
     Eigen::Matrix4d Tbc;
     CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
     
-    std::string img_time_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/camera_1_image_time.txt";
-    std::string pose_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/traj.txt";
+    std::string img_time_addr=res_root+"/camera_1_image_time.txt";
+    std::string pose_addr=res_root+"/traj.txt";
     std::map<double, int> pose_list;
     std::map<int, int> frame_ids;
     std::vector<double> img_times;
     std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> pose_vec;
     CHAMO::read_pose_list(pose_list, frame_ids, pose_vec, img_times, pose_addr, img_time_addr);
 
-    std::string posi_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/posi.txt";
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
+    std::string posi_addr=res_root+"/posi.txt";
+    std::vector<Eigen::Vector3d> mp_posis;
     CHAMO::read_mp_posi(posi_addr, mp_posis);
     
-    std::string kp_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/kps.txt";
+    std::string kp_addr=res_root+"/kps.txt";
     std::vector<Eigen::Vector2f> kp_uvs;
     std::vector<int> kp_frameids;
     std::vector<int> kp_octoves;
     CHAMO::read_kp_info(kp_addr, kp_uvs, kp_frameids, kp_octoves);
     
-    std::string track_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/track.txt";
+    std::string track_addr=res_root+"/track.txt";
     std::vector<std::vector<int>> tracks;
     CHAMO::read_track_info(track_addr, tracks);
     
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
+    std::vector<Eigen::Vector3d> lidar_posis;
     std::vector<Eigen::Quaterniond> lidar_dirs;
     std::vector<double> lidar_time;
     //std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/wayz_2018_11_26.bag_trajectory.txt";
-    std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/wayz_2018_11_26.bag_trajectory.txt";
+    std::string lidar_addr=res_root+"/wayz_2018_11_26.bag_trajectory.txt";
     CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis, lidar_time);
     
     std::vector<std::vector<ORB_SLAM2::MP_INFO>> mp_infos;
@@ -492,7 +492,14 @@ int main(int argc, char* argv[]) {
     Eigen::Matrix3d Rwi_=Eigen::Matrix3d::Identity();
     show_mp_as_cloud(mp_posis, Rwi_, "chamo_target");
     show_mp_as_cloud(lidar_posis, Rwi_, "/chamo/gps");
+    std::string posi_out_addr=res_root+"/posi_alin.txt";
+    std::ofstream f;
+    f.open(posi_out_addr.c_str());
+    for(int i=0; i<mp_posis.size(); i++){
+        f<<mp_posis[i](0)<<","<<mp_posis[i](1)<<","<<mp_posis[i](2)<<std::endl;
+    }
+    f.close();
 
-    ros::spin();
+    //ros::spin();
         
 }

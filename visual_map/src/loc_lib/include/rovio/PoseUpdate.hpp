@@ -198,6 +198,7 @@ class PoseUpdate: public LWF::Update<PoseInnovation,FILTERSTATE,PoseUpdateMeas,P
   }
   virtual ~PoseUpdate(){}
   const V3D& get_IrIW(const mtState& state) const{
+      return IrIW_;
     if(inertialPoseIndex_ >= 0){
       return state.poseLin(inertialPoseIndex_);
     } else {
@@ -205,6 +206,7 @@ class PoseUpdate: public LWF::Update<PoseInnovation,FILTERSTATE,PoseUpdateMeas,P
     }
   }
   const QPD& get_qWI(const mtState& state) const{
+      return qWI_;
     if(inertialPoseIndex_ >= 0){
       return state.poseRot(inertialPoseIndex_);
     } else {
@@ -212,6 +214,7 @@ class PoseUpdate: public LWF::Update<PoseInnovation,FILTERSTATE,PoseUpdateMeas,P
     }
   }
   const V3D& get_MrMV(const mtState& state) const{
+      return MrMV_;
     if(bodyPoseIndex_ >= 0){
       return state.poseLin(bodyPoseIndex_);
     } else {
@@ -219,6 +222,7 @@ class PoseUpdate: public LWF::Update<PoseInnovation,FILTERSTATE,PoseUpdateMeas,P
     }
   }
   const QPD& get_qVM(const mtState& state) const{
+      return qVM_;
     if(bodyPoseIndex_ >= 0){
       return state.poseRot(bodyPoseIndex_);
     } else {
@@ -285,19 +289,20 @@ class PoseUpdate: public LWF::Update<PoseInnovation,FILTERSTATE,PoseUpdateMeas,P
     mtState& state = filterstate.state_;
     isFinished = false;
     if(!didAlignment_ && doInertialAlignmentAtStart_){
-      // qWI = qWM*qVM^T*qVI;
-        std::cout<<state.qWM()<<std::endl;
-        std::cout<<meas.att()<<std::endl;
-        std::cout<<"==================="<<std::endl;
-      qWI_ = state.qWM()*get_qVM(state).inverted()*meas.att();
-      if(inertialPoseIndex_ >= 0){
-        state.poseRot(inertialPoseIndex_) = qWI_;
-      }
-      // IrIW = IrIV - qWI^T*(WrWM + qWM*MrMV);
-      IrIW_ = meas.pos() - qWI_.inverseRotate(V3D(state.WrWM() + state.qWM().rotate(get_MrMV(state))));
-      if(inertialPoseIndex_ >= 0){
-        state.poseLin(inertialPoseIndex_) = IrIW_;
-      }
+//       // qWI = qWM*qVM^T*qVI;
+//         std::cout<<state.qWM()<<std::endl;
+//         std::cout<<meas.att()<<std::endl;
+//         std::cout<<"==================="<<std::endl;
+//       qWI_ = state.qWM()*get_qVM(state).inverted()*meas.att();
+//       if(inertialPoseIndex_ >= 0){
+//         state.poseRot(inertialPoseIndex_) = qWI_;
+//       }
+//       
+//       // IrIW = IrIV - qWI^T*(WrWM + qWM*MrMV);
+//       IrIW_ = meas.pos() - qWI_.inverseRotate(V3D(state.WrWM() + state.qWM().rotate(get_MrMV(state))));
+//       if(inertialPoseIndex_ >= 0){
+//         state.poseLin(inertialPoseIndex_) = IrIW_;
+//       }
       didAlignment_ = true;
     }
 

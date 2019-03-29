@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
     CHAMO::read_imu_data(imu_addr, imu_datas_raw);
 
     std::string posi_addr="/home/chamo/Documents/work/orb_mapping_loc/posi.txt";
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
+    std::vector<Eigen::Vector3d> mp_posis;
     CHAMO::read_mp_posi(posi_addr, mp_posis);
     
     std::string kp_addr="/home/chamo/Documents/work/orb_mapping_loc/kps.txt";
@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::vector<int>> tracks;
     CHAMO::read_track_info(track_addr, tracks);
     
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
+    std::vector<Eigen::Vector3d> lidar_posis;
     std::vector<Eigen::Quaterniond> lidar_dirs;
     std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/11_26/wayz_2018_11_26_result/interpolation_traj_camera_right.txt";
     CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis);

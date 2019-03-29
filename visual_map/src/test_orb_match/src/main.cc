@@ -180,7 +180,7 @@ int main(int argc, char** argv){
         }
         index_->deserialize(proto_inverted_multi_index);
         std::string posi_addr="/home/chamo/Documents/work/orb_mapping_loc/posi.txt";
-        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
+        std::vector<Eigen::Vector3d> mp_posis;
         CHAMO::read_mp_posi(posi_addr, mp_posis);
         Eigen::Matrix3Xd points1;
         points1.resize(3,mp_posis.size());
@@ -209,7 +209,6 @@ int main(int argc, char** argv){
             cv::Mat cam_distort_cv;
             convert_eigen_double_mat_float(cam_inter, cam_inter_cv);
             convert_eigen_double_mat_float(cam_distort, cam_distort_cv);
-            std::vector<std::vector<std::vector<std::size_t>>> mGrid;
             orb_slam::ExtractOrb(img_addr, desc_list, kps_list, mGrid, cam_inter_cv, cam_distort_cv);
             
             std::map<int, int> match_count_per_frame;
@@ -439,8 +438,9 @@ int main(int argc, char** argv){
         std::string pose_addr="/home/chamo/Documents/work/orb_mapping_loc/traj.txt";
         std::map<double, int> pose_list;
         std::map<int, int> frame_ids;
+        std::vector<double> img_times;
         std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> pose_vec;
-        CHAMO::read_pose_list(pose_list, frame_ids, pose_vec, pose_addr, img_time_addr);
+        CHAMO::read_pose_list(pose_list, frame_ids, pose_vec, img_times ,pose_addr, img_time_addr);
         
         Eigen::VectorXf projected_desc;
         Eigen::VectorXf projected_desc_c;

@@ -308,17 +308,16 @@ class Update: public ModelBase<Update<Innovation,FilterState,Meas,Noise,OutlierD
         //TODO check overbound write
         Eigen::MatrixXd temp=innVector_+H_*difVecLinInv_;
         updateVec_ = -K_*temp+difVecLinInv_; // includes correction for offseted linearization point, dif must be recomputed (a-b != (-(b-a)))
-        
         linState_.boxPlus(updateVec_,linState_);
         updateVecNorm_ = updateVec_.norm();
         hasConverged_ = updateVecNorm_<=updateVecNormTermination_;
         
-//         if(mtMeas::D_>2){
-//             Eigen::MatrixXd temp_noise = Hn_*updnoiP_*Hn_.transpose();
-//             Eigen::Vector3d vv=updateVec_.template block<3,1>(mtState::template getId<mtState::_vel>(),0); 
-//             //std::cout<<temp_noise.block<6,6>(0,0).diagonal().transpose()<<std::endl;
-//             //std::cout<<"delta x: "<<updateVecNorm_<<std::endl;
-//         }
+        if(mtMeas::D_>2){
+            //Eigen::MatrixXd temp_noise = Hn_*updnoiP_*Hn_.transpose();
+            //Eigen::Vector3d vv=updateVec_.template block<3,1>(mtState::template getId<mtState::_vel>(),0); 
+            //std::cout<<temp_noise.block<6,6>(0,0).diagonal().transpose()<<std::endl;
+            //std::cout<<"delta x: "<<updateVecNorm_<<std::endl;
+        }
         
       }
       if(mtMeas::D_>2){

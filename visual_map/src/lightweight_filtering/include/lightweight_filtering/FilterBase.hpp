@@ -113,6 +113,7 @@ class FilterBase: public PropertyHandler{
   virtual ~FilterBase(){
   };
   void reset(double t = 0.0){
+      std::cout<<"safeWarningTime_: "<<t<<std::endl;
     init_.t_ = t;
     init_.state_.fix();
     safe_ = init_;
