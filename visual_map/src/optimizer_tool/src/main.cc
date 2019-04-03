@@ -27,7 +27,7 @@
 #include "visualization/color.h"
 #include "opencv2/opencv.hpp"
 
-// Eigen::Matrix4d align_traj(std::vector<Eigen::Vector3d>& traj1, std::vector<Eigen::Vector3d>& traj2){
+// Eigen::Matrix4d align_traj(std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& traj1, std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& traj2){
 //     Eigen::Vector3d p1=Eigen::Vector3d::Zero();
 //     Eigen::Vector3d p2=Eigen::Vector3d::Zero();     // center of mass
 //     int N = traj1.size();
@@ -38,8 +38,8 @@
 //     p1 = p1 /  N;
 //     p2 = p2 / N;
 //     
-//     std::vector<Eigen::Vector3d> q1;
-//     std::vector<Eigen::Vector3d> q2;
+//     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> q1;
+//     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> q2;
 //     for (int i=0; i<traj1.size(); i++){
 //         q1.push_back(traj1[i]-p1);
 //         q2.push_back(traj2[i]-p2);
@@ -116,11 +116,11 @@ namespace g2o {
 }
 
 void doOpti(std::vector<Eigen::Matrix4d> lidar_poses,
-    std::vector<std::vector<ORB_SLAM2::MP_INFO>> mp_infos, std::vector<Eigen::Vector3d>& mp_posis,
+    std::vector<std::vector<ORB_SLAM2::MP_INFO>> mp_infos, std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& mp_posis,
     std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& pose_vec, Eigen::Matrix3d cam_inter
 ){
-//     std::vector<Eigen::Vector3d> traj_lidar;
-//     std::vector<Eigen::Vector3d> traj_cam;
+//     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> traj_lidar;
+//     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> traj_cam;
 //     for(int i=0; i<pose_vec.size(); i++){
 //         Eigen::Vector3d cam_posi=pose_vec[i].block(0,3,3,1);
 //         traj_lidar.push_back(lidar_posis[i]);
@@ -169,10 +169,15 @@ void doOpti(std::vector<Eigen::Matrix4d> lidar_poses,
                 cv_mat.at<float>(n,m)=P_double_34(n,m);
             }
         }
+        
         proj_cv_mats.push_back(cv_mat);
     }
+    std::cout<<"procece lidar: "<<proj_cv_mats.size()<<std::endl;
+    std::cout<<"mp_infos count: "<<mp_infos.size()<<std::endl;
+    std::cout<<"mp_posis count: "<<mp_posis.size()<<std::endl;
 
     for(int i=0; i<mp_infos.size(); i++){
+//         std::cout<<i<<"/"<<mp_infos.size()<<std::endl;
         int last_id=mp_infos[i].size()-1;
         std::vector<cv::Point2f> pts1;
         cv::Point2f pt1( mp_infos[i][0].u, mp_infos[i][0].v);
@@ -180,14 +185,22 @@ void doOpti(std::vector<Eigen::Matrix4d> lidar_poses,
         std::vector<cv::Point2f> pts2;
         cv::Point2f pt2( mp_infos[i][last_id].u, mp_infos[i][last_id].v);
         pts2.push_back(pt2);
+        if(proj_cv_mats.size()<=mp_infos[i][0].frame_id){
+            std::cout<<"proj_cv_mats index wrong"<<std::endl;
+        }
+        if(proj_cv_mats.size()<=mp_infos[i][last_id].frame_id){
+            std::cout<<"proj_cv_mats index wrong"<<std::endl;
+        }
         cv::Mat proj1=proj_cv_mats[mp_infos[i][0].frame_id];
         cv::Mat proj2=proj_cv_mats[mp_infos[i][last_id].frame_id];
         cv::Mat out_posi;
         cv::triangulatePoints(proj1, proj2, pts1, pts2, out_posi);
+//         std::cout<<out_posi<<std::endl;
         mp_posis[i](0)=out_posi.at<float>(0)/out_posi.at<float>(3);
         mp_posis[i](1)=out_posi.at<float>(1)/out_posi.at<float>(3);
         mp_posis[i](2)=out_posi.at<float>(2)/out_posi.at<float>(3);
     }
+    std::cout<<"procece mp"<<std::endl;
     
     int nlevels=8;
     float scaleFactor=1.2;
@@ -230,6 +243,7 @@ void doOpti(std::vector<Eigen::Matrix4d> lidar_poses,
         if(i>maxKFid)
             maxKFid=i;
     }
+    std::cout<<"add vertice"<<std::endl;
     
     g2o::VertexSE3Expmap* cam_lidar_offset = new g2o::VertexSE3Expmap();
     Eigen::Matrix<double,3,3> R=Eigen::Matrix<double,3,3>::Identity();
@@ -286,6 +300,7 @@ void doOpti(std::vector<Eigen::Matrix4d> lidar_poses,
         lidar_edges.push_back(e);
         
     }
+    std::cout<<"add lidar edge"<<std::endl;
     
     const float thHuber2D = sqrt(5.99);
     const float thHuber3D = sqrt(7.815);
@@ -326,6 +341,7 @@ void doOpti(std::vector<Eigen::Matrix4d> lidar_poses,
             proj_edges.push_back(e);
         }
     }
+    std::cout<<"add project edge"<<std::endl;
     
     float avg_error=0;
     for(int i=0; i<lidar_edges.size(); i++){
@@ -373,7 +389,7 @@ void doOpti(std::vector<Eigen::Matrix4d> lidar_poses,
 }
 
 int main(int argc, char* argv[]) {
-    std::string res_root=argv[0];
+    std::string res_root=argv[1];
     visualization::RVizVisualizationSink::init();
     std::string save_addr;
     std::string line;
@@ -393,7 +409,7 @@ int main(int argc, char* argv[]) {
     CHAMO::read_pose_list(pose_list, frame_ids, pose_vec, img_times, pose_addr, img_time_addr);
 
     std::string posi_addr=res_root+"/posi.txt";
-    std::vector<Eigen::Vector3d> mp_posis;
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
     CHAMO::read_mp_posi(posi_addr, mp_posis);
     
     std::string kp_addr=res_root+"/kps.txt";
@@ -406,11 +422,11 @@ int main(int argc, char* argv[]) {
     std::vector<std::vector<int>> tracks;
     CHAMO::read_track_info(track_addr, tracks);
     
-    std::vector<Eigen::Vector3d> lidar_posis;
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
     std::vector<Eigen::Quaterniond> lidar_dirs;
     std::vector<double> lidar_time;
     //std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/wayz_2018_11_26.bag_trajectory.txt";
-    std::string lidar_addr=res_root+"/wayz_2018_11_26.bag_trajectory.txt";
+    std::string lidar_addr=res_root+"/lidar_trajectory.txt";
     CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis, lidar_time);
     
     std::vector<std::vector<ORB_SLAM2::MP_INFO>> mp_infos;
@@ -446,7 +462,7 @@ int main(int argc, char* argv[]) {
     for(int i=0; i<img_times.size(); i++){
         int corres_lidar=-1;
         for(int j=0; j<lidar_time.size(); j++){
-            if(fabs(lidar_time[j]-img_times[i])<0.05){
+            if(fabs(lidar_time[j]-img_times[i])<0.5){
                 corres_lidar=j;
                 break;
             }
@@ -459,7 +475,9 @@ int main(int argc, char* argv[]) {
             P_double=temp_rot*P_double.inverse();
             lidar_align.push_back(P_double.inverse());
         }else{
-            std::cout<<"error in lidar "<<std::endl;
+            std::cout<<"error in lidar: "<<i<<std::endl;
+            lidar_align.push_back(Eigen::Matrix<double,4,4>::Zero());
+            //we allow no lidar correspond to img, but every image must have a lidar attach to it.
         }
     }
     
@@ -500,6 +518,6 @@ int main(int argc, char* argv[]) {
     }
     f.close();
 
-    //ros::spin();
+    ros::spin();
         
 }

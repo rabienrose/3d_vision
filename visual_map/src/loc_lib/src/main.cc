@@ -27,10 +27,10 @@ std::vector<std::string> split(const std::string& str, const std::string& delim)
 int main(int argc, char* argv[]){
     visualization::RVizVisualizationSink::init();
     wayz::ChamoLoc localizer;
-    localizer.StartLocalization("/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/rovio_default_config.info");
-    localizer.AddMap("/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old");
+    localizer.StartLocalization("/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/try/rovio_default_config.info");
+    localizer.AddMap("/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/try");
     
-    std::string img_time_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/camera_1_image_time.txt";
+    std::string img_time_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/try/camera_1_image_time.txt";
     std::ifstream infile_img_time(img_time_addr.c_str()); 
     std::unordered_map<std::string, double> img_time_map;
     std::string line;
@@ -44,11 +44,11 @@ int main(int argc, char* argv[]){
         img_time_map[splited[0]]=atof(splited[1].c_str());
     }
     
-    std::string imu_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/imu.txt";
+    std::string imu_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/try/imu.txt";
     std::ifstream infile_imu(imu_addr.c_str()); 
     std::vector<double> imu_time;
-    std::vector<Eigen::Vector3d> acc_data;
-    std::vector<Eigen::Vector3d> gyro_data;
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> acc_data;
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> gyro_data;
     while (true)
     {
         std::getline(infile_imu, line);

@@ -27,8 +27,7 @@ DEFINE_string(images_folder, "", "images ");
 DEFINE_string(ncamera_calibration, "", "traj ");
 DEFINE_int32(start_frame, 0, "traj ");
 DEFINE_int32(end_frame, -1, "traj ");
-DEFINE_string(quantizer_filename, "", "traj ");
-DEFINE_string(index_addr, "", "traj ");
+DEFINE_string(resource_dir, "", "traj ");
 DEFINE_bool(generate_db, true, "traj ");
 
 struct Match{
@@ -131,24 +130,24 @@ int main(int argc, char** argv){
     FLAGS_alsologtostderr = true;
     FLAGS_colorlogtostderr = true;
     visualization::RVizVisualizationSink::init();
-    
+    std::string resource_dir=FLAGS_resource_dir;
     if (FLAGS_images_folder.empty()) {
         return -1;
     }
 
     int scale_rate=1;
     
-    std::ifstream in_stream(FLAGS_quantizer_filename, std::ios_base::binary);
+    std::ifstream in_stream(resource_dir+"/words_projmat.dat", std::ios_base::binary);
     int deserialized_version;
     common::Deserialize(&deserialized_version, &in_stream);
-
     int serialized_target_dimensionality;
     Eigen::MatrixXf words_first_half_;
     Eigen::MatrixXf words_second_half_;
     Eigen::MatrixXf projection_matrix_;
-
     common::Deserialize(&serialized_target_dimensionality, &in_stream);
+    std::cout<<serialized_target_dimensionality<<std::endl;
     common::Deserialize(&projection_matrix_, &in_stream);
+    
     std::cout<<projection_matrix_.cols()<<":"<<projection_matrix_.rows()<<std::endl;
     //std::cout<<projection_matrix_<<std::endl;
     common::Deserialize(&words_first_half_, &in_stream);
@@ -174,13 +173,13 @@ int main(int argc, char** argv){
     
     if(FLAGS_generate_db==false){
         loop_closure::proto::InvertedMultiIndex proto_inverted_multi_index;
-        std::fstream input(FLAGS_index_addr.c_str(), std::ios::in | std::ios::binary);
+        std::fstream input(resource_dir+"/index.dat", std::ios::in | std::ios::binary);
         if (!proto_inverted_multi_index.ParseFromIstream(&input)) {
             std::cerr << "Failed to parse map data." << std::endl;
         }
         index_->deserialize(proto_inverted_multi_index);
-        std::string posi_addr="/home/chamo/Documents/work/orb_mapping_loc/posi.txt";
-        std::vector<Eigen::Vector3d> mp_posis;
+        std::string posi_addr=resource_dir+"/posi.txt";
+        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
         CHAMO::read_mp_posi(posi_addr, mp_posis);
         Eigen::Matrix3Xd points1;
         points1.resize(3,mp_posis.size());
@@ -191,6 +190,15 @@ int main(int argc, char** argv){
         }    
         visualization::publish3DPointsAsPointCloud(points1, visualization::kCommonRed, 1.0, visualization::kDefaultMapFrame,"chamo_target1");
         visualization::PoseVector poses_vis;
+        std::string cam_addr=resource_dir+"/camera_config.txt";
+        Eigen::Matrix3d cam_inter;
+        Eigen::Vector4d cam_distort;
+        Eigen::Matrix4d Tbc;
+        CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
+        cv::Mat cam_inter_cv;
+        cv::Mat cam_distort_cv;
+        convert_eigen_double_mat_float(cam_inter, cam_inter_cv);
+        convert_eigen_double_mat_float(cam_distort, cam_distort_cv);
         for(int n=FLAGS_start_frame; n<FLAGS_end_frame ;n=n+1)
         {
             std::stringstream ss;
@@ -200,15 +208,6 @@ int main(int argc, char** argv){
             cv::Mat desc_list;
             std::vector<cv::KeyPoint> kps_list;
             std::vector<std::vector<std::vector<std::size_t>>> mGrid;
-            std::string cam_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/11_26/camera_config.txt";
-            Eigen::Matrix3d cam_inter;
-            Eigen::Vector4d cam_distort;
-            Eigen::Matrix4d Tbc;
-            CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
-            cv::Mat cam_inter_cv;
-            cv::Mat cam_distort_cv;
-            convert_eigen_double_mat_float(cam_inter, cam_inter_cv);
-            convert_eigen_double_mat_float(cam_distort, cam_distort_cv);
             orb_slam::ExtractOrb(img_addr, desc_list, kps_list, mGrid, cam_inter_cv, cam_distort_cv);
             
             std::map<int, int> match_count_per_frame;
@@ -342,7 +341,7 @@ int main(int argc, char** argv){
             // Only store the structure matches if there is a relevant amount of them.
             int total_match_count=0;
             
-            //std::cout<<"max_component_size: "<<max_component_size<<std::endl;
+            std::cout<<"max_component_size: "<<max_component_size<<std::endl;
             
             if (max_component_size > 10) {
                 
@@ -420,27 +419,28 @@ int main(int argc, char** argv){
         }
         ros::spin();
     }else{
-        std::string track_addr="/home/chamo/Documents/work/orb_mapping_loc/track.txt";
+        std::string track_addr=resource_dir+"/track.txt";
         std::vector<std::vector<int>> tracks;
         CHAMO::read_track_info(track_addr, tracks);
         
-        std::string desc_addr="/home/chamo/Documents/work/orb_mapping_loc/desc.txt";
+        std::string desc_addr=resource_dir+"/desc.txt";
         std::vector<Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>> descs;
         CHAMO::read_desc_eigen(desc_addr, descs);
         
-        std::string kp_addr="/home/chamo/Documents/work/orb_mapping_loc/kps.txt";
+        std::string kp_addr=resource_dir+"/kps.txt";
         std::vector<Eigen::Vector2f> kp_uvs;
         std::vector<int> kp_frameids;
         std::vector<int> kp_octoves;
         CHAMO::read_kp_info(kp_addr, kp_uvs, kp_frameids, kp_octoves);
         
-        std::string img_time_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/11_26/camera_1_image_time.txt";
-        std::string pose_addr="/home/chamo/Documents/work/orb_mapping_loc/traj.txt";
+        std::string img_time_addr=resource_dir+"/camera_1_image_time.txt";
+        std::string pose_addr=resource_dir+"/traj.txt";
         std::map<double, int> pose_list;
         std::map<int, int> frame_ids;
         std::vector<double> img_times;
         std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> pose_vec;
         CHAMO::read_pose_list(pose_list, frame_ids, pose_vec, img_times ,pose_addr, img_time_addr);
+
         
         Eigen::VectorXf projected_desc;
         Eigen::VectorXf projected_desc_c;
@@ -470,7 +470,7 @@ int main(int argc, char** argv){
 
         loop_closure::proto::InvertedMultiIndex proto_inverted_multi_index;
         index_->serialize(&proto_inverted_multi_index);
-        std::fstream output(FLAGS_index_addr.c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
+        std::fstream output(resource_dir+"/index.dat", std::ios::out | std::ios::trunc | std::ios::binary);
         if (!proto_inverted_multi_index.SerializeToOstream(&output)) {
             std::cerr << "Failed to write map data." << std::endl;
         }

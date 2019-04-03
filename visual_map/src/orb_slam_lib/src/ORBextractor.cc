@@ -4,7 +4,8 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
-
+#include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
 
 
 using namespace cv;
@@ -1002,21 +1003,17 @@ void ORBextractor::operator()( InputArray _image, vector<KeyPoint>& _keypoints,
 
     Mat descriptors;
 
-    int nkeypoints = 0;
-    for (int level = 0; level < nlevels; ++level)
-        nkeypoints += (int)allKeypoints[level].size();
-    if( nkeypoints == 0 )
-        _descriptors.release();
-    else
-    {
-        _descriptors.create(nkeypoints, 32, CV_8U);
-        descriptors = _descriptors.getMat();
-    }
+//     int nkeypoints = 0;
+//     for (int level = 0; level < nlevels; ++level)
+//         nkeypoints += (int)allKeypoints[level].size();
+//     if( nkeypoints == 0 )
+//         _descriptors.release();
+//     else
+//     {
 
-    _keypoints.clear();
-    _keypoints.reserve(nkeypoints);
-
-    int offset = 0;
+//     }
+    cv::Ptr<cv::DescriptorExtractor> extractor_ = cv::xfeatures2d::FREAK::create(false, true, 22, 1);
+    std::vector<cv::Mat> desc_levels;
     for (int level = 0; level < nlevels; ++level)
     {
         vector<KeyPoint>& keypoints = allKeypoints[level];
@@ -1030,12 +1027,13 @@ void ORBextractor::operator()( InputArray _image, vector<KeyPoint>& _keypoints,
         GaussianBlur(workingMat, workingMat, Size(7, 7), 2, 2, BORDER_REFLECT_101);
 
         // Compute the descriptors
-        Mat desc = descriptors.rowRange(offset, offset + nkeypointsLevel);
-        computeDescriptors(workingMat, keypoints, desc, pattern);
+        Mat desc;
+        //computeDescriptors(workingMat, keypoints, desc, pattern);
 
-        offset += nkeypointsLevel;
-
-        // Scale keypoint coordinates
+        extractor_->compute(workingMat, keypoints, desc);
+        desc_levels.push_back(desc);
+//         std::cout<<"level: "<<level<<std::endl;
+//         std::cout<<desc<<std::endl;
         if (level != 0)
         {
             float scale = mvScaleFactor[level]; //getScale(level, firstLevel, scaleFactor);
@@ -1045,6 +1043,14 @@ void ORBextractor::operator()( InputArray _image, vector<KeyPoint>& _keypoints,
         }
         // And add the keypoints to the output
         _keypoints.insert(_keypoints.end(), keypoints.begin(), keypoints.end());
+    }
+    _descriptors.create(_keypoints.size(), 64, CV_8U);
+    descriptors = _descriptors.getMat();
+    int offset=0;
+    for(int i=0; i<desc_levels.size(); i++){
+        //std::cout<<"offset: "<<offset<<std::endl;
+        desc_levels[i].copyTo(descriptors.rowRange(offset, offset+desc_levels[i].rows));
+        offset += desc_levels[i].rows;
     }
 }
 

@@ -44,7 +44,7 @@ namespace std {
 
 namespace wayz {
     
-    void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic){
+    void show_mp_as_cloud(std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& mp_posis, std::string topic){
         Eigen::Matrix3Xd points;
         points.resize(3,mp_posis.size());
         for(int i=0; i<mp_posis.size(); i++){
@@ -53,7 +53,7 @@ namespace wayz {
         publish3DPointsAsPointCloud(points, visualization::kCommonRed, 1.0, visualization::kDefaultMapFrame,topic);
     }
     
-    void show_pose_as_marker(std::vector<Eigen::Vector3d>& posis, std::vector<Eigen::Quaterniond>& rots, std::string topic){
+    void show_pose_as_marker(std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& posis, std::vector<Eigen::Quaterniond>& rots, std::string topic){
         visualization::PoseVector poses_vis;
         for(int i=0; i<posis.size(); i=i+1){
             visualization::Pose pose;
@@ -313,12 +313,12 @@ namespace wayz {
             cam_distort_zero.at<float>(1)=0;
             cam_distort_zero.at<float>(2)=0;
             cam_distort_zero.at<float>(3)=0;
-            cv::solvePnPRansac(point3ds, point2ds, cam_inter_cv, cam_distort_zero, rvec, tvec, false, 200, 3.0f, 0.99, inliers);
+            cv::solvePnPRansac(point3ds, point2ds, cam_inter_cv, cam_distort_zero, rvec, tvec, false, 1000, 3.0f, 0.99, inliers, cv::SOLVEPNP_EPNP);
             
             if(inliers.rows<20){
                 return;
             }
-            //std::cout<<"inliers.rows: "<<inliers.rows<<std::endl;
+            std::cout<<"inliers.rows: "<<inliers.rows<<std::endl;
             cv::Mat rot_m;
             cv::Rodrigues(rvec, rot_m);
             Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> rot_m_eigen;
@@ -435,7 +435,7 @@ namespace wayz {
         
     };
     void ChamoLoc::AddMap(const std::string& folder_path){
-        std::ifstream in_stream(folder_path+"/words.dat", std::ios_base::binary);
+        std::ifstream in_stream(folder_path+"/words_projmat.dat", std::ios_base::binary);
         int deserialized_version;
         common::Deserialize(&deserialized_version, &in_stream);
         int serialized_target_dimensionality;
@@ -471,7 +471,7 @@ namespace wayz {
         convert_eigen_double_mat_float(cam_distort, cam_distort_cv);
         
 //         std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/wayz_2018_11_26.bag_trajectory.txt";
-//         std::vector<Eigen::Vector3d> lidar_posis;
+//         std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
 //         std::vector<Eigen::Quaterniond> lidar_dirs;
 //         std::vector<double> lidar_time;
 //         Eigen::Matrix4d temp_rot=Eigen::Matrix4d::Identity();
