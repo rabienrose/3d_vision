@@ -11,6 +11,7 @@
 #include <opencv2/opencv.hpp>
 #include <memory>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/CompressedImage.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sys/stat.h>
@@ -65,6 +66,31 @@ int main(int argc, char **argv){
 
                     cv::imwrite(ss.str(), cv_ptr->image);
                     ss_time<<"img_"<<img_count<<".jpg"<<","<<simg->header.stamp<<std::endl;
+                    outfile<<ss_time.str();
+            
+                }
+                catch (cv_bridge::Exception& e)
+                {
+                    ROS_ERROR("cv_bridge exception: %s", e.what());
+                    return 0;
+                }
+                img_count++;
+            }
+            
+            sensor_msgs::CompressedImagePtr simgc = m.instantiate<sensor_msgs::CompressedImage>();
+            
+            if(simgc!=NULL){
+                
+                cv_bridge::CvImagePtr cv_ptr;
+                try
+                {
+                    cv_ptr = cv_bridge::toCvCopy(simgc, "bgr8");
+                    std::stringstream ss;
+                    std::stringstream ss_time;
+                    ss<<out_dir+"/camera_"+std::to_string(camera_count)+"_img/img_"<<img_count<<".jpg";
+
+                    cv::imwrite(ss.str(), cv_ptr->image);
+                    ss_time<<"img_"<<img_count<<".jpg"<<","<<simgc->header.stamp<<std::endl;
                     outfile<<ss_time.str();
             
                 }
