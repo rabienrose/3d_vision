@@ -31,7 +31,6 @@ void show_pose_as_marker(std::vector<Eigen::Quaterniond>& rots, std::vector<Eige
         pose.alpha = 1;
         poses_vis.push_back(pose);
     }
-    std::cout<<poses_vis.size()<<std::endl;
     visualization::publishVerticesFromPoseVector(poses_vis, visualization::kDefaultMapFrame, "vertices", topic);
 }
 
@@ -49,6 +48,7 @@ int main(int argc, char **argv)
     visualization::RVizVisualizationSink::init();
     ORB_SLAM2::System sys(argv[1],argv[2]);
     std::string bag_str=argv[3];
+    std::string out_str=argv[4];
     rosbag::Bag bag;
     bag.open(bag_str,rosbag::bagmode::Read);
     std::vector<std::string> topics;
@@ -62,12 +62,16 @@ int main(int argc, char **argv)
         if(simg!=NULL){
             cv_bridge::CvImagePtr cv_ptr;
             img_count++;
-            if(img_count<100){
+            if(img_count<0){
                 continue;
             }
+//             if(img_count >3000){
+//                 break;
+//             }
             try{
                 
                 std::stringstream ss;
+                ss<<"img_"<<img_count<<".jpg";
                 cv_ptr = cv_bridge::toCvCopy(simg, "mono8");
                 sys.TrackMonocular(cv_ptr->image, simg->header.stamp.toSec(), ss.str());
                 std::vector<Eigen::Vector3d> pcs;
@@ -90,8 +94,8 @@ int main(int argc, char **argv)
                 std::cout<<"err in main!!"<<std::endl;
                 return 0;
             }
-            
         }
     }
+    sys.saveResult(out_str);
     return 0;
 }

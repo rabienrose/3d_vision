@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <package format="2">
-  <name>test_orb_match</name>
+  <name>create_desc_index</name>
   <version>0.0.0</version>
   <description>A plugin to show how to add new console plugins</description>
   <maintainer email="your-email@domain.tld">Maplab user</maintainer>

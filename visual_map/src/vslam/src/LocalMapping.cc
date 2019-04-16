@@ -45,7 +45,7 @@ void LocalMapping::SetTracker(Tracking *pTracker)
 }
 
 void LocalMapping::DoMapping(){
-
+    mbFinished = false;
     // Check if there are keyframes in the queue
     while(CheckNewKeyFrames())
     {

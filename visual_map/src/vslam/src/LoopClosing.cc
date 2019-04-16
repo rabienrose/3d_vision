@@ -656,9 +656,9 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
             mpLocalMapper->RequestStop();
             // Wait until Local Mapping has effectively stopped
 
-            while(!mpLocalMapper->isStopped() && !mpLocalMapper->isFinished())
-            {
-            }
+//             while(!mpLocalMapper->isStopped() && !mpLocalMapper->isFinished())
+//             {
+//             }
 
             // Get Map Mutex
             //////unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
