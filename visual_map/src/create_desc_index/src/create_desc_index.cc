@@ -64,7 +64,7 @@ namespace DescIndex
         std::vector<int> kp_octoves;
         CHAMO::read_kp_info(kp_addr, kp_uvs, kp_frameids, kp_octoves);
         
-        std::string img_time_addr=resource_dir+"/camera_1_image_time.txt";
+        std::string img_time_addr=resource_dir+"/image_time.txt";
         std::string pose_addr=resource_dir+"/traj.txt";
         std::map<double, int> pose_list;
         std::map<int, int> frame_ids;

@@ -1019,8 +1019,8 @@ namespace orb_slam
         int features_level=8;
         int ini_cell_fast=20;
         int min_cell_fast=7;
-        cv::Mat img_undistort;
-        cv::undistort(img, img_undistort, cam_m, cam_dis);
+        cv::Mat img_undistort=img;
+        //cv::undistort(img, img_undistort, cam_m, cam_dis);
         float width_img=img_undistort.cols;
         float height_img=img_undistort.rows;
         

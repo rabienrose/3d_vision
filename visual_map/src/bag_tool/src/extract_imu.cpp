@@ -43,7 +43,7 @@ int main(int argc, char **argv){
         if(simu!=NULL){
             double sec = simu->header.stamp.toSec();
             std::stringstream ss;
-            ss<<std::setprecision (15)<<imu_count<<","<<view.getBeginTime().toSec()<<","<<sec<<std::endl;
+            //ss<<std::setprecision (15)<<imu_count<<","<<view.getBeginTime().toSec()<<","<<sec<<std::endl;
             if(sec- sec_last>0.02){
                 std::cout<<"error: "<<imu_count<<":"<<sec- sec_last<<std::endl;
             }

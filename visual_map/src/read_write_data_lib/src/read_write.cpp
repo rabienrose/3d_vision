@@ -202,17 +202,17 @@ namespace CHAMO
             if (line==""){
                 break;
             }
-            std::vector<std::string> splited = split(line, " ");
+            std::vector<std::string> splited = split(line, ",");
             Eigen::Vector3d posi;
-            posi.x()=atof(splited[1].c_str());
-            posi.y()=atof(splited[2].c_str());
-            posi.z()=atof(splited[3].c_str());
+            posi.x()=atof(splited[3].c_str());
+            posi.y()=atof(splited[4].c_str());
+            posi.z()=atof(splited[5].c_str());
             Eigen::Quaterniond qua;
-            qua.w()=atof(splited[4].c_str());
-            qua.x()=atof(splited[5].c_str());
-            qua.y()=atof(splited[6].c_str());
-            qua.z()=atof(splited[7].c_str());
-            double time= atof(splited[0].c_str());
+            qua.w()=atof(splited[6].c_str());
+            qua.x()=atof(splited[7].c_str());
+            qua.y()=atof(splited[8].c_str());
+            qua.z()=atof(splited[9].c_str());
+            double time= atof(splited[2].c_str());
             time_stamp.push_back(time);
             lidar_posis.push_back(posi);
             lidar_dirs.push_back(qua);

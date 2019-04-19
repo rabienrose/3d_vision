@@ -39,7 +39,7 @@ int main(int argc, char **argv){
         rosbag::View::iterator it= view.begin();
         std::ofstream outfile;
         
-        outfile.open (out_dir+"/camera_"+std::to_string(camera_count)+"_image_time.txt");
+        outfile.open (out_dir+"/image_time.txt");
         if (!outfile.is_open())
         {
             std::cout<<"file not open"<<std::endl;
@@ -64,7 +64,7 @@ int main(int argc, char **argv){
                     std::stringstream ss_time;
                     ss<<out_dir+"/camera_"+std::to_string(camera_count)+"_img/img_"<<img_count<<".jpg";
 
-                    cv::imwrite(ss.str(), cv_ptr->image);
+                    //cv::imwrite(ss.str(), cv_ptr->image);
                     ss_time<<"img_"<<img_count<<".jpg"<<","<<simg->header.stamp<<std::endl;
                     outfile<<ss_time.str();
             

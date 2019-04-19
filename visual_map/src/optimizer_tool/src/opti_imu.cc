@@ -49,6 +49,7 @@ namespace OptimizerTool{
         std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> pose_vec;
         std::vector<double> img_times;
         CHAMO::read_pose_list(pose_list, frame_ids, pose_vec, img_times, pose_addr, img_time_addr);
+        std::cout<<"pose_list: "<<img_times.size()<<std::endl;
 
         std::string imu_addr=res_root+"/imu.txt";
         std::vector<Eigen::Matrix<double, 7, 1>> imu_datas_raw;
@@ -57,22 +58,26 @@ namespace OptimizerTool{
         std::string posi_addr=res_root+"/posi.txt";
         std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
         CHAMO::read_mp_posi(posi_addr, mp_posis);
+        std::cout<<"mp_posis: "<<mp_posis.size()<<std::endl;
         
         std::string kp_addr=res_root+"/kps.txt";
         std::vector<Eigen::Vector2f> kp_uvs;
         std::vector<int> kp_frameids;
         std::vector<int> kp_octoves;
         CHAMO::read_kp_info(kp_addr, kp_uvs, kp_frameids, kp_octoves);
+        std::cout<<"kp_uvs: "<<kp_uvs.size()<<std::endl;
         
         std::string track_addr=res_root+"/track.txt";
         std::vector<std::vector<int>> tracks;
         CHAMO::read_track_info(track_addr, tracks);
+        std::cout<<"tracks: "<<tracks.size()<<std::endl;
         
         std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
         std::vector<Eigen::Quaterniond> lidar_dirs;
         std::string lidar_addr=res_root+"/lidar_trajectory.txt";
         std::vector<double> lidar_time_stamp;
         CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis, lidar_time_stamp);
+        std::cout<<"lidar_posis: "<<lidar_posis.size()<<std::endl;
         
         std::vector<std::vector<ORB_SLAM2::MP_INFO>> mp_infos;
         for(int i=0; i<tracks.size(); i++){
@@ -147,6 +152,7 @@ namespace OptimizerTool{
         double sstar;
         cv::Mat gwstar;
         CalGravityAndScale(pose_vec_mat, preints, ORB_SLAM2::Converter::toCvMat(Tbc), sstar, gwstar);
+        
         cv::Mat gI = cv::Mat::zeros(3,1,CV_32F);
         gI.at<float>(2) = 1;
         cv::Mat gwn = gwstar/cv::norm(gwstar);
@@ -161,6 +167,7 @@ namespace OptimizerTool{
         Eigen::Vector3d bias_a;
         std::cout<<"s: "<<sstar<<std::endl;
         CalAccBias(pose_vec_mat, preints, sstar, gwstar, ORB_SLAM2::Converter::toCvMat(Tbc), Rwi, bias_a);
+        updatePreInt(preints, sycn_imu_datas, bias_a, bg);
         std::cout<<"refined s: "<<sstar<<std::endl;
         std::cout<<"bias_a: "<<bias_a.transpose()<<std::endl;
         std::cout<<"bias_g: "<<new_bg.transpose()<<std::endl;
@@ -191,7 +198,7 @@ namespace OptimizerTool{
             ns.Set_Pos(ORB_SLAM2::Converter::toVector3d(wPb));
             ns.Set_Rot(ORB_SLAM2::Converter::toMatrix3d(Rwc*Rcb));
             ns.Set_BiasGyr(bg);
-            ns.Set_BiasAcc(ba);
+            ns.Set_BiasAcc(bias_a);
             ns.Set_DeltaBiasGyr(Eigen::Vector3d::Zero());
             ns.Set_DeltaBiasAcc(Eigen::Vector3d::Zero());
             Eigen::Vector3d veleig;
@@ -219,12 +226,20 @@ namespace OptimizerTool{
 
         GlobalBundleAdjustmentNavStatePRV(preints, states, Tbc, mp_infos, fx, fy, cx, cy, mp_posis, gwstar, 100);
         
-        for (int i=0; i<states.size(); i=i+10){
-            std::cout<<states[i].Get_BiasGyr().transpose()<<std::endl;
+//         for (int i=0; i<states.size(); i=i+10){
+//             std::cout<<states[i].Get_BiasGyr().transpose()<<std::endl;
+//         }
+//         for (int i=0; i<states.size(); i=i+10){
+//             std::cout<<states[i].Get_BiasAcc().transpose()<<std::endl;
+//         }
+        
+        std::string posi_out_addr=res_root+"/posi_alin.txt";
+        std::ofstream f;
+        f.open(posi_out_addr.c_str());
+        for(int i=0; i<mp_posis.size(); i++){
+            Eigen::Vector3d roted_posi = Rwi_.transpose()*mp_posis[i];
+            f<<roted_posi(0)<<","<<roted_posi(1)<<","<<roted_posi(2)<<std::endl;
         }
-        for (int i=0; i<states.size(); i=i+10){
-            std::cout<<states[i].Get_BiasAcc().transpose()<<std::endl;
-        }
-            
+        f.close();  
     }
 }

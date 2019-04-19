@@ -63,10 +63,11 @@ namespace OptimizerTool
     ){
 
         std::vector<cv::Mat> proj_cv_mats;
-        Eigen::Matrix4d temp_rot=Eigen::Matrix4d::Identity();
         for(int i=0; i<lidar_poses.size(); i++){
             pose_vec[i]=lidar_poses[i];
             Eigen::Matrix<double,3,4> P_double_34=lidar_poses[i].inverse().block(0,0,3,4);
+            
+            
             P_double_34=cam_inter*P_double_34;
             cv::Mat cv_mat(3,4, CV_32FC1);
             for(int n=0; n<3; n++){
@@ -74,6 +75,8 @@ namespace OptimizerTool
                     cv_mat.at<float>(n,m)=P_double_34(n,m);
                 }
             }
+            
+            
             
             proj_cv_mats.push_back(cv_mat);
         }
@@ -100,10 +103,10 @@ namespace OptimizerTool
             cv::Mat proj2=proj_cv_mats[mp_infos[i][last_id].frame_id];
             cv::Mat out_posi;
             cv::triangulatePoints(proj1, proj2, pts1, pts2, out_posi);
-    //         std::cout<<out_posi<<std::endl;
             mp_posis[i](0)=out_posi.at<float>(0)/out_posi.at<float>(3);
             mp_posis[i](1)=out_posi.at<float>(1)/out_posi.at<float>(3);
             mp_posis[i](2)=out_posi.at<float>(2)/out_posi.at<float>(3);
+            //std::cout<<mp_posis[i].transpose()<<std::endl;
         }
         std::cout<<"procece mp"<<std::endl;
         
@@ -165,7 +168,7 @@ namespace OptimizerTool
             e->setMeasurement(lidar_poses[i].block(0,3,3,1));
             //e->setMeasurement(g2o::SE3Quat(R,t).inverse());
             //e->setInformation(Eigen::Matrix<double, 6, 6>::Identity()*1000000);
-            e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*1000000);
+            e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*100000000);
             optimizer.addEdge(e);
             lidar_edges.push_back(e);
             
@@ -208,6 +211,12 @@ namespace OptimizerTool
                 e->cy = cam_inter(1,2);
 
                 optimizer.addEdge(e);
+                
+//                 if(i==0){
+//                     std::cout<<mp_verts.back()->estimate()<<std::endl;
+//                     e->computeError();
+//                     std::cout<<sqrt(e->chi2())<<std::endl;
+//                 }
                 proj_edges.push_back(e);
             }
         }
@@ -223,13 +232,15 @@ namespace OptimizerTool
         for(int i=0; i<proj_edges.size(); i++){
             proj_edges[i]->computeError();
             avg_error=avg_error+sqrt(proj_edges[i]->chi2())/proj_edges.size();
+
+            
         }
         std::cout<<"project edge err before: "<<avg_error<<std::endl;
         clock_t time;
         time = clock();
         optimizer.initializeOptimization();
-        for(int i=0; i<100; i++){
-            optimizer.optimize(1);
+        for(int i=0; i<1; i++){
+            optimizer.optimize(100);
             time = clock() - time;
             //std::cout<<"cam after: "<<vCam->estimate().transpose()<<std::endl;
             std::cout<<"opt time: "<<((float)time)/CLOCKS_PER_SEC<<std::endl;
@@ -257,11 +268,13 @@ namespace OptimizerTool
     }
     
     void optimize_true_pose(std::string res_root){
+        std::cout<<"start lidar opti"<<std::endl;
         std::string cam_addr=res_root+"/camera_config.txt";
         Eigen::Matrix3d cam_inter;
         Eigen::Vector4d cam_distort;
         Eigen::Matrix4d Tbc;
         CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
+        std::cout<<"Tbc: "<<Tbc<<std::endl;
         
         std::string img_time_addr=res_root+"/image_time.txt";
         std::string pose_addr=res_root+"/traj.txt";
@@ -270,20 +283,24 @@ namespace OptimizerTool
         std::vector<double> img_times;
         std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> pose_vec;
         CHAMO::read_pose_list(pose_list, frame_ids, pose_vec, img_times, pose_addr, img_time_addr);
+        std::cout<<"pose_list: "<<img_times.size()<<std::endl;
 
         std::string posi_addr=res_root+"/posi.txt";
         std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
         CHAMO::read_mp_posi(posi_addr, mp_posis);
+        std::cout<<"mp_posis: "<<mp_posis.size()<<std::endl;
         
         std::string kp_addr=res_root+"/kps.txt";
         std::vector<Eigen::Vector2f> kp_uvs;
         std::vector<int> kp_frameids;
         std::vector<int> kp_octoves;
         CHAMO::read_kp_info(kp_addr, kp_uvs, kp_frameids, kp_octoves);
+        std::cout<<"kp_uvs: "<<kp_uvs.size()<<std::endl;
         
         std::string track_addr=res_root+"/track.txt";
         std::vector<std::vector<int>> tracks;
         CHAMO::read_track_info(track_addr, tracks);
+        std::cout<<"tracks: "<<tracks.size()<<std::endl;
         
         std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
         std::vector<Eigen::Quaterniond> lidar_dirs;
@@ -291,6 +308,7 @@ namespace OptimizerTool
         //std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/wayz_2018_11_26.bag_trajectory.txt";
         std::string lidar_addr=res_root+"/lidar_trajectory.txt";
         CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis, lidar_time);
+        std::cout<<"lidar_addr: "<<lidar_addr.size()<<std::endl;
         
         std::vector<std::vector<ORB_SLAM2::MP_INFO>> mp_infos;
         for(int i=0; i<tracks.size(); i++){
@@ -317,13 +335,17 @@ namespace OptimizerTool
                     break;
                 }
             }
-            if(corres_lidar>0){
+            if(corres_lidar>=0){
                 Eigen::Matrix<double,4,4> P_double=Eigen::Matrix<double,4,4>::Identity();
                 P_double.block(0,3,3,1)=lidar_posis[corres_lidar];
                 Eigen::Matrix3d rot(lidar_dirs[corres_lidar]);
                 P_double.block(0,0,3,3)=rot;
                 P_double=P_double.inverse();
                 lidar_align.push_back(P_double.inverse());
+//                 if(i<100){
+//                     std::cout<<P_double<<std::endl;
+//                 }
+                
             }else{
                 std::cout<<"error in lidar: "<<i<<std::endl;
                 lidar_align.push_back(Eigen::Matrix<double,4,4>::Zero());

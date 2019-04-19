@@ -22,4 +22,10 @@
   <depend>read_write_data_lib</depend>
   <depend>orb_slam_lib</depend>
   <depend>visualization</depend>
+  <depend>roscpp</depend>
+  <depend>cv_bridge</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
 </package>

@@ -425,27 +425,25 @@ void GlobalBundleAdjustmentNavStatePRV(std::vector<IMUPreintegrator>& preints, s
     
     // Optimize!
     optimizer.initializeOptimization();
-    optimizer.optimize(nIterations);
-    
-    totall_pvr_error=0;
-    for(int i=0; i<prvEdges.size(); i++){
-        prvEdges[i]->computeError();
-        totall_pvr_error = totall_pvr_error+sqrt(prvEdges[i]->chi2())/prvEdges.size();
+    optimizer.optimize(100);
+    for(int i=0; i<1; i++){
+        
+        totall_pvr_error=0;
+        for(int i=0; i<prvEdges.size(); i++){
+            prvEdges[i]->computeError();
+            totall_pvr_error = totall_pvr_error+sqrt(prvEdges[i]->chi2())/prvEdges.size();
+        }
+        std::cout<<"totall_pvr_error after: "<<totall_pvr_error<<std::endl;
+        
+        
+        totall_proj_error=0;
+        for(int i=0; i<project_edges.size(); i++){
+            project_edges[i]->computeError();
+            totall_proj_error = totall_proj_error+sqrt(project_edges[i]->chi2())/project_edges.size();
+        }
+        std::cout<<"totall_proj_error after: "<<totall_proj_error<<std::endl;
     }
-    std::cout<<"totall_pvr_error after: "<<totall_pvr_error<<std::endl;
-    
-    
-    totall_proj_error=0;
-    for(int i=0; i<project_edges.size(); i++){
-        project_edges[i]->computeError();
-        totall_proj_error = totall_proj_error+sqrt(project_edges[i]->chi2())/project_edges.size();
-    }
-    std::cout<<"totall_proj_error after: "<<totall_proj_error<<std::endl;
-    
-    
-
     // Recover optimized data
-
     //Keyframes
     for(size_t i=0; i<states.size(); i++)
     {
