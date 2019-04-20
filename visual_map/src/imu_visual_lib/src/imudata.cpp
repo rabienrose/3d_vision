@@ -1,7 +1,7 @@
 #include "imudata.h"
 
 
-namespace ORB_SLAM2
+namespace orb_slam
 {
 //imu.gyrVar: 1.2e-3 #4e-3    # 1.2e-3
 //imu.accVar: 8e-3   #2e-2    # 8.0e-3

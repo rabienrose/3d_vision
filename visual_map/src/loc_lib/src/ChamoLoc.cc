@@ -1,7 +1,9 @@
 #include <loc_lib/ChamoLoc.h>
+#ifndef __APPLE__
 #include "visualization/color-palette.h"
 #include "visualization/color.h"
 #include "visualization/common-rviz-visualization.h"
+#endif
 
 struct Match{
         int query_desc_id;
@@ -43,6 +45,7 @@ namespace std {
 
 
 namespace wayz {
+#ifndef __APPLE__
     
     void show_mp_as_cloud(std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& mp_posis, std::string topic){
         Eigen::Matrix3Xd points;
@@ -68,6 +71,7 @@ namespace wayz {
         }
         visualization::publishVerticesFromPoseVector(poses_vis, visualization::kDefaultMapFrame, "vertices", topic);
     }
+#endif
     
     void convert_mat_eigen(Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& matrix, cv::Mat mat){
         //Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> m_temp;
@@ -407,8 +411,10 @@ namespace wayz {
         timestamp_list.push_back(timestamp);
         posi_loc_vec.push_back(t_re.block(0,3,3,1));
         rot_loc_vec.push_back(rot_q);
+#ifndef __APPLE__
         show_mp_as_cloud(posi_vec, "temp_kf");
         show_mp_as_cloud(posi_match_vec, "temp_match");
+#endif
     };
     
     void ChamoLoc::AddIMU(const double time_s, const Eigen::Vector3d& Accl, const Eigen::Vector3d& Gyro){
@@ -473,8 +479,8 @@ namespace wayz {
             points1(1,i)=mp_posis[i].y();
             points1(2,i)=mp_posis[i].z();
         }
-        show_mp_as_cloud(mp_posis, "temp_mp");
-        
+//        show_mp_as_cloud(mp_posis, "temp_mp");
+//
         std::string cam_addr=folder_path+"/camera_config.txt";
         CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
         convert_eigen_double_mat_float(cam_inter, cam_inter_cv);
@@ -534,6 +540,7 @@ namespace wayz {
             }
             
         }
+        return true;
         
         //Ori=rot_list.lower_bound(timestamp)->second;
     };

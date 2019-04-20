@@ -3,7 +3,7 @@
 namespace g2o
 {
 
-using namespace ORB_SLAM2;
+using namespace orb_slam;
 
 void EdgePRIDP::computeError()
 {

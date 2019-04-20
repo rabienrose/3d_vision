@@ -8,7 +8,6 @@
 #include <aslam/common/stl-helpers.h>
 #include <Eigen/Core>
 #include <glog/logging.h>
-#include <gtest/gtest.h>
 #include <opencv2/features2d/features2d.hpp>
 
 namespace aslam {
@@ -34,8 +33,6 @@ struct MatchWithScore {
   friend void convertMatchesWithScoreToOpenCvMatches(
       const Aligned<std::vector, MatchWithScore>& matches_with_score_A_B,
       OpenCvMatches* matches_A_B);
-  FRIEND_TEST(TestMatcherExclusive, ExclusiveMatcher);
-  FRIEND_TEST(TestMatcher, GreedyMatcher);
   template<typename MatchingProblem> friend class MatchingEngineGreedy;
 
   /// \brief Initialize to an invalid match.

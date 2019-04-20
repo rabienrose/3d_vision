@@ -1,17 +1,17 @@
 
-#ifndef CONVERTER_H
-#define CONVERTER_H
+#ifndef IMUCONVERTER_H
+#define IMUCONVERTER_H
 
 #include<opencv2/core/core.hpp>
 
 #include<Eigen/Dense>
-#include"g2o/types/sba/types_six_dof_expmap.h"
-#include"g2o/types/sim3/types_seven_dof_expmap.h"
+#include"g2o/types/types_six_dof_expmap.h"
+#include"g2o/types/types_seven_dof_expmap.h"
 
 #include "IMUPreintegrator.h"
 #include "NavState.h"
 
-namespace ORB_SLAM2
+namespace orb_slam
 {
 
 class Converter

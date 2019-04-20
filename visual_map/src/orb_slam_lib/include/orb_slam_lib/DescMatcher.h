@@ -1,5 +1,5 @@
-#ifndef ORBMATCHER_H
-#define ORBMATCHER_H
+#ifndef DESCMATCHER_H
+#define DESCMATCHER_H
 
 #include<vector>
 #include<opencv2/core/core.hpp>

@@ -791,7 +791,7 @@ bool Tracking::TrackLocalMap()
 
 bool Tracking::NeedNewKeyFrame()
 {
-    if(mnMatchesInliers<100)
+    if(mnMatchesInliers<150)
         return true;
 
     const int nKFs = mpMap->KeyFramesInMap();

@@ -1,6 +1,6 @@
 #include "configparam.h"
 
-namespace ORB_SLAM2
+namespace orb_slam
 {
 double ConfigParam::_g = 9.810;
 

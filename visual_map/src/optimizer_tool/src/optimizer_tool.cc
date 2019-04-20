@@ -1,9 +1,7 @@
-#include "optimizer_tool/optimizer_tool.h"
 #include <string>
 #include <fstream>
 #include <memory>
 #include <Eigen/Core>
-#include <ros/ros.h>
 #include <math.h>
 
 #include "g2o/core/robust_kernel_impl.h"
@@ -11,10 +9,9 @@
 #include "g2o/core/optimization_algorithm_levenberg.h"
 #include "g2o/core/optimization_algorithm_gauss_newton.h"
 #include "g2o/core/optimization_algorithm_with_hessian.h"
-#include "g2o/solvers/dense/linear_solver_dense.h"
-#include "g2o/solvers/eigen/linear_solver_eigen.h"
-#include "g2o/solvers/cholmod/linear_solver_cholmod.h"
-#include "g2o/types/sba/types_six_dof_expmap.h"
+#include "g2o/solvers/linear_solver_dense.h"
+#include "g2o/solvers/linear_solver_eigen.h"
+#include "g2o/types/types_six_dof_expmap.h"
 #include "imu_tools.h"
 #include "read_write_data_lib/read_write.h"
 #include "opencv2/opencv.hpp"
@@ -58,7 +55,7 @@ namespace g2o {
 namespace OptimizerTool
 {
     void optimize_true_pose(std::vector<Eigen::Matrix4d> lidar_poses,
-        std::vector<std::vector<ORB_SLAM2::MP_INFO>> mp_infos, std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& mp_posis,
+        std::vector<std::vector<orb_slam::MP_INFO>> mp_infos, std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& mp_posis,
         std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& pose_vec, Eigen::Matrix3d cam_inter
     ){
 
@@ -135,8 +132,8 @@ namespace OptimizerTool
         }
         g2o::SparseOptimizer optimizer;
         g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(
-            g2o::make_unique<g2o::BlockSolverX>(
-                g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolverX::PoseMatrixType>>()));
+            new g2o::BlockSolverX(
+                new g2o::LinearSolverEigen<g2o::BlockSolverX::PoseMatrixType>()));
         optimizer.setAlgorithm(solver);
         std::vector<g2o::VertexSE3Expmap*> kf_verts;
         long unsigned int maxKFid = 0;
@@ -310,12 +307,12 @@ namespace OptimizerTool
         CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis, lidar_time);
         std::cout<<"lidar_addr: "<<lidar_addr.size()<<std::endl;
         
-        std::vector<std::vector<ORB_SLAM2::MP_INFO>> mp_infos;
+        std::vector<std::vector<orb_slam::MP_INFO>> mp_infos;
         for(int i=0; i<tracks.size(); i++){
-            std::vector<ORB_SLAM2::MP_INFO> track_info;
+            std::vector<orb_slam::MP_INFO> track_info;
             for(int j=0; j<tracks[i].size(); j++){
                 int kp_id=tracks[i][j];
-                ORB_SLAM2::MP_INFO info;
+                orb_slam::MP_INFO info;
                 info.u=kp_uvs[kp_id].x();
                 info.v=kp_uvs[kp_id].y();
                 info.octove=kp_octoves[kp_id];

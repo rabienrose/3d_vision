@@ -226,7 +226,7 @@ namespace descriptor_projection {
         
         // Define a set of macros to NEON and SSE instructions so we can use the same
         // code further down for both platforms.
-        #ifdef ANDROID
+        #ifdef __APPLE__
         #define VECTOR_SET vdupq_n_u8       // Set a vector from a single uint8.
         #define VECTOR_LOAD(x) vld1q_u8(x)  // Set a vector from a mem location.
         #define VECTOR_TYPE uint8x16_t      // The type of the vector element.

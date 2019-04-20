@@ -1,6 +1,6 @@
 #include "NavState.h"
 
-namespace ORB_SLAM2
+namespace orb_slam
 {
 
 NavState::NavState()

@@ -6,7 +6,7 @@
 #include "imudata.h"
 #include "so3.h"
 
-namespace ORB_SLAM2
+namespace orb_slam
 {
 
 using namespace Eigen;

@@ -10,7 +10,6 @@
 #include <aslam/common/pose-types.h>
 #include <aslam/common/unique-id.h>
 #include <aslam/common/yaml-serialization.h>
-#include <gtest/gtest_prod.h>
 
 namespace sm {
 class PropertyTree;

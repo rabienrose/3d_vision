@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 
-namespace ORB_SLAM2
+namespace orb_slam
 {
 
 class ConfigParam

@@ -6,7 +6,7 @@
 #include <IMUPreintegrator.h>
 #include <IMUPreintegrator.h>
 #include <NavState.h>
-namespace ORB_SLAM2
+namespace orb_slam
 {
     struct MP_INFO{
     public:

@@ -1,10 +1,10 @@
 
-#ifndef ORBEXTRACTOR_H
-#define ORBEXTRACTOR_H
+#ifndef DESCEXTRACTOR_H
+#define DESCEXTRACTOR_H
 
 #include <vector>
 #include <list>
-#include <opencv/cv.h>
+#include <opencv2/opencv.hpp>
 
 
 namespace orb_slam

@@ -191,7 +191,7 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
     std::vector<std::string> topics;
     topics.push_back("img");
     rosbag::View view(bag, rosbag::TopicQuery(topics));
-    int img_count=0;
+    int slam_img_count=0;
     rosbag::View::iterator it= view.begin();
     for(;it!=view.end();it++){
         rosbag::MessageInstance m =*it;
@@ -200,7 +200,9 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
             cv_bridge::CvImagePtr cv_ptr;
             try{
                 std::stringstream ss;
+                ss<<"img_"<<slam_img_count<<".jpg";
                 cv_ptr = cv_bridge::toCvCopy(simg, "mono8");
+                slam_img_count++;
                 sys.TrackMonocular(cv_ptr->image, simg->header.stamp.toSec(), ss.str());
                 std::vector<Eigen::Vector3d> pcs;
                 sys.getPC(pcs);
@@ -228,9 +230,25 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
                 ROS_ERROR("cv_bridge exception: %s", e.what());
                 return;
             }
-            img_count++;
         }
     }
+    
+    NSDate *date = [NSDate date];
+    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+    [formatter setDateFormat:@"MM-dd-HH-mm-ss"];
+    NSString *timeString = [formatter stringFromDate:date];
+    NSString *string1 = [NSString stringWithFormat:@"%@",timeString];
+    NSString *full_addr = [[dirPaths objectAtIndex:0] stringByAppendingPathComponent:string1];
+    NSFileManager *fileManager= [NSFileManager defaultManager];
+    if(![fileManager createDirectoryAtPath:full_addr withIntermediateDirectories:YES attributes:nil error:NULL]){
+        NSLog(@"Error: Create folder failed %@", full_addr);
+        return;
+    }
+    char *docsPath;
+    docsPath = (char*)[full_addr cStringUsingEncoding:[NSString defaultCStringEncoding]];
+    std::string full_file_name(docsPath);
+    sys.saveResult(full_file_name);
+    
 }
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {

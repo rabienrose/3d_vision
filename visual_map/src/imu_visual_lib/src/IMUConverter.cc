@@ -1,9 +1,9 @@
-#include "Converter.h"
+#include "IMUConverter.h"
 #include <string>
 #include <fstream>
 #include <memory>
 
-namespace ORB_SLAM2
+namespace orb_slam
 {
 
 void Converter::updateNS(NavState& ns, const IMUPreintegrator& imupreint, const Vector3d& gw)

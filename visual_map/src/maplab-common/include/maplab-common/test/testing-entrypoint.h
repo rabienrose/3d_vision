@@ -24,7 +24,6 @@
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
-#include <gtest/gtest.h>
 
 // Let the Eclipse parser see the macro.
 #ifndef TEST

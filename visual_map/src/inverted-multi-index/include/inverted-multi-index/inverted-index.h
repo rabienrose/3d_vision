@@ -14,6 +14,7 @@
 #include <aslam/common/memory.h>
 #include <glog/logging.h>
 #include <nabo/nabo.h>
+#include <gflags/gflags.h>
 
 DECLARE_double(lc_knn_max_radius);
 

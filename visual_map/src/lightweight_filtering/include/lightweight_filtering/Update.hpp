@@ -15,6 +15,7 @@
 #include "lightweight_filtering/OutlierDetection.hpp"
 #include <list>
 #include <Eigen/StdVector>
+#include <gflags/gflags.h>
 
 DECLARE_bool(summary_time);
 

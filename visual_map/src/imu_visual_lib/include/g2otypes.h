@@ -8,12 +8,12 @@
 #include "IMUPreintegrator.h"
 #include "g2o/core/base_multi_edge.h"
 #include "g2o/core/base_binary_edge.h"
-#include "g2o/types/sba/types_six_dof_expmap.h"
+#include "g2o/types/types_six_dof_expmap.h"
 
 namespace g2o
 {
 
-using namespace ORB_SLAM2;
+using namespace orb_slam;
 
 /*
  * IDP, (I)nverse (d)epth vertex for a map(p)oint

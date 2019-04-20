@@ -3,7 +3,7 @@
 
 #include <Eigen/Dense>
 
-namespace ORB_SLAM2
+namespace orb_slam
 {
 
 using namespace Eigen;

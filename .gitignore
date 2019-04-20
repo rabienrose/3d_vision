@@ -8,3 +8,6 @@ logs
 .catkin_tools
 3rd_party
 *.bag
+ext_lib_ios
+ios_lib
+data
