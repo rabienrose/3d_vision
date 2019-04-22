@@ -305,7 +305,7 @@ namespace OptimizerTool
         //std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/wayz_2018_11_26.bag_trajectory.txt";
         std::string lidar_addr=res_root+"/lidar_trajectory.txt";
         CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis, lidar_time);
-        std::cout<<"lidar_addr: "<<lidar_addr.size()<<std::endl;
+        std::cout<<"lidar_addr: "<<lidar_posis.size()<<std::endl;
         
         std::vector<std::vector<orb_slam::MP_INFO>> mp_infos;
         for(int i=0; i<tracks.size(); i++){
@@ -327,13 +327,14 @@ namespace OptimizerTool
         for(int i=0; i<img_times.size(); i++){
             int corres_lidar=-1;
             for(int j=0; j<lidar_time.size(); j++){
-                if(fabs(lidar_time[j]-img_times[i])<0.5){
+                if(fabs(lidar_time[j]-img_times[i])<0.01){
                     corres_lidar=j;
                     break;
                 }
             }
             if(corres_lidar>=0){
                 Eigen::Matrix<double,4,4> P_double=Eigen::Matrix<double,4,4>::Identity();
+                
                 P_double.block(0,3,3,1)=lidar_posis[corres_lidar];
                 Eigen::Matrix3d rot(lidar_dirs[corres_lidar]);
                 P_double.block(0,0,3,3)=rot;
@@ -345,7 +346,7 @@ namespace OptimizerTool
                 
             }else{
                 std::cout<<"error in lidar: "<<i<<std::endl;
-                lidar_align.push_back(Eigen::Matrix<double,4,4>::Zero());
+                lidar_align.push_back(lidar_align.back());
                 //we allow no lidar correspond to img, but every image must have a lidar attach to it.
             }
         }

@@ -1,5 +1,5 @@
-BAG_NAME=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/zhanhui
-OUT_ADDR=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/zhanhui
+BAG_NAME=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/office_garage/20190422150408_.bag
+OUT_ADDR=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/office_garage
 
 IMG_TRACT_ADDR=/home/chamo/Documents/work/3d_vision/visual_map/devel/lib/bag_tool/extract_img
 IMU_TRACT_ADDR=/home/chamo/Documents/work/3d_vision/visual_map/devel/lib/bag_tool/extract_imu
@@ -15,6 +15,6 @@ OPTI_ADDR=/home/chamo/Documents/work/3d_vision/visual_map/devel/lib/optimizer_to
 
 #${ORB_SLAM_ADDR} ${OUT_ADDR}/voc.yml ${OUT_ADDR}/vslam.yaml ${BAG_NAME} ${OUT_ADDR}
 
-${OPTI_ADDR} ${OUT_ADDR}
+#${OPTI_ADDR} ${OUT_ADDR}
 
-#${INDEX_ADDR} ${OUT_ADDR}
+${INDEX_ADDR} ${OUT_ADDR}

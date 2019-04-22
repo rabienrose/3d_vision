@@ -52,8 +52,8 @@ int main(int argc, char **argv)
     rosbag::Bag bag;
     bag.open(bag_str,rosbag::bagmode::Read);
     std::vector<std::string> topics;
-    //topics.push_back("camera/right/image_raw");
-    topics.push_back("img");
+    topics.push_back("camera/right/image_raw");
+    //topics.push_back("img");
     rosbag::View view(bag, rosbag::TopicQuery(topics));
     int img_count=-1;
     rosbag::View::iterator it= view.begin();
