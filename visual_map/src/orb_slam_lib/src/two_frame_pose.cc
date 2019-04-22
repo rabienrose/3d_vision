@@ -1,6 +1,6 @@
 #include "orb_slam_lib/two_frame_pose.h"
-#include "orb_slam_lib/DESCExtractor.h"
-#include "orb_slam_lib/DESCMatcher.h"
+#include "orb_slam_lib/DescExtractor.h"
+#include "orb_slam_lib/DescMatcher.h"
 #include <Eigen/Dense>
 namespace orb_slam
 {

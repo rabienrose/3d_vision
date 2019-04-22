@@ -15,7 +15,7 @@ src/IMUPreintegrator.cpp
 src/NavState.cpp
 src/so3.cpp
 src/imu_tools.cpp
-src/Converter.cc
+src/IMUConverter.cc
 )
 
 cs_install()

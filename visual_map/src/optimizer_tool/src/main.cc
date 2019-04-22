@@ -23,11 +23,11 @@ int main(int argc, char* argv[]) {
     //show_pose_as_marker(pose_vec, "pose_cam");
     
     std::string posi_addr=res_root+"/posi_alin.txt";
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
+    std::vector<Eigen::Vector3d> mp_posis;
     CHAMO::read_mp_posi(posi_addr, mp_posis);
     show_mp_as_cloud(mp_posis, Rwi_, "chamo_target");
     
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
+    std::vector<Eigen::Vector3d> lidar_posis;
     std::vector<Eigen::Quaterniond> lidar_dirs;
     std::vector<double> lidar_time;
     std::string lidar_addr=res_root+"/lidar_trajectory.txt";
