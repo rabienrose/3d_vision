@@ -30,7 +30,12 @@ public:
     Vector3d Get_V() const{return _V;}         // velocity
     void Set_Pos(const Vector3d &pos){_P = pos;}
     void Set_Vel(const Vector3d &vel){_V = vel;}
-    void Set_Rot(const Matrix3d &rot){_R = Sophus::SO3(rot);}
+    void Set_Rot(const Matrix3d &rot){
+//        Eigen::Quaterniond qua(rot);
+//        qua = qua.normalized();
+//        Eigen::Matrix3d rot_nomo(qua);
+        _R = Sophus::SO3(rot);
+    }
     void Set_Rot(const Sophus::SO3 &rot){_R = rot;}
 
     Vector3d Get_BiasGyr() const{return _BiasGyr;}   // bias of gyroscope, keep unchanged after init and during optimization

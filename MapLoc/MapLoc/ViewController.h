@@ -9,6 +9,7 @@
     SCNNode *cameraNode;
     SCNNode *worldNode;
     SCNNode *pcNode;
+    SCNNode *trajNode;
     
     dispatch_queue_t sessionQueue;
     

@@ -1,5 +1,5 @@
 #include "g2otypes.h"
-
+#include <iostream>
 namespace g2o
 {
 
@@ -132,6 +132,7 @@ void EdgePRIDP::linearizeOplus()
 void EdgeNavStatePRV::computeError()
 {
     //
+    
     const VertexNavStatePR* vPRi = static_cast<const VertexNavStatePR*>(_vertices[0]);
     const VertexNavStatePR* vPRj = static_cast<const VertexNavStatePR*>(_vertices[1]);
     const VertexNavStateV* vVi = static_cast<const VertexNavStateV*>(_vertices[2]);

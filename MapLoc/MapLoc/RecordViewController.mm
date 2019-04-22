@@ -7,6 +7,11 @@
 #include <sensor_msgs/image_encodings.h>
 #include <rosbag/view.h>
 #include <cv_bridge/cv_bridge.h>
+#include "read_write_data_lib/read_write.h"
+#include <bag_tool/extract_bag.h>
+#include "imu_tools.h"
+#import "IOS_visualization.h"
+#include "optimizer_tool/optimizer_tool.h"
 
 @implementation RecordViewController
 
@@ -60,8 +65,11 @@
     [session commitConfiguration];
     img_count=0;
     dele_bag= [[BagListDelegate alloc] init];
+    dele_map= [[BagListDelegate alloc] init];
     self.bag_list_ui.delegate = dele_bag;
     self.bag_list_ui.dataSource = dele_bag;
+    self.map_list_ui.delegate = dele_map;
+    self.map_list_ui.dataSource = dele_map;
 }
 
 void interDouble(double v1, double v2, double t1, double t2, double& v3_out, double t3){
@@ -146,48 +154,43 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
 - (void)update_baglist{
     NSArray *dirPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSArray *directoryContent = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[dirPaths objectAtIndex:0] error:NULL];
-    bool has_file=false;
+    NSMutableArray *directoryContent_bag=[[NSMutableArray alloc] init];
+    NSMutableArray *directoryContent_map=[[NSMutableArray alloc] init];
     
     for (int count = 0; count < (int)[directoryContent count]; count++)
     {
-        if (count ==0){
-            dele_bag.sel_filename=[directoryContent objectAtIndex:count];
-            has_file=true;
-            break;
+        NSString * full_str = [[dirPaths objectAtIndex:0] stringByAppendingPathComponent:[directoryContent objectAtIndex:count]];
+        bool isDirectory;
+        bool exist_b;
+        exist_b = [[NSFileManager defaultManager] fileExistsAtPath:full_str isDirectory:&isDirectory];
+
+        if(isDirectory){
+            [directoryContent_map addObject:[directoryContent objectAtIndex:count]];
+        }else{
+            [directoryContent_bag addObject:[directoryContent objectAtIndex:count]];
         }
-        NSLog(@"File %d: %@", (count + 1), [directoryContent objectAtIndex:count]);
     }
-    dele_bag.file_list =directoryContent;
-    [self.bag_list_ui reloadAllComponents];
-    if ((int)[directoryContent count]>0){
+    
+    dele_map.file_list =directoryContent_map;
+    dele_bag.file_list =directoryContent_bag;
+    
+    if([directoryContent_bag count]>0){
+        dele_bag.sel_filename=[directoryContent_bag objectAtIndex:0];
         [self.bag_list_ui selectRow:0 inComponent:0 animated:NO];
     }
+    if([directoryContent_map count]>0){
+        dele_map.sel_filename=[directoryContent_map objectAtIndex:0];
+        [self.map_list_ui selectRow:0 inComponent:0 animated:NO];
+    }
+    
+    [self.bag_list_ui reloadAllComponents];
+    [self.map_list_ui reloadAllComponents];
 }
 
-
-
-- (void) start_slam: (NSString *) bag_name
-{
-    NSBundle* myBundle = [NSBundle mainBundle];
-    NSString* mycam_str;
-    mycam_str = [myBundle pathForResource:@"iphone" ofType:@"yaml"];
-    NSString* voc_str;
-    voc_str = [myBundle pathForResource:@"small_voc_no_rot" ofType:@"yml"];
-    NSString* bag_str=nil;
-    NSArray *dirPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSArray *directoryContent = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[dirPaths objectAtIndex:0] error:NULL];
-    for (int count = 0; count < (int)[directoryContent count]; count++)
-    {
-        NSError *error = nil;
-        bag_str = [[dirPaths objectAtIndex:0] stringByAppendingPathComponent:[directoryContent objectAtIndex:count]];
-        if([bag_name isEqualToString:[directoryContent objectAtIndex:count]]==YES){
-            break;
-        }
-    }
-    NSLog(bag_str);
-    ORB_SLAM2::System sys([voc_str UTF8String], [mycam_str UTF8String]);
+-(void) do_slam: (std::string) voc_str mycam_str:(std::string) mycam_str bag_str:(std::string) bag_str full_file_name:(std::string) full_file_name Rwwc:(Eigen::Matrix3d) Rwwc{
+    ORB_SLAM2::System sys(voc_str, mycam_str);
     rosbag::Bag bag;
-    bag.open([bag_str UTF8String],rosbag::bagmode::Read);
+    bag.open(bag_str,rosbag::bagmode::Read);
     std::vector<std::string> topics;
     topics.push_back("img");
     rosbag::View view(bag, rosbag::TopicQuery(topics));
@@ -220,8 +223,11 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
                     //std::cout<<"posis.size(): "<<posis.size()<<std::endl;
                     if(posis.size()>0){
                         if(last_kf_count<posis.size()){
+                            for(int i=0; i<posis.size(); i++){
+                                posis[i]= Rwwc*posis[i];
+                            }
                             [_sceneDelegate showTraj: posis];
-
+                            
                         }
                     }
                     last_kf_count=posis.size();
@@ -232,7 +238,53 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
             }
         }
     }
-    
+    sys.saveResult(full_file_name);
+}
+
+- (IBAction)start_opti:(id)sender {
+    if((int)[dele_map.file_list count]>0){
+        dispatch_async( sessionQueue, ^{
+            NSArray *dirPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+            NSString *full_addr = [[dirPaths objectAtIndex:0] stringByAppendingPathComponent:dele_map.sel_filename];
+            char *full_addr_char = (char*)[full_addr cStringUsingEncoding:[NSString defaultCStringEncoding]];
+            std::string full_addr_std(full_addr_char);
+            OptimizerTool::optimize_imu(full_addr_std);
+        } );
+    }
+}
+
+- (IBAction)show_map:(id)sender {
+    if((int)[dele_map.file_list count]>0){
+        NSArray *dirPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+        NSString *full_addr = [[dirPaths objectAtIndex:0] stringByAppendingPathComponent:dele_map.sel_filename];
+        char *full_addr_char = (char*)[full_addr cStringUsingEncoding:[NSString defaultCStringEncoding]];
+        std::string full_addr_std(full_addr_char);
+        [IOSVis showMPs: full_addr_std+"/posi.txt" sceneDelegate: _sceneDelegate];
+        [IOSVis showTraj: full_addr_std+"/traj.txt" sceneDelegate: _sceneDelegate];
+    }
+}
+
+- (void) start_slam: (NSString *) bag_name
+{
+    NSBundle* myBundle = [NSBundle mainBundle];
+    NSString* mycam_str;
+    mycam_str = [myBundle pathForResource:@"iphone" ofType:@"yaml"];
+    NSString* voc_str;
+    voc_str = [myBundle pathForResource:@"small_voc_no_rot" ofType:@"yml"];
+    NSString* cam_config_str;
+    cam_config_str = [myBundle pathForResource:@"camera_config" ofType:@"txt"];
+    NSString* bag_str=nil;
+    NSArray *dirPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSArray *directoryContent = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[dirPaths objectAtIndex:0] error:NULL];
+    for (int count = 0; count < (int)[directoryContent count]; count++)
+    {
+        NSError *error = nil;
+        bag_str = [[dirPaths objectAtIndex:0] stringByAppendingPathComponent:[directoryContent objectAtIndex:count]];
+        if([bag_name isEqualToString:[directoryContent objectAtIndex:count]]==YES){
+            break;
+        }
+    }
+    NSLog(bag_str);
     NSDate *date = [NSDate date];
     NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
     [formatter setDateFormat:@"MM-dd-HH-mm-ss"];
@@ -247,8 +299,26 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
     char *docsPath;
     docsPath = (char*)[full_addr cStringUsingEncoding:[NSString defaultCStringEncoding]];
     std::string full_file_name(docsPath);
-    sys.saveResult(full_file_name);
+    std::string cam_config_std=full_file_name+"/camera_config.txt";
+    NSString * cam_config_ns_desc = [NSString stringWithFormat:@"%s",cam_config_std.c_str()];
+    [fileManager copyItemAtPath:cam_config_str toPath:cam_config_ns_desc error:nil];
+    extract_img_imu(full_file_name, [bag_str UTF8String], "img", "imu");
+    Eigen::Matrix3d cam_inter;
+    Eigen::Vector4d cam_distort;
+    Eigen::Matrix4d Tbc;
+    CHAMO::read_cam_info(full_file_name+"/camera_config.txt", cam_inter, cam_distort, Tbc);
+    std::string imu_addr=full_file_name+"/imu.txt";
+    std::vector<Eigen::Matrix<double, 7, 1>> imu_datas_raw;
+    CHAMO::read_imu_data(imu_addr, imu_datas_raw);
+    Eigen::Matrix3d Rwi;
+    if(imu_datas_raw.size()>0){
+        Eigen::Vector3d first_acce=imu_datas_raw[0].block(0,0,3,1);
+        Rwi = orb_slam::calRotMFromGravity(first_acce);
+    }
+    [self do_slam: [voc_str UTF8String] mycam_str:[mycam_str UTF8String] bag_str:[bag_str UTF8String] full_file_name:full_file_name Rwwc: Rwi.transpose()*Tbc.block(0,0,3,3)];
     
+    //
+    [IOSVis showMPs: full_file_name+"/posi_alin.txt" sceneDelegate: _sceneDelegate];
 }
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
@@ -380,9 +450,7 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
         dispatch_async( sessionQueue, ^{
              [self start_slam:dele_bag.sel_filename];
         } );
-       
     }
-    
 }
 - (IBAction)load_map:(id)sender {
 }

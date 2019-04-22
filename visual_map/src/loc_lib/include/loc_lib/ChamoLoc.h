@@ -85,7 +85,7 @@ private:
 
     FilterInitializationState init_state_;    
     
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
+    std::vector<Eigen::Vector3d> mp_posis;
     std::shared_ptr<loop_closure::inverted_multi_index::InvertedMultiIndex<5>> index_; 
     Eigen::MatrixXf projection_matrix_;
     Eigen::Matrix3d cam_inter;
@@ -94,13 +94,13 @@ private:
     cv::Mat cam_inter_cv;
     cv::Mat cam_distort_cv;
     std::map<double, Eigen::Vector3d> posi_list;
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> posi_vec;
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> posi_match_vec;
+    std::vector<Eigen::Vector3d> posi_vec;
+    std::vector<Eigen::Vector3d> posi_match_vec;
     std::vector<Eigen::Quaterniond> rot_match_vec;
     std::map<double, Eigen::Quaterniond> rot_list;
     std::map<double, Eigen::Vector3d> vel_list;
     std::map<double, Eigen::Matrix4d> gt_list;
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> posi_loc_vec;
+    std::vector<Eigen::Vector3d> posi_loc_vec;
     std::vector<Eigen::Quaterniond> rot_loc_vec;
     std::vector<double> timestamp_list;
 

@@ -263,14 +263,23 @@
     detail_view.sceneDelegate=self;
 }
 
-- (void) showTraj: (std::vector<Eigen::Vector3d>) posis{
+- (void) showPC: (std::vector<Eigen::Vector3d>) posis{
     dispatch_async( dispatch_get_main_queue(), ^{
         if(pcNode==nullptr){
             pcNode = [SCNNode node];
             [worldNode addChildNode:pcNode];
         }
-        std::cout<<posis.size()<<std::endl;
         pcNode.geometry=[self fillPC: posis color:Eigen::Vector3f(1.0, 0.0, 0.0)];
+    } );
+}
+
+- (void) showTraj: (std::vector<Eigen::Vector3d>) posis{
+    dispatch_async( dispatch_get_main_queue(), ^{
+        if(trajNode==nullptr){
+            trajNode = [SCNNode node];
+            [worldNode addChildNode:trajNode];
+        }
+        trajNode.geometry=[self fillPC: posis color:Eigen::Vector3f(0.0, 1.0, 0.0)];
     } );
 }
 

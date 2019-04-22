@@ -47,7 +47,7 @@ namespace std {
 namespace wayz {
 #ifndef __APPLE__
     
-    void show_mp_as_cloud(std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& mp_posis, std::string topic){
+    void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic){
         Eigen::Matrix3Xd points;
         points.resize(3,mp_posis.size());
         for(int i=0; i<mp_posis.size(); i++){
@@ -56,7 +56,7 @@ namespace wayz {
         publish3DPointsAsPointCloud(points, visualization::kCommonRed, 1.0, visualization::kDefaultMapFrame,topic);
     }
     
-    void show_pose_as_marker(std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& posis, std::vector<Eigen::Quaterniond>& rots, std::string topic){
+    void show_pose_as_marker(std::vector<Eigen::Vector3d>& posis, std::vector<Eigen::Quaterniond>& rots, std::string topic){
         visualization::PoseVector poses_vis;
         for(int i=0; i<posis.size(); i=i+1){
             visualization::Pose pose;
@@ -487,7 +487,7 @@ namespace wayz {
         convert_eigen_double_mat_float(cam_distort, cam_distort_cv);
         
 //         std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/wayz_2018_11_26.bag_trajectory.txt";
-//         std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
+//         std::vector<Eigen::Vector3d> lidar_posis;
 //         std::vector<Eigen::Quaterniond> lidar_dirs;
 //         std::vector<double> lidar_time;
 //         Eigen::Matrix4d temp_rot=Eigen::Matrix4d::Identity();

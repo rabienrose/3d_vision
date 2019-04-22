@@ -20,6 +20,8 @@
 		0456D448225741DD00A00865 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0456D446225741DD00A00865 /* LaunchScreen.storyboard */; };
 		0456D44B225741DD00A00865 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 0456D44A225741DD00A00865 /* main.m */; };
 		0456D557225788D800A00865 /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0456D556225788D800A00865 /* SceneKit.framework */; };
+		046EF051226C44BF00123690 /* IOS_visualization.mm in Sources */ = {isa = PBXBuildFile; fileRef = 046EF04F226C44BE00123690 /* IOS_visualization.mm */; };
+		046EF053226C59BD00123690 /* camera_config.txt in Resources */ = {isa = PBXBuildFile; fileRef = 046EF052226C59BD00123690 /* camera_config.txt */; };
 		047AFB892259DA2500BA3710 /* try_mm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 047AFB872259DA2400BA3710 /* try_mm.mm */; };
 		04A244792269B00900B811F9 /* KeyFrameDatabase.cc in Sources */ = {isa = PBXBuildFile; fileRef = 04A244652269B00900B811F9 /* KeyFrameDatabase.cc */; };
 		04A2447A2269B00900B811F9 /* Tracking.cc in Sources */ = {isa = PBXBuildFile; fileRef = 04A244662269B00900B811F9 /* Tracking.cc */; };
@@ -107,6 +109,7 @@
 		04A24A092269EC9300B811F9 /* timeutil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 04A249AC2269EC9200B811F9 /* timeutil.cpp */; };
 		04A24A0A2269EC9400B811F9 /* os_specific.c in Sources */ = {isa = PBXBuildFile; fileRef = 04A249AD2269EC9200B811F9 /* os_specific.c */; };
 		04A24A132269EC9400B811F9 /* inverted-multi-index.cc in Sources */ = {isa = PBXBuildFile; fileRef = 04A249C22269EC9300B811F9 /* inverted-multi-index.cc */; };
+		04A24A20226C29A800B811F9 /* extract_bag.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 04A24A1B226C29A700B811F9 /* extract_bag.cpp */; };
 		04F153EF22634C3C006D0B36 /* UIListDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 04F153EE22634C3B006D0B36 /* UIListDelegate.mm */; };
 /* End PBXBuildFile section */
 
@@ -145,6 +148,9 @@
 		0456D5622257897100A00865 /* librostime.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = librostime.a; path = ThirdParty/librostime.a; sourceTree = "<group>"; };
 		0456D5632257897100A00865 /* libcpp_common.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcpp_common.a; path = ThirdParty/libcpp_common.a; sourceTree = "<group>"; };
 		0456D57022579D4F00A00865 /* boost.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = boost.a; path = ThirdParty/boost.a; sourceTree = "<group>"; };
+		046EF04F226C44BE00123690 /* IOS_visualization.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = IOS_visualization.mm; sourceTree = "<group>"; };
+		046EF050226C44BF00123690 /* IOS_visualization.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IOS_visualization.h; sourceTree = "<group>"; };
+		046EF052226C59BD00123690 /* camera_config.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = camera_config.txt; path = ../data/camera_config.txt; sourceTree = "<group>"; };
 		047AFB872259DA2400BA3710 /* try_mm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = try_mm.mm; sourceTree = "<group>"; };
 		047AFB882259DA2400BA3710 /* common_header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = common_header.h; sourceTree = "<group>"; };
 		04A2444F2269B00900B811F9 /* MapPoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MapPoint.h; sourceTree = "<group>"; };
@@ -365,6 +371,8 @@
 		04A249BD2269EC9300B811F9 /* inverted-multi-index.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "inverted-multi-index.h"; sourceTree = "<group>"; };
 		04A249BE2269EC9300B811F9 /* inverted-multi-index-common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "inverted-multi-index-common.h"; sourceTree = "<group>"; };
 		04A249C22269EC9300B811F9 /* inverted-multi-index.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "inverted-multi-index.cc"; sourceTree = "<group>"; };
+		04A24A19226C29A700B811F9 /* extract_bag.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = extract_bag.h; sourceTree = "<group>"; };
+		04A24A1B226C29A700B811F9 /* extract_bag.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = extract_bag.cpp; sourceTree = "<group>"; };
 		04F153ED22634C3A006D0B36 /* UIListDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UIListDelegate.h; sourceTree = "<group>"; };
 		04F153EE22634C3B006D0B36 /* UIListDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = UIListDelegate.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -402,6 +410,7 @@
 		0456D42F225741DC00A00865 = {
 			isa = PBXGroup;
 			children = (
+				046EF052226C59BD00123690 /* camera_config.txt */,
 				04A244A52269C67800B811F9 /* iphone.yaml */,
 				04A244A62269C67800B811F9 /* small_voc_no_rot.yml */,
 				0456D43A225741DC00A00865 /* MapLoc */,
@@ -421,6 +430,9 @@
 		0456D43A225741DC00A00865 /* MapLoc */ = {
 			isa = PBXGroup;
 			children = (
+				046EF050226C44BF00123690 /* IOS_visualization.h */,
+				046EF04F226C44BE00123690 /* IOS_visualization.mm */,
+				04A24A14226C29A700B811F9 /* bag_tool */,
 				04A2492E2269EC9100B811F9 /* create_desc_index */,
 				04A249232269EC9100B811F9 /* descriptor-projection */,
 				04A249432269EC9200B811F9 /* g2o_catkin */,
@@ -1071,6 +1083,40 @@
 			path = src;
 			sourceTree = "<group>";
 		};
+		04A24A14226C29A700B811F9 /* bag_tool */ = {
+			isa = PBXGroup;
+			children = (
+				04A24A17226C29A700B811F9 /* include */,
+				04A24A1A226C29A700B811F9 /* src */,
+			);
+			name = bag_tool;
+			path = ../../visual_map/src/bag_tool;
+			sourceTree = "<group>";
+		};
+		04A24A17226C29A700B811F9 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				04A24A18226C29A700B811F9 /* bag_tool */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		04A24A18226C29A700B811F9 /* bag_tool */ = {
+			isa = PBXGroup;
+			children = (
+				04A24A19226C29A700B811F9 /* extract_bag.h */,
+			);
+			path = bag_tool;
+			sourceTree = "<group>";
+		};
+		04A24A1A226C29A700B811F9 /* src */ = {
+			isa = PBXGroup;
+			children = (
+				04A24A1B226C29A700B811F9 /* extract_bag.cpp */,
+			);
+			path = src;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -1128,6 +1174,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				046EF053226C59BD00123690 /* camera_config.txt in Resources */,
 				04A244A72269C67800B811F9 /* iphone.yaml in Resources */,
 				04A244A82269C67800B811F9 /* small_voc_no_rot.yml in Resources */,
 				0456D448225741DD00A00865 /* LaunchScreen.storyboard in Resources */,
@@ -1185,6 +1232,7 @@
 				04A249FD2269EC9300B811F9 /* marginal_covariance_cholesky.cpp in Sources */,
 				04A24A002269EC9300B811F9 /* estimate_propagator.cpp in Sources */,
 				04A249E62269EC9300B811F9 /* optimizer_tool.cc in Sources */,
+				046EF051226C44BF00123690 /* IOS_visualization.mm in Sources */,
 				04A244842269B00900B811F9 /* Frame.cc in Sources */,
 				04A249D02269EC9300B811F9 /* DescExtractor.cc in Sources */,
 				04A249CF2269EC9300B811F9 /* DescMatcher.cc in Sources */,
@@ -1205,6 +1253,7 @@
 				04A249EE2269EC9300B811F9 /* sparse_optimizer.cpp in Sources */,
 				04A249E22269EC9300B811F9 /* create_desc_index.cc in Sources */,
 				04A2447D2269B00900B811F9 /* ORBextractor.cc in Sources */,
+				04A24A20226C29A800B811F9 /* extract_bag.cpp in Sources */,
 				04A249FA2269EC9300B811F9 /* optimization_algorithm_dogleg.cpp in Sources */,
 				04A24A082269EC9300B811F9 /* property.cpp in Sources */,
 				04A249C62269EC9300B811F9 /* IMUPreintegrator.cpp in Sources */,
@@ -1392,6 +1441,7 @@
 					"$(PROJECT_DIR)/../visual_map/src/3rd_party/g2o_catkin/include",
 					"$(PROJECT_DIR)/../visual_map/src/imu_visual_lib/include",
 					"$(PROJECT_DIR)/../visual_map/src/dbow2/include",
+					"$(PROJECT_DIR)/../visual_map/src/bag_tool/include",
 					"$(PROJECT_DIR)/../visual_map/src/vslam/include",
 					"$(PROJECT_DIR)/../ext_lib_ios/include",
 					"$(PROJECT_DIR)/../ext_lib_ios/include/ros",
@@ -1450,6 +1500,7 @@
 					"$(PROJECT_DIR)/../visual_map/src/3rd_party/g2o_catkin/include",
 					"$(PROJECT_DIR)/../visual_map/src/imu_visual_lib/include",
 					"$(PROJECT_DIR)/../visual_map/src/dbow2/include",
+					"$(PROJECT_DIR)/../visual_map/src/bag_tool/include",
 					"$(PROJECT_DIR)/../visual_map/src/vslam/include",
 					"$(PROJECT_DIR)/../ext_lib_ios/include",
 					"$(PROJECT_DIR)/../ext_lib_ios/include/ros",

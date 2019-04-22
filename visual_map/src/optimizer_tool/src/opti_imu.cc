@@ -9,6 +9,7 @@
 #include "NavState.h"
 #include "IMUConverter.h"
 #include "read_write_data_lib/read_write.h"
+#include "optimizer_tool/optimizer_tool.h"
 
 namespace OptimizerTool{
     Eigen::Vector3d interEigenV(Eigen::Vector3d v1, Eigen::Vector3d v2, double t1, double t2, double t3){
@@ -54,7 +55,7 @@ namespace OptimizerTool{
         CHAMO::read_imu_data(imu_addr, imu_datas_raw);
 
         std::string posi_addr=res_root+"/posi.txt";
-        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
+        std::vector<Eigen::Vector3d> mp_posis;
         CHAMO::read_mp_posi(posi_addr, mp_posis);
         std::cout<<"mp_posis: "<<mp_posis.size()<<std::endl;
         
@@ -69,13 +70,6 @@ namespace OptimizerTool{
         std::vector<std::vector<int>> tracks;
         CHAMO::read_track_info(track_addr, tracks);
         std::cout<<"tracks: "<<tracks.size()<<std::endl;
-        
-        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
-        std::vector<Eigen::Quaterniond> lidar_dirs;
-        std::string lidar_addr=res_root+"/lidar_trajectory.txt";
-        std::vector<double> lidar_time_stamp;
-        CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis, lidar_time_stamp);
-        std::cout<<"lidar_posis: "<<lidar_posis.size()<<std::endl;
         
         std::vector<std::vector<orb_slam::MP_INFO>> mp_infos;
         for(int i=0; i<tracks.size(); i++){
@@ -180,7 +174,7 @@ namespace OptimizerTool{
         cv::Mat pbc = Tbc_mat.rowRange(0,3).col(3);
         cv::Mat Rcb = Rbc.t();
         cv::Mat pcb = -Rcb*pbc;
-        std::cout<<"pose_vec_mat: "<<pose_vec_mat.size()<<std::endl;
+        std::cout<<"states: "<<states.size()<<std::endl;
         std::cout<<"preints: "<<preints.size()<<std::endl;
         Eigen::Vector3d last_v;
         for(int i=0; i<pose_vec_mat.size(); i++){
@@ -195,6 +189,7 @@ namespace OptimizerTool{
             cv::Mat wPb = wPc + Rwc*pcb;
             ns.Set_Pos(orb_slam::Converter::toVector3d(wPb));
             ns.Set_Rot(orb_slam::Converter::toMatrix3d(Rwc*Rcb));
+            //std::cout<<"Rwc*Rcb: "<<Rwc*Rcb<<std::endl;
             ns.Set_BiasGyr(bg);
             ns.Set_BiasAcc(bias_a);
             ns.Set_DeltaBiasGyr(Eigen::Vector3d::Zero());

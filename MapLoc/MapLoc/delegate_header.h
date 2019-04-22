@@ -7,6 +7,7 @@
 
 @protocol SceneInfoDelegate <NSObject>
 @required
-- (void) showTraj: (std::vector<Eigen::Vector3d>) posis;
+- (void) showTraj: (std::vector<Eigen::Vector3d>)  posis;
+- (void) showPC: (std::vector<Eigen::Vector3d>)  posis;
 @end
 

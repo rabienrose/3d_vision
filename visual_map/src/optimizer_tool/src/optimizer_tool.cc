@@ -55,7 +55,7 @@ namespace g2o {
 namespace OptimizerTool
 {
     void optimize_true_pose(std::vector<Eigen::Matrix4d> lidar_poses,
-        std::vector<std::vector<orb_slam::MP_INFO>> mp_infos, std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>& mp_posis,
+        std::vector<std::vector<orb_slam::MP_INFO>> mp_infos, std::vector<Eigen::Vector3d>& mp_posis,
         std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& pose_vec, Eigen::Matrix3d cam_inter
     ){
 
@@ -283,7 +283,7 @@ namespace OptimizerTool
         std::cout<<"pose_list: "<<img_times.size()<<std::endl;
 
         std::string posi_addr=res_root+"/posi.txt";
-        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> mp_posis;
+        std::vector<Eigen::Vector3d> mp_posis;
         CHAMO::read_mp_posi(posi_addr, mp_posis);
         std::cout<<"mp_posis: "<<mp_posis.size()<<std::endl;
         
@@ -299,7 +299,7 @@ namespace OptimizerTool
         CHAMO::read_track_info(track_addr, tracks);
         std::cout<<"tracks: "<<tracks.size()<<std::endl;
         
-        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> lidar_posis;
+        std::vector<Eigen::Vector3d> lidar_posis;
         std::vector<Eigen::Quaterniond> lidar_dirs;
         std::vector<double> lidar_time;
         //std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/wayz_2018_11_26.bag_trajectory.txt";
