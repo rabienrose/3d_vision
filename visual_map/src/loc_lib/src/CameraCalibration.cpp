@@ -38,6 +38,7 @@ namespace rovio {
 
 void CameraCalibration::loadFromFile(const std::string& calibration_yaml_file) {
   CHECK(!calibration_yaml_file.empty());
+    std::cout<<"calibration_yaml_file:"<<calibration_yaml_file<<std::endl;
 
   loadCameraMatrix(calibration_yaml_file);
 

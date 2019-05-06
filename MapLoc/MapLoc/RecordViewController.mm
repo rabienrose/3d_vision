@@ -12,6 +12,8 @@
 #include "imu_tools.h"
 #import "IOS_visualization.h"
 #include "optimizer_tool/optimizer_tool.h"
+#include "create_desc_index.h"
+
 
 @implementation RecordViewController
 
@@ -46,7 +48,7 @@
     [videoDevice setActiveVideoMinFrameDuration:CMTimeMake(1, 10)];
     if ( [videoDevice lockForConfiguration:&error] ) {
         videoDevice.exposureMode=AVCaptureExposureModeLocked;
-        [videoDevice setExposureModeCustomWithDuration:CMTimeMakeWithSeconds( 0.001, 1000*1000*1000 ) ISO:900 completionHandler:nil];
+        [videoDevice setExposureModeCustomWithDuration:CMTimeMakeWithSeconds( 0.001, 1000*1000*1000 ) ISO:200 completionHandler:nil];
     }
     [videoDevice unlockForConfiguration];
     
@@ -70,6 +72,7 @@
     self.bag_list_ui.dataSource = dele_bag;
     self.map_list_ui.delegate = dele_map;
     self.map_list_ui.dataSource = dele_map;
+    is_locating=false;
 }
 
 void interDouble(double v1, double v2, double t1, double t2, double& v3_out, double t3){
@@ -108,6 +111,18 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
                             NSTimeInterval now = [t1 timeIntervalSince1970];
                             bag_ptr->write("imu", ros::Time(now), msg);
                         }
+                    }
+                    if(is_locating){
+                        Eigen::Vector3d Accl(msg.linear_acceleration.x,
+                                             msg.linear_acceleration.y,
+                                             msg.linear_acceleration.z);
+                        Eigen::Vector3d Gyro(msg.angular_velocity.x,
+                                             msg.angular_velocity.y,
+                                             msg.angular_velocity.z);
+                        double timestamp = msg.header.stamp.toSec();
+                        //NSLog(@"imu: %@", [NSThread currentThread]);
+                        localizer->AddIMU( timestamp,Accl,Gyro);
+                        //std::cout<<"add imu"<<std::endl;
                     }
                 });
                 
@@ -227,7 +242,6 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
                                 posis[i]= Rwwc*posis[i];
                             }
                             [_sceneDelegate showTraj: posis];
-                            
                         }
                     }
                     last_kf_count=posis.size();
@@ -242,13 +256,27 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
 }
 
 - (IBAction)start_opti:(id)sender {
+    
     if((int)[dele_map.file_list count]>0){
         dispatch_async( sessionQueue, ^{
             NSArray *dirPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
             NSString *full_addr = [[dirPaths objectAtIndex:0] stringByAppendingPathComponent:dele_map.sel_filename];
             char *full_addr_char = (char*)[full_addr cStringUsingEncoding:[NSString defaultCStringEncoding]];
             std::string full_addr_std(full_addr_char);
+            NSBundle* myBundle = [NSBundle mainBundle];
+            NSString* word_proj_str;
+            word_proj_str = [myBundle pathForResource:@"words_projmat" ofType:@"dat"];
+            NSFileManager *fileManager= [NSFileManager defaultManager];
+            char *docsPath;
+            docsPath = (char*)[full_addr cStringUsingEncoding:[NSString defaultCStringEncoding]];
+            std::string full_file_name(docsPath);
+            std::string words_projmat_std=full_file_name+"/words_projmat.dat";
+            NSString * words_projmat_ns = [NSString stringWithFormat:@"%s",words_projmat_std.c_str()];
+            [fileManager copyItemAtPath:word_proj_str toPath:words_projmat_ns error:nil];
+            NSLog(word_proj_str);
+            NSLog(words_projmat_ns);
             OptimizerTool::optimize_imu(full_addr_std);
+            DescIndex::create_desc_index(full_addr_std);
         } );
     }
 }
@@ -259,8 +287,8 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
         NSString *full_addr = [[dirPaths objectAtIndex:0] stringByAppendingPathComponent:dele_map.sel_filename];
         char *full_addr_char = (char*)[full_addr cStringUsingEncoding:[NSString defaultCStringEncoding]];
         std::string full_addr_std(full_addr_char);
-        [IOSVis showMPs: full_addr_std+"/posi.txt" sceneDelegate: _sceneDelegate];
-        [IOSVis showTraj: full_addr_std+"/traj.txt" sceneDelegate: _sceneDelegate];
+        [IOSVis showMPs: full_addr_std+"/posi_alin.txt" sceneDelegate: _sceneDelegate];
+        [IOSVis showTraj: full_addr_std+"/traj_alin.txt" sceneDelegate: _sceneDelegate];
     }
 }
 
@@ -273,6 +301,7 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
     voc_str = [myBundle pathForResource:@"small_voc_no_rot" ofType:@"yml"];
     NSString* cam_config_str;
     cam_config_str = [myBundle pathForResource:@"camera_config" ofType:@"txt"];
+
     NSString* bag_str=nil;
     NSArray *dirPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSArray *directoryContent = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[dirPaths objectAtIndex:0] error:NULL];
@@ -296,9 +325,7 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
         NSLog(@"Error: Create folder failed %@", full_addr);
         return;
     }
-    char *docsPath;
-    docsPath = (char*)[full_addr cStringUsingEncoding:[NSString defaultCStringEncoding]];
-    std::string full_file_name(docsPath);
+    std::string full_file_name=[full_addr UTF8String];
     std::string cam_config_std=full_file_name+"/camera_config.txt";
     NSString * cam_config_ns_desc = [NSString stringWithFormat:@"%s",cam_config_std.c_str()];
     [fileManager copyItemAtPath:cam_config_str toPath:cam_config_ns_desc error:nil];
@@ -316,9 +343,6 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
         Rwi = orb_slam::calRotMFromGravity(first_acce);
     }
     [self do_slam: [voc_str UTF8String] mycam_str:[mycam_str UTF8String] bag_str:[bag_str UTF8String] full_file_name:full_file_name Rwwc: Rwi.transpose()*Tbc.block(0,0,3,3)];
-    
-    //
-    [IOSVis showMPs: full_file_name+"/posi_alin.txt" sceneDelegate: _sceneDelegate];
 }
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
@@ -350,6 +374,23 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
                 NSTimeInterval now = [t1 timeIntervalSince1970];
                 bag_ptr->write("img", ros::Time(now), img_ros_img);
             }
+        }
+        if(is_locating){
+            double timestamp = img_ros_img.header.stamp.toSec();
+            cv::Mat img_grey;
+            cv::cvtColor(img_cv, img_grey, cv::COLOR_BGR2GRAY);
+            localizer->AddImage(timestamp,0,img_grey);
+            Eigen::Vector3d Pos;
+            Eigen::Vector3d Vel;
+            Eigen::Quaterniond Ori;
+            bool re =localizer->QueryPose(-1,  Pos,  Vel,  Ori);
+            if (re){
+                loc_posi_re.push_back(Pos);
+                [_sceneDelegate showTraj: loc_posi_re];
+            }
+            
+            //NSLog(@"img: %@", [NSThread currentThread]);
+            //std::cout<<"add img"<<std::endl;
         }
     });
     img_count++;
@@ -453,8 +494,24 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
     }
 }
 - (IBAction)load_map:(id)sender {
+    NSBundle* myBundle = [NSBundle mainBundle];
+    NSString* myloc_str;
+    myloc_str = [myBundle pathForResource:@"rovio_default_config" ofType:@"info"];
+    NSArray *dirPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *full_addr = [[dirPaths objectAtIndex:0] stringByAppendingPathComponent:dele_map.sel_filename];
+    char *full_addr_char = (char*)[full_addr cStringUsingEncoding:[NSString defaultCStringEncoding]];
+    std::string full_addr_std(full_addr_char);
+    localizer.reset(new wayz::ChamoLoc);
+    localizer->StartLocalization([myloc_str UTF8String]);
+    localizer->AddMap(full_addr_std);
 }
 - (IBAction)locate:(id)sender {
+    if(is_locating==true){
+        is_locating=false;
+    }else{
+        is_locating=true;
+    }
+    
 }
 
 - (void)viewDidAppear:(BOOL)animated{

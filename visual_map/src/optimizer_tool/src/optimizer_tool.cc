@@ -381,5 +381,11 @@ namespace OptimizerTool
             f<<mp_posis[i](0)<<","<<mp_posis[i](1)<<","<<mp_posis[i](2)<<std::endl;
         }
         f.close();
+        std::string pose_out_addr=res_root+"/traj_alin.txt";
+        f.open(pose_out_addr.c_str());
+        for(int i=0; i<pose_vec.size(); i++){
+            f<<"chamo.jpg"<<i<<pose_vec[i](0,0)<<pose_vec[i](0,1)<<pose_vec[i](0,2)<<pose_vec[i](0,3)<<pose_vec[i](1,0)<<pose_vec[i](1,1)<<pose_vec[i](1,2)<<pose_vec[i](1,3)<<pose_vec[i](2,0)<<pose_vec[i](2,1)<<pose_vec[i](2,2)<<pose_vec[i](2,3)<<std::endl;
+        }
+        f.close();
     }
 }

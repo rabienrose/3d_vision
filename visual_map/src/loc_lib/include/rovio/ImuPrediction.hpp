@@ -100,7 +100,6 @@ class ImuPrediction: public LWF::Prediction<FILTERSTATE>{
    * @todo implement without noise for speed
    */
   void evalPrediction(mtState& output, const mtState& state, const mtNoise& noise, double dt) const{
-      
     output.aux().MwWMmeas_ = meas_.template get<mtMeas::_gyr>();
     output.aux().MwWMest_  = meas_.template get<mtMeas::_gyr>()-state.gyb();
     const V3D imuRor = output.aux().MwWMest_+noise.template get<mtNoise::_att>()/sqrt(dt);

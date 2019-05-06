@@ -24,6 +24,9 @@
     std::vector<Eigen::Vector3d> traj;
     std::string line;
     std::ifstream infile_pose(traj_addr.c_str());
+    if(infile_pose.is_open()==false){
+        return;
+    }
     while (true)
     {
         std::getline(infile_pose, line);

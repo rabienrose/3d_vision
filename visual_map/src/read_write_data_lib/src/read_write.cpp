@@ -138,6 +138,9 @@ namespace CHAMO
     void read_mp_posi(std::string posi_addr, std::vector<Eigen::Vector3d>& mp_posis){
         std::string line;
         std::ifstream infile_posi(posi_addr.c_str());
+        if(infile_posi.is_open()==false){
+            return;
+        }
         while (true)
         {
             std::getline(infile_posi, line);

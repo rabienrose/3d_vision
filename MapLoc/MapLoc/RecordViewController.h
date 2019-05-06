@@ -12,6 +12,7 @@
 #include "std_msgs/String.h"
 #include "delegate_header.h"
 #import "UIListDelegate.h"
+#include "loc_lib/ChamoLoc.h"
 @protocol RecordViewControllerDelegate <NSObject>
 @required
 - (cv::Mat)getNewFrame;
@@ -36,6 +37,9 @@
     int last_kf_count;
     BagListDelegate *dele_bag;
     BagListDelegate *dele_map;
+    std::unique_ptr<wayz::ChamoLoc> localizer;
+    bool is_locating;
+    std::vector<Eigen::Vector3d> loc_posi_re;
 }
 @property (nonatomic, weak) id<FrameInfoDelegate> frameDelegate;
 @property (nonatomic, weak) id<SceneInfoDelegate> sceneDelegate;

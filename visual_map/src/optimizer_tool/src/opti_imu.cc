@@ -48,8 +48,8 @@ namespace OptimizerTool{
         std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> pose_vec;
         std::vector<double> img_times;
         CHAMO::read_pose_list(pose_list, frame_ids, pose_vec, img_times, pose_addr, img_time_addr);
-        std::cout<<"pose_list: "<<img_times.size()<<std::endl;
-
+        std::cout<<"pose_list: "<<pose_list.size()<<std::endl;
+        std::cout<<"pose_vec: "<<pose_vec.size()<<std::endl;
         std::string imu_addr=res_root+"/imu.txt";
         std::vector<Eigen::Matrix<double, 7, 1>> imu_datas_raw;
         CHAMO::read_imu_data(imu_addr, imu_datas_raw);
@@ -129,6 +129,7 @@ namespace OptimizerTool{
         std::vector<std::vector<orb_slam::IMUData>> sycn_imu_datas=sycn_imu_datas_all;
         std::vector<cv::Mat> pose_vec_mat;
         
+        
         for(int i=0; i<pose_vec.size(); i++){
             pose_vec_mat.push_back(orb_slam::Converter::toCvMat(pose_vec[i]));
         }
@@ -137,10 +138,12 @@ namespace OptimizerTool{
         Eigen::Vector3d ba=Eigen::Vector3d::Zero();
         std::vector<orb_slam::IMUPreintegrator> preints;
         updatePreInt(preints, sycn_imu_datas, ba, bg);
+        
         Eigen::Vector3d new_bg = OptimizeInitialGyroBias(pose_vec_mat, preints, Tbc);
         bg=new_bg;
         preints.clear();
         updatePreInt(preints, sycn_imu_datas, ba, bg);
+
         double sstar;
         cv::Mat gwstar;
         CalGravityAndScale(pose_vec_mat, preints, orb_slam::Converter::toCvMat(Tbc), sstar, gwstar);
@@ -159,7 +162,11 @@ namespace OptimizerTool{
         Eigen::Vector3d bias_a;
         std::cout<<"s: "<<sstar<<std::endl;
         CalAccBias(pose_vec_mat, preints, sstar, gwstar, orb_slam::Converter::toCvMat(Tbc), Rwi, bias_a);
+        std::cout<<"preints: "<<preints.size()<<std::endl;
+        std::cout<<"sycn_imu_datas:"<<sycn_imu_datas.size()<<std::endl;
+        preints.clear();
         updatePreInt(preints, sycn_imu_datas, bias_a, bg);
+        std::cout<<"preints: "<<preints.size()<<std::endl;
         std::cout<<"refined s: "<<sstar<<std::endl;
         std::cout<<"bias_a: "<<bias_a.transpose()<<std::endl;
         std::cout<<"bias_g: "<<new_bg.transpose()<<std::endl;
@@ -175,7 +182,7 @@ namespace OptimizerTool{
         cv::Mat Rcb = Rbc.t();
         cv::Mat pcb = -Rcb*pbc;
         std::cout<<"states: "<<states.size()<<std::endl;
-        std::cout<<"preints: "<<preints.size()<<std::endl;
+        
         Eigen::Vector3d last_v;
         for(int i=0; i<pose_vec_mat.size(); i++){
             pose_vec_mat[i].col(3).rowRange(0,3)=pose_vec_mat[i].col(3).rowRange(0,3)*sstar;
@@ -233,6 +240,12 @@ namespace OptimizerTool{
             Eigen::Vector3d roted_posi = Rwi_.transpose()*mp_posis[i];
             f<<roted_posi(0)<<","<<roted_posi(1)<<","<<roted_posi(2)<<std::endl;
         }
-        f.close();  
+        f.close();
+        std::string pose_out_addr=res_root+"/traj_alin.txt";
+        f.open(pose_out_addr.c_str());
+        for(int i=0; i<pose_vec.size(); i++){
+            f<<"chamo.jpg"<<i<<pose_vec[i](0,0)<<pose_vec[i](0,1)<<pose_vec[i](0,2)<<pose_vec[i](0,3)<<pose_vec[i](1,0)<<pose_vec[i](1,1)<<pose_vec[i](1,2)<<pose_vec[i](1,3)<<pose_vec[i](2,0)<<pose_vec[i](2,1)<<pose_vec[i](2,2)<<pose_vec[i](2,3)<<std::endl;
+        }
+        f.close();
     }
 }

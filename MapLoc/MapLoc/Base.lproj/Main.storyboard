@@ -186,9 +186,9 @@
                                     </button>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="uxv-fO-DQn">
                                         <rect key="frame" x="0.0" y="60" width="100" height="30"/>
-                                        <state key="normal" title="Load"/>
+                                        <state key="normal" title="Start Sensor"/>
                                         <connections>
-                                            <action selector="load_map:" destination="9ls-vt-jnu" eventType="touchUpInside" id="DUr-Wc-nDk"/>
+                                            <action selector="start_sensor:" destination="9ls-vt-jnu" eventType="touchUpInside" id="fVS-1a-Tr9"/>
                                         </connections>
                                     </button>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="yaR-wU-sva">
@@ -212,6 +212,13 @@
                                             <action selector="show_map:" destination="9ls-vt-jnu" eventType="touchUpInside" id="4fh-Z9-DeT"/>
                                         </connections>
                                     </button>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Z4D-Pc-QfF" userLabel="Show">
+                                        <rect key="frame" x="0.0" y="180" width="100" height="30"/>
+                                        <state key="normal" title="Load"/>
+                                        <connections>
+                                            <action selector="load_map:" destination="9ls-vt-jnu" eventType="touchUpInside" id="QyE-Gh-vC5"/>
+                                        </connections>
+                                    </button>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="UPL-GN-Yts">
                                         <rect key="frame" x="0.0" y="363" width="100" height="30"/>
                                         <state key="normal" title="Go Frame"/>
@@ -226,10 +233,13 @@
                                     <constraint firstAttribute="trailing" secondItem="X6K-GA-5aY" secondAttribute="trailing" id="22p-66-HgA"/>
                                     <constraint firstItem="UPL-GN-Yts" firstAttribute="leading" secondItem="mIB-71-jnv" secondAttribute="leading" id="37L-Ze-JAs"/>
                                     <constraint firstAttribute="trailing" secondItem="SJU-oJ-b9m" secondAttribute="trailing" id="4xf-6y-4LG"/>
+                                    <constraint firstAttribute="trailing" secondItem="Z4D-Pc-QfF" secondAttribute="trailing" id="5zA-XC-33k"/>
                                     <constraint firstAttribute="trailing" secondItem="yaR-wU-sva" secondAttribute="trailing" id="8bT-R2-Am8"/>
                                     <constraint firstAttribute="trailing" secondItem="UPL-GN-Yts" secondAttribute="trailing" id="C5s-Pc-Bgf"/>
                                     <constraint firstItem="Jb9-LM-IVc" firstAttribute="top" secondItem="Ko1-gL-xpv" secondAttribute="bottom" id="CTW-SE-1OS"/>
                                     <constraint firstItem="uxv-fO-DQn" firstAttribute="top" secondItem="X6K-GA-5aY" secondAttribute="bottom" id="Dab-uy-Agd"/>
+                                    <constraint firstItem="Z4D-Pc-QfF" firstAttribute="leading" secondItem="mIB-71-jnv" secondAttribute="leading" id="Hty-hn-FCD"/>
+                                    <constraint firstItem="Z4D-Pc-QfF" firstAttribute="top" secondItem="Jb9-LM-IVc" secondAttribute="bottom" id="LY1-XG-CPK"/>
                                     <constraint firstAttribute="width" constant="100" id="NtJ-SA-crn"/>
                                     <constraint firstItem="yaR-wU-sva" firstAttribute="top" secondItem="uxv-fO-DQn" secondAttribute="bottom" id="RTP-l7-yTp"/>
                                     <constraint firstItem="SJU-oJ-b9m" firstAttribute="top" secondItem="mIB-71-jnv" secondAttribute="top" id="T9t-yV-zWu"/>

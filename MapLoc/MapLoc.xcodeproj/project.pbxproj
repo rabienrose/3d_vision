@@ -110,6 +110,10 @@
 		04A24A0A2269EC9400B811F9 /* os_specific.c in Sources */ = {isa = PBXBuildFile; fileRef = 04A249AD2269EC9200B811F9 /* os_specific.c */; };
 		04A24A132269EC9400B811F9 /* inverted-multi-index.cc in Sources */ = {isa = PBXBuildFile; fileRef = 04A249C22269EC9300B811F9 /* inverted-multi-index.cc */; };
 		04A24A20226C29A800B811F9 /* extract_bag.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 04A24A1B226C29A700B811F9 /* extract_bag.cpp */; };
+		04E837F4227000F800E16353 /* inverted_multi_index.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = 04E837F3227000F800E16353 /* inverted_multi_index.pb.cc */; };
+		04E837F722701BEE00E16353 /* eigen.pb.cc in Sources */ = {isa = PBXBuildFile; fileRef = 04E837F622701BEE00E16353 /* eigen.pb.cc */; };
+		04E837FB2270A23F00E16353 /* rovio_default_config.info in Resources */ = {isa = PBXBuildFile; fileRef = 04E837F82270A23E00E16353 /* rovio_default_config.info */; };
+		04E837FC2270A23F00E16353 /* words_projmat.dat in Resources */ = {isa = PBXBuildFile; fileRef = 04E837F92270A23E00E16353 /* words_projmat.dat */; };
 		04F153EF22634C3C006D0B36 /* UIListDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 04F153EE22634C3B006D0B36 /* UIListDelegate.mm */; };
 /* End PBXBuildFile section */
 
@@ -123,6 +127,19 @@
 		043F0B3C225B8D14000104D4 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		043F0B3E225B8D20000104D4 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		043F0B40225B8D2A000104D4 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		045430CA2273F5D800303475 /* Update.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Update.hpp; sourceTree = "<group>"; };
+		045430CB2273F5D800303475 /* OutlierDetection.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OutlierDetection.hpp; sourceTree = "<group>"; };
+		045430CC2273F5D800303475 /* FilterBase.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FilterBase.hpp; sourceTree = "<group>"; };
+		045430CD2273F5D800303475 /* ModelBase.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ModelBase.hpp; sourceTree = "<group>"; };
+		045430CE2273F5D800303475 /* CoordinateTransform.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CoordinateTransform.hpp; sourceTree = "<group>"; };
+		045430CF2273F5D800303475 /* GIFPrediction.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = GIFPrediction.hpp; sourceTree = "<group>"; };
+		045430D02273F5D800303475 /* FilterState.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FilterState.hpp; sourceTree = "<group>"; };
+		045430D12273F5D800303475 /* Prediction.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Prediction.hpp; sourceTree = "<group>"; };
+		045430D22273F5D800303475 /* TestClasses.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TestClasses.hpp; sourceTree = "<group>"; };
+		045430D32273F5D800303475 /* State.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = State.hpp; sourceTree = "<group>"; };
+		045430D42273F5D800303475 /* SigmaPoints.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SigmaPoints.hpp; sourceTree = "<group>"; };
+		045430D52273F5D800303475 /* PropertyHandler.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PropertyHandler.hpp; sourceTree = "<group>"; };
+		045430D62273F5D800303475 /* common.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = common.hpp; sourceTree = "<group>"; };
 		0456D438225741DC00A00865 /* MapLoc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MapLoc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0456D43B225741DC00A00865 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		0456D43C225741DC00A00865 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -373,6 +390,10 @@
 		04A249C22269EC9300B811F9 /* inverted-multi-index.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "inverted-multi-index.cc"; sourceTree = "<group>"; };
 		04A24A19226C29A700B811F9 /* extract_bag.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = extract_bag.h; sourceTree = "<group>"; };
 		04A24A1B226C29A700B811F9 /* extract_bag.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = extract_bag.cpp; sourceTree = "<group>"; };
+		04E837F3227000F800E16353 /* inverted_multi_index.pb.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = inverted_multi_index.pb.cc; path = "../../inverted-multi-index/src/inverted_multi_index.pb.cc"; sourceTree = "<group>"; };
+		04E837F622701BEE00E16353 /* eigen.pb.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = eigen.pb.cc; path = "../../inverted-multi-index/src/eigen.pb.cc"; sourceTree = "<group>"; };
+		04E837F82270A23E00E16353 /* rovio_default_config.info */ = {isa = PBXFileReference; lastKnownFileType = text; name = rovio_default_config.info; path = ../data/rovio_default_config.info; sourceTree = "<group>"; };
+		04E837F92270A23E00E16353 /* words_projmat.dat */ = {isa = PBXFileReference; lastKnownFileType = file; name = words_projmat.dat; path = ../data/words_projmat.dat; sourceTree = "<group>"; };
 		04F153ED22634C3A006D0B36 /* UIListDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UIListDelegate.h; sourceTree = "<group>"; };
 		04F153EE22634C3B006D0B36 /* UIListDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = UIListDelegate.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -407,9 +428,48 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		045430C42273F5D800303475 /* lightweight_filtering */ = {
+			isa = PBXGroup;
+			children = (
+				045430C82273F5D800303475 /* include */,
+			);
+			name = lightweight_filtering;
+			path = ../../visual_map/src/lightweight_filtering;
+			sourceTree = "<group>";
+		};
+		045430C82273F5D800303475 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				045430C92273F5D800303475 /* lightweight_filtering */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		045430C92273F5D800303475 /* lightweight_filtering */ = {
+			isa = PBXGroup;
+			children = (
+				045430CA2273F5D800303475 /* Update.hpp */,
+				045430CB2273F5D800303475 /* OutlierDetection.hpp */,
+				045430CC2273F5D800303475 /* FilterBase.hpp */,
+				045430CD2273F5D800303475 /* ModelBase.hpp */,
+				045430CE2273F5D800303475 /* CoordinateTransform.hpp */,
+				045430CF2273F5D800303475 /* GIFPrediction.hpp */,
+				045430D02273F5D800303475 /* FilterState.hpp */,
+				045430D12273F5D800303475 /* Prediction.hpp */,
+				045430D22273F5D800303475 /* TestClasses.hpp */,
+				045430D32273F5D800303475 /* State.hpp */,
+				045430D42273F5D800303475 /* SigmaPoints.hpp */,
+				045430D52273F5D800303475 /* PropertyHandler.hpp */,
+				045430D62273F5D800303475 /* common.hpp */,
+			);
+			path = lightweight_filtering;
+			sourceTree = "<group>";
+		};
 		0456D42F225741DC00A00865 = {
 			isa = PBXGroup;
 			children = (
+				04E837F82270A23E00E16353 /* rovio_default_config.info */,
+				04E837F92270A23E00E16353 /* words_projmat.dat */,
 				046EF052226C59BD00123690 /* camera_config.txt */,
 				04A244A52269C67800B811F9 /* iphone.yaml */,
 				04A244A62269C67800B811F9 /* small_voc_no_rot.yml */,
@@ -430,6 +490,7 @@
 		0456D43A225741DC00A00865 /* MapLoc */ = {
 			isa = PBXGroup;
 			children = (
+				045430C42273F5D800303475 /* lightweight_filtering */,
 				046EF050226C44BF00123690 /* IOS_visualization.h */,
 				046EF04F226C44BE00123690 /* IOS_visualization.mm */,
 				04A24A14226C29A700B811F9 /* bag_tool */,
@@ -815,6 +876,8 @@
 		04A249332269EC9100B811F9 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				04E837F622701BEE00E16353 /* eigen.pb.cc */,
+				04E837F3227000F800E16353 /* inverted_multi_index.pb.cc */,
 				04A249352269EC9100B811F9 /* create_desc_index.cc */,
 			);
 			path = src;
@@ -1174,6 +1237,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				04E837FB2270A23F00E16353 /* rovio_default_config.info in Resources */,
+				04E837FC2270A23F00E16353 /* words_projmat.dat in Resources */,
 				046EF053226C59BD00123690 /* camera_config.txt in Resources */,
 				04A244A72269C67800B811F9 /* iphone.yaml in Resources */,
 				04A244A82269C67800B811F9 /* small_voc_no_rot.yml in Resources */,
@@ -1190,6 +1255,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				04E837F4227000F800E16353 /* inverted_multi_index.pb.cc in Sources */,
 				0419DAC92258B03A001011E5 /* DetailViewController.mm in Sources */,
 				04A24A132269EC9400B811F9 /* inverted-multi-index.cc in Sources */,
 				04A249DE2269EC9300B811F9 /* flags.cc in Sources */,
@@ -1264,6 +1330,7 @@
 				04A24A012269EC9300B811F9 /* optimization_algorithm_factory.cpp in Sources */,
 				04A249D62269EC9300B811F9 /* Camera.cpp in Sources */,
 				04A249C92269EC9300B811F9 /* NavState.cpp in Sources */,
+				04E837F722701BEE00E16353 /* eigen.pb.cc in Sources */,
 				04A248D42269EBB500B811F9 /* read_write.cpp in Sources */,
 				04A249FF2269EC9300B811F9 /* robust_kernel.cpp in Sources */,
 				04A249C52269EC9300B811F9 /* so3.cpp in Sources */,

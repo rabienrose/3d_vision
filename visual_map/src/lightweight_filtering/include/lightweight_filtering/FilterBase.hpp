@@ -188,6 +188,7 @@ class FilterBase: public PropertyHandler{
     if(front_.t_<=nextSafeTime && !gotFrontWarning_ && front_.t_>safe_.t_){
       safe_ = front_;
     }
+      
     update(safe_,nextSafeTime);
     clean(safe_.t_);
     safeWarningTime_ = safe_.t_;

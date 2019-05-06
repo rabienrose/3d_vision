@@ -346,9 +346,9 @@ namespace wayz {
                     t_mb.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.qWM()).matrix();
                     Eigen::Vector3d speed_w = (posi_match_vec.back() - posi_match_vec[temp_id])/(timestamp-temp_time);
                     Eigen::Vector3d speed_b =t_mb.block(0,0,3,3).transpose()*speed_w;
-                    //velocityUpdateMeas_.vel() = speed_b;
-                    //this->mpFilter_->template addUpdateMeas<2>(this->velocityUpdateMeas_, timestamp);
-                    //updateFilter();
+                    velocityUpdateMeas_.vel() = speed_b;
+                    this->mpFilter_->template addUpdateMeas<2>(this->velocityUpdateMeas_, timestamp);
+                    updateFilter();
                     //std::cout<<"posi: "<<posi_match_vec.back().transpose()<<std::endl;
                     //std::cout<<"loc speed b: "<<speed_b.transpose()<<std::endl;
                     
@@ -485,37 +485,21 @@ namespace wayz {
         CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
         convert_eigen_double_mat_float(cam_inter, cam_inter_cv);
         convert_eigen_double_mat_float(cam_distort, cam_distort_cv);
-        
-//         std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/wayz_2018_11_26.bag_trajectory.txt";
-//         std::vector<Eigen::Vector3d> lidar_posis;
-//         std::vector<Eigen::Quaterniond> lidar_dirs;
-//         std::vector<double> lidar_time;
-//         Eigen::Matrix4d temp_rot=Eigen::Matrix4d::Identity();
-//         temp_rot(0,0)=0.00650026;
-//         temp_rot(0,1)=-0.999966;
-//         temp_rot(0,2)=0.00511285;
-//         temp_rot(0,3)=-0.179085;
-//         temp_rot(1,0)=0.429883;
-//         temp_rot(1,1)=-0.00182202;
-//         temp_rot(1,2)=-0.902883;
-//         temp_rot(1,3)=-0.188234;
-//         temp_rot(2,0)=0.902861;
-//         temp_rot(2,1)=0.0080669;
-//         temp_rot(2,2)=0.429856;
-//         temp_rot(2,3)=0.0180092;
-//         CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis, lidar_time);
-//         for(int i=0; i<lidar_dirs.size(); i++){
-//             Eigen::Matrix4d pose_gt=Eigen::Matrix4d::Identity();
-//             pose_gt.block(0,3,3,1)=lidar_posis[i];
-//             Eigen::Matrix3d rot_gt(lidar_dirs[i]);
-//             pose_gt.block(0,0,3,3)=rot_gt;
-//             gt_list[lidar_time[i]]=(temp_rot*pose_gt.inverse()).inverse();
-//         }
-        
-//         rovio::CameraCalibrationVector cameras;
-//         rovio::CameraCalibration camera;
-//         
-//         mpFilter_->setCameraCalibrations(camera_calibrations);
+
+        rovio::CameraCalibrationVector cameras;
+        rovio::CameraCalibration camera;
+        camera.K_= Eigen::Matrix3d::Identity();
+        camera.K_(0,0)=cam_inter(0);
+        camera.K_(1,1)=cam_inter(1);
+        camera.K_(0,2)=cam_inter(2);
+        camera.K_(1,2)=cam_inter(3);
+        camera.distortionModel_=rovio::DistortionModel::RADTAN;
+        camera.distortionParams_=Eigen::VectorXd::Zero(5);
+        camera.hasIntrinsics_=true;
+        cameras.push_back(camera);
+        mpFilter_->setCameraCalibrations(cameras);
+        Eigen::Matrix4d Tcb  = Tbc.inverse();
+        mpFilter_->setExtrinsics(Tcb.block(0,0,3,3), Tcb.block(0,3,3,1));
     };
     
     void ChamoLoc::Shutdown(){
@@ -527,21 +511,29 @@ namespace wayz {
 //         for(auto item: posi_list){
 //             std::cout<<std::setprecision(15)<<item.first<<std::endl;
 //         }
-        std::map<double, Eigen::Vector3d>::const_iterator it_posi;
-        it_posi=posi_list.upper_bound(timestamp);
-        if(it_posi!=posi_list.end()){
-            Pos=it_posi->second;
-        }else{
-            it_posi--;
-            if(it_posi!=posi_list.end()){
-                Pos=it_posi->second;
+        if(timestamp<0){
+            if(posi_match_vec.size()>0){
+                //Pos=posi_match_vec.back();
+                Pos=(--posi_list.end())->second;
+                return true;
             }else{
                 return false;
             }
-            
+        }else{
+            std::map<double, Eigen::Vector3d>::const_iterator it_posi;
+            it_posi=posi_list.upper_bound(timestamp);
+            if(it_posi!=posi_list.end()){
+                Pos=it_posi->second;
+            }else{
+                it_posi--;
+                if(it_posi!=posi_list.end()){
+                    Pos=it_posi->second;
+                }else{
+                    return false;
+                }
+            }
+            return true;
         }
-        return true;
-        
         //Ori=rot_list.lower_bound(timestamp)->second;
     };
     
@@ -573,10 +565,12 @@ namespace wayz {
         timing_C += numberImagesProcessed;
         
         //std::cout<<mpFilter_->safe_.state_.WrWM()<<std::endl;
+#ifndef __APPLE__
         if(!mpFilter_->safe_.img_[0].empty()){
             cv::imshow("chamo", mpFilter_->safe_.img_[0]);
             cv::waitKey(1);
         }
+#endif
         
 
         // If there is no change, return false.
