@@ -42,7 +42,6 @@ cs_add_library(${PROJECT_NAME} src/binary-serialization.cc
                                src/shared-gflags.cc
                                src/sigint-breaker.cc
                                src/stringprintf.cc
-                               src/test/testing-entrypoint.cc
                                src/threading-helpers.cc
                                src/tridiagonal-matrix.cc
                                src/unique-id.cc

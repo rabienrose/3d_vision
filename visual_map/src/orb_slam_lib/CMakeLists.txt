@@ -6,8 +6,8 @@ catkin_simple(ALL_DEPS_REQUIRED)
 
 cs_add_library(${PROJECT_NAME}
   src/two_frame_pose.cc
-  src/ORBmatcher.cc
-  src/ORBextractor.cc
+  src/DescMatcher.cc
+  src/DescExtractor.cc
 )
 
 ############
