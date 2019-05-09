@@ -95,9 +95,9 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
     intRegister_.registerScalar("Common.depthType",depthTypeInt_);
     for(int camID=0;camID<mtState::nCam_;camID++){
       cameraCalibrationFile_[camID] = "";
-//      stringRegister_.registerScalar("Camera" + std::to_string(camID) + ".CalibrationFile", cameraCalibrationFile_[camID]);
-//      doubleRegister_.registerVector("Camera" + std::to_string(camID) + ".MrMC",init_.state_.aux().MrMC_[camID]);
-//      doubleRegister_.registerQuaternion("Camera" + std::to_string(camID) + ".qCM",init_.state_.aux().qCM_[camID]);
+     stringRegister_.registerScalar("Camera" + std::to_string(camID) + ".CalibrationFile", cameraCalibrationFile_[camID]);
+     doubleRegister_.registerVector("Camera" + std::to_string(camID) + ".MrMC",init_.state_.aux().MrMC_[camID]);
+     doubleRegister_.registerQuaternion("Camera" + std::to_string(camID) + ".qCM",init_.state_.aux().qCM_[camID]);
       doubleRegister_.removeScalarByVar(init_.state_.MrMC(camID)(0));
       doubleRegister_.removeScalarByVar(init_.state_.MrMC(camID)(1));
       doubleRegister_.removeScalarByVar(init_.state_.MrMC(camID)(2));
@@ -111,8 +111,8 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
         doubleRegister_.registerScalar("Init.Covariance.vep",init_.cov_(mtState::template getId<mtState::_vep>(camID)+j,mtState::template getId<mtState::_vep>(camID)+j));
         doubleRegister_.registerScalar("Init.Covariance.vea",init_.cov_(mtState::template getId<mtState::_vea>(camID)+j,mtState::template getId<mtState::_vea>(camID)+j));
       }
-//      doubleRegister_.registerVector("Camera" + std::to_string(camID) + ".MrMC",init_.state_.MrMC(camID));
-//      doubleRegister_.registerQuaternion("Camera" + std::to_string(camID) + ".qCM",init_.state_.qCM(camID));
+     doubleRegister_.registerVector("Camera" + std::to_string(camID) + ".MrMC",init_.state_.MrMC(camID));
+     doubleRegister_.registerQuaternion("Camera" + std::to_string(camID) + ".qCM",init_.state_.qCM(camID));
     }
     for(int i=0;i<mtState::nPose_;i++){
       doubleRegister_.removeScalarByVar(init_.state_.poseLin(i)(0));
@@ -184,12 +184,12 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
     } else {
       init_.mode_ = LWF::ModeEKF;
     }
-//    for(int camID = 0;camID<mtState::nCam_;camID++){
-//      if (!cameraCalibrationFile_[camID].empty()) {
-//        multiCamera_.cameras_[camID].loadCalibrationFromFile(
-//            cameraCalibrationFile_[camID]);
-//      }
-//    }
+    for(int camID = 0;camID<mtState::nCam_;camID++){
+        if (!cameraCalibrationFile_[camID].empty()) {
+        multiCamera_.cameras_[camID].loadCalibrationFromFile(
+            cameraCalibrationFile_[camID]);
+        }
+    }
     for(int i=0;i<FILTERSTATE::mtState::nMax_;i++){
       init_.state_.dep(i).setType(depthTypeInt_);
     }
@@ -207,8 +207,8 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
       }
       // Set camera extrinsics if available.
       if (camera_calibration.hasExtrinsics_) {
-        init_.state_.MrMC(camID) = camera_calibration.MrMC_;
-        init_.state_.qCM(camID) = camera_calibration.qCM_;
+        //init_.state_.MrMC(camID) = camera_calibration.MrMC_;
+        //init_.state_.qCM(camID) = camera_calibration.qCM_;
       }
     }
   }
@@ -251,12 +251,16 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
    */
   void setExtrinsics(const Eigen::Matrix3d& R_CM, const Eigen::Vector3d& CrCM, const int camID = 0){
     kindr::RotationMatrixD R(R_CM);
-    safe_.state_.qCM(camID)  = QPD(R);
-    safe_.state_.MrMC(camID) = -QPD(R).inverseRotate(CrCM);
+//     safe_.state_.qCM(camID)  = QPD(R);
+//     safe_.state_.MrMC(camID) = -QPD(R).inverseRotate(CrCM);
       init_.state_.qCM(camID)  = QPD(R);
       init_.state_.MrMC(camID) = -QPD(R).inverseRotate(CrCM);
-      front_.state_.qCM(camID)  = QPD(R);
-      front_.state_.MrMC(camID)= -QPD(R).inverseRotate(CrCM);
+      init_.state_.aux().MrMC_[camID]=init_.state_.MrMC(camID);
+      init_.state_.aux().qCM_[camID]=init_.state_.qCM(camID);
+      safe_=init_;
+      front_=init_;
+//       front_.state_.qCM(camID)  = QPD(R);
+//       front_.state_.MrMC(camID)= -QPD(R).inverseRotate(CrCM);
   }
 };
 

@@ -165,7 +165,7 @@ namespace OptimizerTool
             e->setMeasurement(lidar_poses[i].block(0,3,3,1));
             //e->setMeasurement(g2o::SE3Quat(R,t).inverse());
             //e->setInformation(Eigen::Matrix<double, 6, 6>::Identity()*1000000);
-            e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*100000000);
+            e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*1000);
             optimizer.addEdge(e);
             lidar_edges.push_back(e);
             

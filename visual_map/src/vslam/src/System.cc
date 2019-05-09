@@ -39,8 +39,11 @@ namespace ORB_SLAM2
             exit(-1);
         }
         mpVocabulary = new ORBVocabulary();
-        //bool bVocLoad= mpVocabulary->loadFromBinaryFile(strVocFile);
-        mpVocabulary->load(strVocFile);
+        bool bVocLoad= mpVocabulary->loadFromBinaryFile(strVocFile);
+        if(bVocLoad==false){
+            std::cout<<"try binary voc failed, use txt format to load."<<std::endl;
+            mpVocabulary->load(strVocFile);
+        }
         mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
         mpMap = new Map();
         mpTracker = new Tracking(mpVocabulary, mpMap, mpKeyFrameDatabase, strSettingsFile,0 ,false);

@@ -559,7 +559,7 @@ class FilterState: public LWF::FilterState<State<nMax,nLevels,patchSize,nCam,nPo
   /** \brief Constructor
    */
   FilterState():fsm_(nullptr), transformFeatureOutputCT_(nullptr), featureOutputCov_((int)(FeatureOutput::D_),(int)(FeatureOutput::D_)){
-    usePredictionMerge_ = true;
+    usePredictionMerge_ = false;
     imgTime_ = 0.0;
     imageCounter_ = 0;
     plotPoseMeas_ = true;

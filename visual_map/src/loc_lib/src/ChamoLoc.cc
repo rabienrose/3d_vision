@@ -106,11 +106,11 @@ namespace wayz {
     void ChamoLoc::StartLocalization(const std::string& filename){
         mpFilter_.reset(new FilterType);
         mpFilter_->readFromInfo(filename);
-        //mpFilter_->refreshProperties();
+        mpFilter_->refreshProperties();
         //std::cout<<mpFilter_->init_.state_.aux().MrMC_[0]<<std::endl;
     };
     
-    void ChamoLoc::UpdateByMap(cv::Mat Img, double timestamp){
+    bool ChamoLoc::UpdateByMap(cv::Mat Img, double timestamp, std::vector<cv::Point3f>& inliers_mp, std::vector<cv::Point2f>& inliers_kp){
         cv::Mat desc_list;
         std::vector<cv::KeyPoint> kps_list;
         std::vector<std::vector<std::vector<std::size_t>>> mGrid;
@@ -211,7 +211,7 @@ namespace wayz {
                     // Mark all observations (which are matches) from this ID (keyframe or
                     // vertex) as visited.
                     if(frame_to_match.count(exploration_match.frame_id_tar)==0){
-                        return;
+                        return false;
                     }
                     const std::vector<Match>& id_matches = frame_to_match[exploration_match.frame_id_tar];
                     for (const Match& id_match : id_matches) {
@@ -283,12 +283,19 @@ namespace wayz {
             cam_distort_zero.at<float>(1)=0;
             cam_distort_zero.at<float>(2)=0;
             cam_distort_zero.at<float>(3)=0;
-            cv::solvePnPRansac(point3ds, point2ds, cam_inter_cv, cam_distort_zero, rvec, tvec, false, 1000, 3.0f, 0.99, inliers, cv::SOLVEPNP_EPNP);
+            std::cout<<"point3ds: "<<point3ds.size()<<std::endl;
+            cv::solvePnPRansac(point3ds, point2ds, cam_inter_cv, cam_distort_zero, rvec, tvec, false, 1000, 2.0f, 0.99, inliers, cv::SOLVEPNP_EPNP);
             
             if(inliers.rows<20){
-                return;
+                return false;
             }
             std::cout<<"inliers.rows: "<<inliers.rows<<std::endl;
+            for(int i=0; i<inliers.rows; i++){
+                //std::cout<<inliers.at<int>(i)<<std::endl;
+                inliers_kp.push_back(point2ds[inliers.at<int>(i)]);
+                inliers_mp.push_back(point3ds[inliers.at<int>(i)]);
+            }
+            
             cv::Mat rot_m;
             cv::Rodrigues(rvec, rot_m);
             Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> rot_m_eigen;
@@ -301,24 +308,13 @@ namespace wayz {
             Eigen::Matrix4d pose_eigen=pose_inv.inverse();
 
             Eigen::Matrix4d eigen_bc_t=Eigen::Matrix4d::Identity();
-            eigen_bc_t.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.aux().qCM_[0]).matrix().transpose();
-            eigen_bc_t.block(0,3,3,1)=mpFilter_->safe_.state_.aux().MrMC_[0];
-            //std::map<double, Eigen::Matrix4d>::iterator gt_it= gt_list.lower_bound(timestamp);
+            //eigen_bc_t.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.aux().qCM_[0]).matrix().transpose();
+            //eigen_bc_t.block(0,3,3,1)=mpFilter_->safe_.state_.aux().MrMC_[0];
+            eigen_bc_t.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.qCM(0)).matrix().transpose();
+            eigen_bc_t.block(0,3,3,1)=mpFilter_->safe_.state_.MrMC(0);
             
             Eigen::Matrix4d eigen_wb;
-//             Eigen::Matrix4d pose_eigen;
-//             pose_eigen=gt_it->second;
-//             if(fabs(gt_it->first-timestamp)<0.01){
-//                 pose_eigen=gt_it->second;
-//             }else{
-//                 pose_eigen=(gt_it--)->second;
-//                 std::cout<<std::setprecision(15)<<(gt_it--)->first<<":"<<timestamp<<std::endl;
-//             }
-            //std::cout<<gt_it->second<<std::endl;
-            
-            
             eigen_wb=pose_eigen*eigen_bc_t.inverse();
-            
             
             Eigen::Quaterniond pose_qua(eigen_wb.block<3,3>(0,0));
             QPD pose_inv_QPD = QPD(pose_qua.inverse());
@@ -334,7 +330,7 @@ namespace wayz {
                 poseUpdateMeas_.pos() = eigen_wb.block(0,3,3,1);
                 poseUpdateMeas_.att() = pose_inv_QPD;
                 mpFilter_->template addUpdateMeas<1>(poseUpdateMeas_, timestamp);
-                updateFilter();
+                //updateFilter();
             }
 
             for(int i=1; i<timestamp_list.size(); i++){
@@ -348,7 +344,7 @@ namespace wayz {
                     Eigen::Vector3d speed_b =t_mb.block(0,0,3,3).transpose()*speed_w;
                     velocityUpdateMeas_.vel() = speed_b;
                     this->mpFilter_->template addUpdateMeas<2>(this->velocityUpdateMeas_, timestamp);
-                    updateFilter();
+                    //updateFilter();
                     //std::cout<<"posi: "<<posi_match_vec.back().transpose()<<std::endl;
                     //std::cout<<"loc speed b: "<<speed_b.transpose()<<std::endl;
                     
@@ -356,9 +352,9 @@ namespace wayz {
                     break;
                 }
             }
-            //show_pose_as_marker(posi_loc_vec, rot_loc_vec, "temp_pose_loc");
-            //show_pose_as_marker(posi_match_vec, rot_match_vec, "temp_pose_match");
+            return true;
         }
+        return false;
     }
 
     void ChamoLoc::AddImage(const double timestamp,const int camera_id, const cv::Mat& img_distort){
@@ -387,13 +383,13 @@ namespace wayz {
             if (imgUpdateMeas_.template get<mtImgMeas::_aux>().areAllValid()) {
                 measurement_accepted = mpFilter_->template addUpdateMeas<0>(imgUpdateMeas_, msgTime);
                 imgUpdateMeas_.template get<mtImgMeas::_aux>().reset(msgTime);
-                updateFilter();
                 //std::thread::id this_id = std::this_thread::get_id();
             }
         }
-        
-        UpdateByMap(Img, timestamp);
-        
+        std::vector<cv::Point3f> inliers_mp;
+        std::vector<cv::Point2f> inliers_kp;
+        bool loc_re = UpdateByMap(Img, timestamp, inliers_mp, inliers_kp);
+        updateFilter();
         
         Eigen::Matrix4d t_mb=Eigen::Matrix4d::Identity();
         t_mb.block(0,3,3,1)=mpFilter_->safe_.state_.WrWM();
@@ -413,7 +409,35 @@ namespace wayz {
         rot_loc_vec.push_back(rot_q);
 #ifndef __APPLE__
         show_mp_as_cloud(posi_vec, "temp_kf");
-        show_mp_as_cloud(posi_match_vec, "temp_match");
+        if(loc_re){
+            show_mp_as_cloud(posi_match_vec, "temp_match");
+            cv::Mat debug_img;
+            cv::cvtColor(Img, debug_img, cv::COLOR_GRAY2RGB);
+            for(int i=0; i<inliers_kp.size(); i++){
+                cv::circle(debug_img, inliers_kp[i], 4, CV_RGB(0,0,255), 2);
+            }
+            visualization::RVizVisualizationSink::publish("match_img", debug_img);
+            visualization::LineSegmentVector matches;
+            for(int i=0; i<inliers_mp.size(); i++){
+                visualization::LineSegment line_segment;
+                line_segment.from = posi_match_vec.back();
+                line_segment.scale = 0.03;
+                line_segment.alpha = 0.6;
+
+                line_segment.color.red = 255;
+                line_segment.color.green = 255;
+                line_segment.color.blue = 255;
+                Eigen::Vector3d mp_posi_eig;
+                mp_posi_eig(0)=inliers_mp[i].x;
+                mp_posi_eig(1)=inliers_mp[i].y;
+                mp_posi_eig(2)=inliers_mp[i].z;
+                line_segment.to = mp_posi_eig;
+                //std::cout<<line_segment.to.transpose()<<std::endl;
+                //std::cout<<posi_match_vec.back()<<std::endl;
+                matches.push_back(line_segment);
+            }
+            visualization::publishLines(matches, 0, visualization::kDefaultMapFrame,visualization::kDefaultNamespace, "map_match1");
+        }
 #endif
     };
     
@@ -489,14 +513,15 @@ namespace wayz {
         rovio::CameraCalibrationVector cameras;
         rovio::CameraCalibration camera;
         camera.K_= Eigen::Matrix3d::Identity();
-        camera.K_(0,0)=cam_inter(0);
-        camera.K_(1,1)=cam_inter(1);
-        camera.K_(0,2)=cam_inter(2);
-        camera.K_(1,2)=cam_inter(3);
+        
+        camera.K_=cam_inter;
         camera.distortionModel_=rovio::DistortionModel::RADTAN;
         camera.distortionParams_=Eigen::VectorXd::Zero(5);
         camera.hasIntrinsics_=true;
+        //rovio::CameraCalibration calibration;
+        //calibration.loadFromFile("/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/office_out_v2_loc/cam.yaml");
         cameras.push_back(camera);
+        
         mpFilter_->setCameraCalibrations(cameras);
         Eigen::Matrix4d Tcb  = Tbc.inverse();
         mpFilter_->setExtrinsics(Tcb.block(0,0,3,3), Tcb.block(0,3,3,1));

@@ -45,7 +45,7 @@ int main(int argc, char **argv){
             std::cout<<"file not open"<<std::endl;
         }
         std::string dir_name = out_dir+"/camera_"+std::to_string(camera_count)+"_img";
-        //_mkdir(dir_name.c_str(), NULL);
+        mkdir(dir_name.c_str(), NULL);
         int isCreate = mkdir(dir_name.c_str(),S_IRUSR | S_IWUSR | S_IXUSR | S_IRWXG | S_IRWXO);
         
         for(;it!=view.end();it++){
@@ -62,9 +62,11 @@ int main(int argc, char **argv){
                     cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
                     std::stringstream ss;
                     std::stringstream ss_time;
-                    ss<<out_dir+"/camera_"+std::to_string(camera_count)+"_img/img_"<<img_count<<".jpg";
+                    ss<<out_dir+"/camera_office1/img_"<<img_count<<".jpg";
+                    
+                    std::cout<<ss.str()<<std::endl;
 
-                    //cv::imwrite(ss.str(), cv_ptr->image);
+                    cv::imwrite(ss.str(), cv_ptr->image);
                     ss_time<<"img_"<<img_count<<".jpg"<<","<<simg->header.stamp<<std::endl;
                     outfile<<ss_time.str();
             
@@ -87,7 +89,7 @@ int main(int argc, char **argv){
                     cv_ptr = cv_bridge::toCvCopy(simgc, "bgr8");
                     std::stringstream ss;
                     std::stringstream ss_time;
-                    ss<<out_dir+"/camera_"+std::to_string(camera_count)+"_img/img_"<<img_count<<".jpg";
+                    ss<<out_dir+"/camera_office1/img_"<<img_count<<".jpg";
 
                     cv::imwrite(ss.str(), cv_ptr->image);
                     ss_time<<"img_"<<img_count<<".jpg"<<","<<simgc->header.stamp<<std::endl;

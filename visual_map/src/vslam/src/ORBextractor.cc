@@ -1042,8 +1042,8 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
         computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
 }
 
-void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
-                      OutputArray _descriptors)
+void ORBextractor::ExtractDesc( InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
+                      OutputArray _descriptors, bool use_orb)
 { 
     if(_image.empty())
         return;
@@ -1059,7 +1059,6 @@ void ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPo
     //ComputeKeyPointsOld(allKeypoints);
 
     Mat descriptors;
-    bool use_orb=false;
     if(use_orb){
         int nkeypoints = 0;
         for (int level = 0; level < nlevels; ++level)

@@ -35,7 +35,7 @@ public:
 
     bool QueryPose(const double timestamp, Eigen::Vector3d& Pos, Eigen::Vector3d& Vel, Eigen::Quaterniond& Ori) const;
 private:
-    void UpdateByMap(cv::Mat Img, double timestamp);
+    bool UpdateByMap(cv::Mat Img, double timestamp, std::vector<cv::Point3f>& inliers_mp, std::vector<cv::Point2f>& inliers_kp);
     //kMaxNumFeatures, kPyramidLevels, kFeaturePatchSizePx, kNumCameras, kLocalizationMode
     typedef rovio::RovioFilter<rovio::FilterState<25, 4, 6, 1, 1>> FilterType; 
     std::shared_ptr<FilterType> mpFilter_;

@@ -326,7 +326,6 @@ void publishLines(
   }
 
   RVizVisualizationSink::publish<visualization_msgs::Marker>(topic, marker);
-  ros::spinOnce();
 }
 
 void publishVerticesFromPoseVector(

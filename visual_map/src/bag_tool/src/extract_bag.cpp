@@ -17,10 +17,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/NavSatFix.h>
 #include <bag_tool/extract_bag.h>
 
 
-void extract_img_imu(std::string out_addr_, std::string bag_addr_, std::string img_topic, std::string imu_topic){
+void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_topic, std::string imu_topic, std::string gps_topic){
 
     std::string bag_addr=bag_addr_;
     std::string out_dir=out_addr_;
@@ -30,6 +31,7 @@ void extract_img_imu(std::string out_addr_, std::string bag_addr_, std::string i
     std::vector<std::string> topics;
     topics.push_back(img_topic);
     topics.push_back(imu_topic);
+    topics.push_back(gps_topic);
     rosbag::View view(bag, rosbag::TopicQuery(topics));
     int img_count=0;
     rosbag::View::iterator it= view.begin();
@@ -39,6 +41,9 @@ void extract_img_imu(std::string out_addr_, std::string bag_addr_, std::string i
     std::ofstream outfile_imu;
     outfile_imu.open (out_dir+"/imu.txt");
     
+    std::ofstream outfile_gps;
+    outfile_gps.open (out_dir+"/gps.txt");
+    
     for(;it!=view.end();it++){
         
         rosbag::MessageInstance m =*it;
@@ -47,7 +52,7 @@ void extract_img_imu(std::string out_addr_, std::string bag_addr_, std::string i
         if(simg!=NULL){
             cv_bridge::CvImagePtr cv_ptr;
             try{
-                cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
+                //cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
                 std::stringstream ss_time;
                 ss_time<<"img_"<<img_count<<".jpg"<<","<<simg->header.stamp<<std::endl;
                 outfile_img_time<<ss_time.str();
@@ -65,7 +70,16 @@ void extract_img_imu(std::string out_addr_, std::string bag_addr_, std::string i
             ss<<std::setprecision (15)<<sec<<","<<simu->angular_velocity.x<<","<<simu->angular_velocity.y<<","<<simu->angular_velocity.z<<","<<simu->linear_acceleration.x<<","<<simu->linear_acceleration.y<<","<<simu->linear_acceleration.z<<std::endl;
             outfile_imu<<ss.str();
         }
+        
+        sensor_msgs::NavSatFixPtr sgps = m.instantiate<sensor_msgs::NavSatFix>();
+        if(sgps!=NULL){
+            double sec = sgps->header.stamp.toSec();
+            std::stringstream ss;
+            ss<<std::setprecision (15)<<sec<<","<<sgps->latitude<<","<<sgps->longitude<<","<<sgps->altitude<<","<<(int)sgps->position_covariance[0]<<std::endl;
+            outfile_gps<<ss.str();
+        }
     }
     outfile_img_time.close();
     outfile_imu.close();
+    outfile_gps.close();
 };

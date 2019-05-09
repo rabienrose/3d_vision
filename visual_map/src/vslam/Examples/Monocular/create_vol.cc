@@ -39,7 +39,7 @@ void loadFeatures( std::vector<std::string>& path_to_images,std::string descript
         std::vector<cv::KeyPoint> keypoints;
         //std::cout<<"reading image: "<<path_to_images[i]<<std::endl;
         cv::Mat image = cv::imread(path_to_images[i], 0);
-        mpORBextractor(image, cv::Mat() ,keypoints, descriptors);
+        mpORBextractor.ExtractDesc(image, cv::Mat() ,keypoints, descriptors, false);
         //cv::Ptr<cv::ORB> orb = cv::ORB::create();
         //orb->detectAndCompute(image, cv::Mat(), keypoints, descriptors);
         std::vector<cv::Mat> out;
