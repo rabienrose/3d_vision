@@ -16,4 +16,5 @@
   <depend>rosbag</depend>
   <depend>opencv3_catkin</depend>
   <depend>eigen_catkin</depend>
+  <depend>gps_vis_odom</depend>
 </package>

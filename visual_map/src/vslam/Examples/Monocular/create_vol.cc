@@ -49,7 +49,7 @@ void loadFeatures( std::vector<std::string>& path_to_images,std::string descript
     }
 }
 
-void testVocCreation(std::vector<std::vector<cv::Mat>> &features)
+void testVocCreation(std::vector<std::vector<cv::Mat>> &features, std::string out_addr)
 {
     const int k = 15;
     const int L = 3;
@@ -57,7 +57,7 @@ void testVocCreation(std::vector<std::vector<cv::Mat>> &features)
     const DBoW2::ScoringType score = DBoW2::L1_NORM;
     OrbVocabulary voc(k, L, weight, score);
     voc.create(features);
-    voc.save("small_voc.yml.gz");
+    voc.save(out_addr+"/small_voc.yml");
 }
 
 std::vector<std::string> get_file_list(std::string img_root){
@@ -65,7 +65,8 @@ std::vector<std::string> get_file_list(std::string img_root){
     for(int i=0; i<4000; i++){
         std::stringstream ss;
         ss << i;
-        file_list_vec.push_back(img_root + "/img_"+ss.str() + ".jpg");
+        //std::cout<<img_root + "/images/img_"+ss.str() + ".jpg"<<std::endl;
+        file_list_vec.push_back(img_root + "/images/img_"+ss.str() + ".jpg");
     }
     
     return file_list_vec;
@@ -77,7 +78,7 @@ int main(int argc,char **argv)
     try{
         std::vector<std::vector<cv::Mat>> features;
         loadFeatures(file_list_vec, "orb", features);
-        testVocCreation(features);
+        testVocCreation(features, argv[1]);
     }catch(std::exception &ex){
         std::cerr<<ex.what()<<std::endl;
     }

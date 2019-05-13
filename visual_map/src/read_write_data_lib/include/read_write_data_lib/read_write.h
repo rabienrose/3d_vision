@@ -11,6 +11,13 @@ namespace CHAMO
         std::string pose_addr, std::string img_time_addr
     );
     
+    void read_traj_file(std::string traj_file_addr, std::vector<Eigen::Matrix4d>& traj_out, std::vector<std::string>& frame_names);
+    
+    void read_img_time(std::string img_time_addr, std::vector<double>& img_timess, std::vector<std::string>& img_names);
+    void read_gps_orth(std::string gps_orth_addr, std::vector<Eigen::Vector3d>& gps_orths, std::vector<double>& gps_times,
+        std::vector<int>& gps_covs, Eigen::Vector3d& anchor_gps
+    );
+    
     void read_imu_data(std::string imu_addr, std::vector<Eigen::Matrix<double, 7, 1>>& imu_datas);
     
     void read_mp_posi(std::string posi_addr, std::vector<Eigen::Vector3d>& mp_posis);

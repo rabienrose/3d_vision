@@ -33,5 +33,5 @@ int main(int argc, char* argv[]) {
     std::string lidar_addr=res_root+"/lidar_trajectory.txt";
     CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis, lidar_time);
     show_mp_as_cloud(lidar_posis, Rwi_, "/chamo/gps");
-    ros::spin();
+    //ros::spin();
 }

@@ -6,10 +6,10 @@ ORB_SLAM_ADDR=/home/chamo/Documents/work/3d_vision/visual_map/devel/lib/vslam/mo
 INDEX_ADDR=/home/chamo/Documents/work/3d_vision/visual_map/devel/lib/create_desc_index/create_desc_index_test
 OPTI_ADDR=/home/chamo/Documents/work/3d_vision/visual_map/devel/lib/optimizer_tool/optimizer_tool_test
 
-${BAG_EXTRACT_ADDR} ${BAG_NAME} ${OUT_ADDR} camera/right/image_raw imu/raw_data gps
+#${BAG_EXTRACT_ADDR} ${BAG_NAME} ${OUT_ADDR} camera/right/image_raw imu/raw_data gps
 
-${ORB_SLAM_ADDR} ${OUT_ADDR}/small_voc.yml ${OUT_ADDR}/vslam.yaml ${BAG_NAME} ${OUT_ADDR}
+#${ORB_SLAM_ADDR} ${OUT_ADDR}/small_voc.yml ${OUT_ADDR}/vslam.yaml ${BAG_NAME} ${OUT_ADDR}
 
 #${OPTI_ADDR} ${OUT_ADDR}
 
-#${INDEX_ADDR} ${OUT_ADDR}
+${INDEX_ADDR} ${OUT_ADDR}

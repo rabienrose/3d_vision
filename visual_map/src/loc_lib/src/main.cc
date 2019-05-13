@@ -14,6 +14,7 @@
 std::unique_ptr<wayz::ChamoLoc> localizer;
 double pose_time;
 bool init_flag = false;
+
 void imu_callback(const sensor_msgs::ImuConstPtr& imu_msg)
 {
     static double last_time =0.0;

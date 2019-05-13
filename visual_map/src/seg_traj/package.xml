@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>seg_traj</name>
+  <version>0.0.0</version>
+  <description>
+
+    chamo
+
+  </description>
+  <url></url>
+  <author>bloeschm</author>
+  <maintainer email="bloeschm@ethz.ch">bloeschm</maintainer>
+  <license>BSD License</license>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>visualization</depend>
+  <depend>eigen_catkin</depend>
+  <depend>read_write_data_lib</depend>
+  <depend>orb_slam_lib</depend>
+</package>

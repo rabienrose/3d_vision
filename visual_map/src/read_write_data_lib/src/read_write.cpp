@@ -54,6 +54,36 @@ namespace CHAMO
         Tbc(2,3)=atof(splited[11].c_str());
     }
     
+    void read_traj_file(std::string traj_file_addr, std::vector<Eigen::Matrix4d>& traj_out, std::vector<std::string>& frame_names){
+        std::ifstream infile_pose(traj_file_addr.c_str());
+        std::string line;
+        while (true)
+        {
+            std::getline(infile_pose, line);
+            if (line==""){
+                break;
+            }
+            std::vector<std::string> splited = split(line, ",");
+            std::string file_name= splited[0];
+            Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
+            int frame_id=atoi(splited[1].c_str());
+            pose(0,0)=atof(splited[2].c_str());
+            pose(0,1)=atof(splited[3].c_str());
+            pose(0,2)=atof(splited[4].c_str());
+            pose(0,3)=atof(splited[5].c_str());
+            pose(1,0)=atof(splited[6].c_str());
+            pose(1,1)=atof(splited[7].c_str());
+            pose(1,2)=atof(splited[8].c_str());
+            pose(1,3)=atof(splited[9].c_str());
+            pose(2,0)=atof(splited[10].c_str());
+            pose(2,1)=atof(splited[11].c_str());
+            pose(2,2)=atof(splited[12].c_str());
+            pose(2,3)=atof(splited[13].c_str());
+            traj_out.push_back(pose);
+            frame_names.push_back(file_name);
+        }
+    }
+    
     void read_pose_list(std::map<double, int>& pose_list, std::map<int, int>& frame_ids,
         std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& pose_vec,
         std::vector<double>& img_times, 
@@ -276,4 +306,54 @@ namespace CHAMO
             descs.push_back(desc);
         }
     }
+    
+    void read_img_time(std::string img_time_addr, std::vector<double>& img_timess, std::vector<std::string>& img_names){
+        std::string line;
+        std::ifstream infile(img_time_addr);
+        while (true)
+        {
+            std::getline(infile, line);
+            if (line==""){
+                break;
+            }
+            std::vector<std::string> splited = split(line, ",");
+            std::string img_name=splited[0];
+            double img_time=atof(splited[1].c_str());
+            img_timess.push_back(img_time);
+            img_names.push_back(img_name);
+        }
+        infile.close();
+    }
+    
+    void read_gps_orth(std::string gps_orth_addr, std::vector<Eigen::Vector3d>& gps_orths, std::vector<double>& gps_times,
+        std::vector<int>& gps_covs, Eigen::Vector3d& anchor_gps
+    ){
+        std::string line;
+        std::ifstream infile(gps_orth_addr);
+        while (true)
+        {
+            std::getline(infile, line);
+            if (line==""){
+                break;
+            }
+            std::vector<std::string> splited = split(line, ",");
+            if(splited.size()==3){
+                anchor_gps(0)=atof(splited[0].c_str());
+                anchor_gps(1)=atof(splited[1].c_str());
+                anchor_gps(2)=atof(splited[2].c_str());
+                continue;
+            }
+            double gps_time=atof(splited[0].c_str());
+            Eigen::Vector3d gps_orth;
+            gps_orth(0)=atof(splited[1].c_str());
+            gps_orth(1)=atof(splited[2].c_str());
+            gps_orth(2)=atof(splited[3].c_str());
+            int gps_cov =atoi(splited[4].c_str());
+            gps_orths.push_back(gps_orth);
+            gps_times.push_back(gps_time);
+            gps_covs.push_back(gps_cov);
+        }
+        infile.close();
+    }
+    
 }

@@ -49,10 +49,11 @@ int main(int argc, char **argv)
     ORB_SLAM2::System sys(argv[1],argv[2]);
     std::string bag_str=argv[3];
     std::string out_str=argv[4];
+    std::string img_topic=argv[5];
     rosbag::Bag bag;
     bag.open(bag_str,rosbag::bagmode::Read);
     std::vector<std::string> topics;
-    topics.push_back("camera/right/image_raw");
+    topics.push_back(img_topic);
     //topics.push_back("img");
     rosbag::View view(bag, rosbag::TopicQuery(topics));
     int img_count=-1;

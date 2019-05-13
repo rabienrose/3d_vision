@@ -503,7 +503,7 @@ namespace wayz {
             points1(1,i)=mp_posis[i].y();
             points1(2,i)=mp_posis[i].z();
         }
-//        show_mp_as_cloud(mp_posis, "temp_mp");
+        show_mp_as_cloud(mp_posis, "temp_mp");
 //
         std::string cam_addr=folder_path+"/camera_config.txt";
         CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);

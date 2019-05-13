@@ -8,6 +8,7 @@ cs_add_library(${PROJECT_NAME}
   src/two_frame_pose.cc
   src/DescMatcher.cc
   src/DescExtractor.cc
+  src/sim3_match.cc
 )
 
 ############

@@ -19,6 +19,8 @@
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <bag_tool/extract_bag.h>
+#include "CoorConv.h"
+#include <Eigen/Core>
 
 
 void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_topic, std::string imu_topic, std::string gps_topic){
@@ -44,6 +46,10 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
     std::ofstream outfile_gps;
     outfile_gps.open (out_dir+"/gps.txt");
     
+    std::ofstream outfile_gps_orth;
+    outfile_gps_orth.open (out_dir+"/gps_orth.txt");
+    int gps_count=0;
+    Eigen::Vector3d anchorGps;
     for(;it!=view.end();it++){
         
         rosbag::MessageInstance m =*it;
@@ -52,7 +58,10 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
         if(simg!=NULL){
             cv_bridge::CvImagePtr cv_ptr;
             try{
-                //cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
+                cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
+                std::stringstream ss;
+                ss<<out_dir+"/images/img_"<<img_count<<".jpg";
+                cv::imwrite(ss.str(), cv_ptr->image);
                 std::stringstream ss_time;
                 ss_time<<"img_"<<img_count<<".jpg"<<","<<simg->header.stamp<<std::endl;
                 outfile_img_time<<ss_time.str();
@@ -77,9 +86,26 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
             std::stringstream ss;
             ss<<std::setprecision (15)<<sec<<","<<sgps->latitude<<","<<sgps->longitude<<","<<sgps->altitude<<","<<(int)sgps->position_covariance[0]<<std::endl;
             outfile_gps<<ss.str();
+            Eigen::Vector3d coor_gps;
+            Eigen::Vector3d ori_gps;
+            ori_gps(0)=sgps->latitude;
+            ori_gps(1)=sgps->longitude;
+            ori_gps(2)=sgps->altitude;
+            if(gps_count==0){
+                anchorGps=ori_gps;
+                std::stringstream ss1;
+                ss1<<std::setprecision (15)<<anchorGps(0)<<","<<anchorGps(1)<<","<<anchorGps(2)<<std::endl; 
+                outfile_gps_orth<<ss1.str();
+            }
+            gps_count++;
+            convert_to_coor(ori_gps, coor_gps, anchorGps);
+            std::stringstream ss1;
+            ss1<<std::setprecision (15)<<sec<<","<<coor_gps(0)<<","<<coor_gps(1)<<","<<coor_gps(2)<<","<<(int)sgps->position_covariance[0]<<std::endl; 
+            outfile_gps_orth<<ss1.str();
         }
     }
     outfile_img_time.close();
     outfile_imu.close();
     outfile_gps.close();
+    outfile_gps_orth.close();
 };
