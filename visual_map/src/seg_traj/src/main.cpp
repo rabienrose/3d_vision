@@ -50,6 +50,16 @@ void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic)
     publish3DPointsAsPointCloud(points, visualization::kCommonRed, 1.0, visualization::kDefaultMapFrame,topic);
 }
 
+void transformPoseUseSim3(Eigen::Matrix4d& sim3, double scale,  Eigen::Matrix4d& in_pose,  Eigen::Matrix4d& out_pose){
+    Eigen::Matrix3d R_tran=sim3.block(0,0,3,3)/scale;
+    Eigen::Matrix3d R_in=in_pose.block(0,0,3,3);
+    Eigen::Matrix3d R_out=R_tran*R_in;
+    Eigen::Vector4d t_out=sim3*in_pose.block(0,3,4,1);
+    out_pose= Eigen::Matrix4d::Identity();
+    out_pose.block(0,0,3,3) = R_out;
+    out_pose.block(0,3,4,1) = t_out;
+}
+
 int main(int argc, char* argv[]){
     ros::init(argc, argv, "loc");
     ros::NodeHandle nh;
@@ -108,12 +118,17 @@ int main(int argc, char* argv[]){
         img_to_gps_ids.push_back(img_gpss.size()-1);
         gps_to_img_ids.push_back(i);
     }
-    
+    show_mp_as_cloud(img_gpss, "test_gps_pose");
     std::cout<<"start segmentation"<<std::endl;
-    int cur_frame_id=3;
+    int cur_frame_id=traj_out.size()-1;
     int last_frame_id=0;
+    int max_seg_count=50000;
+    std::vector<Eigen::Vector3d> pc_frame_transformed;
+    std::vector<Eigen::Matrix4d> pose_transformed;
+    pose_transformed.resize(traj_out.size());
     while(ros::ok()){
         std::vector<Eigen::Vector3d> pc_frame;
+        std::vector<Eigen::Matrix4d> pc_poses;
         std::vector<Eigen::Vector3d> pc_gps;
         for(int i=last_frame_id+1; i<cur_frame_id; i++){
             std::string query_img_name=frame_names[i];
@@ -121,16 +136,20 @@ int main(int argc, char* argv[]){
             findFramePoseByName(img_names, re_imgid, query_img_name);
             if(re_imgid!=-1 && img_to_gps_ids[re_imgid]!=-1){
                 pc_frame.push_back(traj_out[i].block(0,3,3,1));
+                pc_poses.push_back(traj_out[i]);
                 pc_gps.push_back(img_gpss[img_to_gps_ids[re_imgid]]);
             }else{
                 //std::cout<<"cannot find frame name in pose list"<<std::endl;
             }
         }
-        if(pc_gps.size()>5){
+
+        if(pc_gps.size()>10){
+            double scale_12;
             Eigen::Matrix4d T12;
-            orb_slam::ComputeSim3(pc_gps, pc_frame , T12);
-            std::vector<Eigen::Vector3d> pc_frame_transformed;
+            orb_slam::ComputeSim3(pc_gps, pc_frame , T12, scale_12);
+            
             float avg_err=0;
+            std::vector<Eigen::Vector3d> pc_frame_transformed_temp;
             for(int i=0; i<pc_gps.size(); i++){
                 Eigen::Vector4d posi_homo;
                 posi_homo.block(0,0,3,1)=pc_frame[i];
@@ -138,29 +157,61 @@ int main(int argc, char* argv[]){
                 Eigen::Vector4d posi_gps_homo = T12*posi_homo;
                 float err = (pc_gps[i]-posi_gps_homo.block(0,0,3,1)).norm();
                 avg_err=err/pc_gps.size();
-                pc_frame_transformed.push_back(posi_gps_homo.block(0,0,3,1));
-                show_mp_as_cloud(pc_gps, "test_gps_pose");
-                show_mp_as_cloud(pc_frame_transformed, "test_frame_transformed");
+                pc_frame_transformed_temp.push_back(posi_gps_homo.block(0,0,3,1));
             }
-            std::cout<<"avg_err: "<<cur_frame_id<<" | "<<pc_gps.size()<<" | "<<avg_err<<std::endl;
+            //std::cout<<"avg_err: "<<cur_frame_id<<" | "<<pc_gps.size()<<" | "<<avg_err<<std::endl;
+            if(avg_err>0.1 || pc_frame_transformed_temp.size()>max_seg_count || cur_frame_id==traj_out.size()-1){
+                //std::cout<<cur_frame_id<<std::endl;
+                pc_frame_transformed.insert(pc_frame_transformed.begin(), pc_frame_transformed_temp.begin(), pc_frame_transformed_temp.end());
+                for(int i=last_frame_id; i<cur_frame_id; i++){
+                    Eigen::Matrix4d pose_transformed_temp;
+                    transformPoseUseSim3(T12, scale_12,  traj_out[i], pose_transformed_temp);
+                    pose_transformed[i]=pose_transformed_temp;
+                }
+                if(cur_frame_id==traj_out.size()-1){
+                    Eigen::Matrix4d pose_transformed_temp;
+                    transformPoseUseSim3(T12, scale_12,  traj_out[cur_frame_id], pose_transformed_temp);
+                    pose_transformed[cur_frame_id]=pose_transformed_temp;
+                }
+                show_mp_as_cloud(pc_frame_transformed, "test_frame_transformed");
+                last_frame_id=cur_frame_id;
+            }
         }
         cur_frame_id++;
-        if(cur_frame_id>=traj_out.size()){
+        if(cur_frame_id==traj_out.size()){
             break;
         }
     }
+    std::ofstream f;
+    std::string pose_out_addr=res_addr+"/traj_alin.txt";
+    f.open(pose_out_addr.c_str());
+    for(int i=0; i<pose_transformed.size(); i++){
+        f<<frame_names[i]<<","<<i
+        <<","<<pose_transformed[i](0,0)<<","<<pose_transformed[i](0,1)<<","<<pose_transformed[i](0,2)<<","<<pose_transformed[i](0,3)
+        <<","<<pose_transformed[i](1,0)<<","<<pose_transformed[i](1,1)<<","<<pose_transformed[i](1,2)<<","<<pose_transformed[i](1,3)
+        <<","<<pose_transformed[i](2,0)<<","<<pose_transformed[i](2,1)<<","<<pose_transformed[i](2,2)<<","<<pose_transformed[i](2,3)
+        <<std::endl;
+    }
+    f.close();
     
-//     for(int i=0; i<pc_frame.size(); i++){
-//         Eigen::Vector4d posi_homo;
-//         posi_homo.block(0,0,3,1)=pc_frame[i];
-//         posi_homo(3)=1;
-//         Eigen::Vector4d posi_gps_homo = T12*posi_homo;
-//         pc_frame_transformed.push_back(posi_gps_homo.block(0,0,3,1));
-//     }
-    
-    //show_mp_as_cloud(pc_frame, "test_frame_pose");
-    //show_mp_as_cloud(pc_gps, "test_gps_pose");
-    //show_mp_as_cloud(pc_frame_transformed, "test_frame_transformed");
+    std::string gps_out_addr=res_addr+"/gps_alin.txt";
+    f.open(gps_out_addr.c_str());
+    for(int i=0; i<pose_transformed.size(); i++){
+        std::string query_img_name = frame_names[i];
+        int re_imgid;
+        findFramePoseByName(img_names, re_imgid, query_img_name);
+        int gps_id = img_to_gps_ids[re_imgid];
+        if(gps_id==-1){
+            f<<frame_names[i]<<","<<"-1"
+            <<std::endl;
+        }else{
+            Eigen::Vector3d gps_temp= img_gpss[gps_id];
+            f<<frame_names[i]<<","<<i
+            <<","<<gps_temp(0)<<","<<gps_temp(1)<<","<<gps_temp(2)
+            <<std::endl;
+        }
+    }
+    f.close();
     ros::spin();
 
     return 0;

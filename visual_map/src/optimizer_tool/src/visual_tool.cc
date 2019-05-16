@@ -7,7 +7,7 @@
 #include "visualization/common-rviz-visualization.h"
 #include "test_imu_tool/visual_tool.h"
 
-void show_pose_as_marker(std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& pose_vec, std::string topic){
+void show_pose_as_marker(std::vector<Eigen::Matrix4d>& pose_vec, std::string topic){
     visualization::PoseVector poses_vis;
     for(int i=0; i<pose_vec.size(); i=i+1){
         visualization::Pose pose;

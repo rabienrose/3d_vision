@@ -22,16 +22,15 @@ int main(int argc, char* argv[]) {
     OptimizerTool::optimize_true_pose(res_root);
     //show_pose_as_marker(pose_vec, "pose_cam");
     
-    std::string posi_addr=res_root+"/posi_alin.txt";
+    std::string posi_addr=res_root+"/mp_posi_opt.txt";
     std::vector<Eigen::Vector3d> mp_posis;
     CHAMO::read_mp_posi(posi_addr, mp_posis);
     show_mp_as_cloud(mp_posis, Rwi_, "chamo_target");
     
-    std::vector<Eigen::Vector3d> lidar_posis;
-    std::vector<Eigen::Quaterniond> lidar_dirs;
-    std::vector<double> lidar_time;
-    std::string lidar_addr=res_root+"/lidar_trajectory.txt";
-    CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis, lidar_time);
-    show_mp_as_cloud(lidar_posis, Rwi_, "/chamo/gps");
-    //ros::spin();
+    std::string gps_alin_addr=res_root+"/gps_alin.txt";
+    std::vector<int> gps_inliers;
+    std::vector<Eigen::Vector3d> gps_alins;
+    CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers);
+    show_mp_as_cloud(gps_alins, Rwi_, "/chamo/gps");
+    ros::spin();
 }

@@ -142,6 +142,32 @@ namespace CHAMO
         }
     }
     
+    void read_gps_alin(std::string gps_alin_addr, std::vector<Eigen::Vector3d>& gps_alins, std::vector<int>& inliars){
+        std::string line;
+        std::ifstream infile(gps_alin_addr);
+        while (true)
+        {
+            std::getline(infile, line);
+            if (line==""){
+                break;
+            }
+            std::vector<std::string> splited = split(line, ",");
+            if(splited.size()==2){
+                Eigen::Vector3d temp=Eigen::Vector3d::Zero();
+                gps_alins.push_back(temp);
+                inliars.push_back(0);
+            }else{
+                Eigen::Vector3d temp;
+                temp(0)=atof(splited[2].c_str());
+                temp(1)=atof(splited[3].c_str());
+                temp(2)=atof(splited[4].c_str());
+                gps_alins.push_back(temp);
+                inliars.push_back(1);
+            }
+        }
+        infile.close();
+    }
+    
     void read_imu_data(std::string imu_addr, std::vector<Eigen::Matrix<double, 7, 1>>& imu_datas){
         std::string line;
         std::ifstream infile_imu(imu_addr.c_str());
@@ -186,7 +212,7 @@ namespace CHAMO
         }
     }
     
-    void read_kp_info(std::string kp_addr, std::vector<Eigen::Vector2f>& kp_uvs, std::vector<int>& kp_frameids, std::vector<int>& kp_octoves){
+    void read_kp_info(std::string kp_addr, std::vector<Eigen::Vector2f>& kp_uvs, std::vector<std::string>& kp_framenames, std::vector<int>& kp_octoves){
         std::string line;
         std::ifstream infile_kp(kp_addr.c_str());
         while (true)
@@ -200,10 +226,10 @@ namespace CHAMO
             uv.x()=atof(splited[0].c_str());
             uv.y()=atof(splited[1].c_str());
             int octove=atoi(splited[2].c_str());
-            int frame_id=atoi(splited[3].c_str());
+            std::string frame_names=splited[3];
             kp_uvs.push_back(uv);
             kp_octoves.push_back(octove);
-            kp_frameids.push_back(frame_id);
+            kp_framenames.push_back(frame_names);
         }
     }
     

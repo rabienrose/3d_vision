@@ -15,6 +15,7 @@
 #include "imu_tools.h"
 #include "read_write_data_lib/read_write.h"
 #include "opencv2/opencv.hpp"
+#include "test_imu_tool/visual_tool.h"
 namespace g2o {
     class EdgePosePre : public BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>{
     public:
@@ -54,17 +55,15 @@ namespace g2o {
 
 namespace OptimizerTool
 {
-    void optimize_true_pose(std::vector<Eigen::Matrix4d> lidar_poses,
-        std::vector<std::vector<orb_slam::MP_INFO>> mp_infos, std::vector<Eigen::Vector3d>& mp_posis,
-        std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& pose_vec, Eigen::Matrix3d cam_inter
+
+    void optimize_true_pose(std::vector<Eigen::Matrix4d>& poses_alin, std::vector<Eigen::Vector3d>& gps_alin, std::vector<int>& gps_inlers,
+        std::vector<std::vector<orb_slam::MP_INFO>>& mp_infos, Eigen::Matrix3d cam_inter,
+        std::vector<Eigen::Matrix4d>& poses_out, std::vector<Eigen::Vector3d>& mp_posis_out
     ){
 
         std::vector<cv::Mat> proj_cv_mats;
-        for(int i=0; i<lidar_poses.size(); i++){
-            pose_vec[i]=lidar_poses[i];
-            Eigen::Matrix<double,3,4> P_double_34=lidar_poses[i].inverse().block(0,0,3,4);
-            
-            
+        for(int i=0; i<poses_alin.size(); i++){
+            Eigen::Matrix<double,3,4> P_double_34=poses_alin[i].inverse().block(0,0,3,4);
             P_double_34=cam_inter*P_double_34;
             cv::Mat cv_mat(3,4, CV_32FC1);
             for(int n=0; n<3; n++){
@@ -72,14 +71,13 @@ namespace OptimizerTool
                     cv_mat.at<float>(n,m)=P_double_34(n,m);
                 }
             }
-            
-            
-            
             proj_cv_mats.push_back(cv_mat);
         }
         std::cout<<"procece lidar: "<<proj_cv_mats.size()<<std::endl;
         std::cout<<"mp_infos count: "<<mp_infos.size()<<std::endl;
-        std::cout<<"mp_posis count: "<<mp_posis.size()<<std::endl;
+        std::cout<<"mp_posis count: "<<mp_posis_out.size()<<std::endl;
+        mp_posis_out.resize(mp_infos.size());
+        
 
         for(int i=0; i<mp_infos.size(); i++){
     //         std::cout<<i<<"/"<<mp_infos.size()<<std::endl;
@@ -91,20 +89,55 @@ namespace OptimizerTool
             cv::Point2f pt2( mp_infos[i][last_id].u, mp_infos[i][last_id].v);
             pts2.push_back(pt2);
             if(proj_cv_mats.size()<=mp_infos[i][0].frame_id){
-                std::cout<<"proj_cv_mats index wrong"<<std::endl;
+                std::cout<<"proj_cv_mats index wrong: "<<mp_infos[i][0].frame_id<<std::endl;
             }
             if(proj_cv_mats.size()<=mp_infos[i][last_id].frame_id){
-                std::cout<<"proj_cv_mats index wrong"<<std::endl;
+                std::cout<<"proj_cv_mats index wrong: "<<mp_infos[i][last_id].frame_id<<std::endl;
             }
             cv::Mat proj1=proj_cv_mats[mp_infos[i][0].frame_id];
             cv::Mat proj2=proj_cv_mats[mp_infos[i][last_id].frame_id];
             cv::Mat out_posi;
             cv::triangulatePoints(proj1, proj2, pts1, pts2, out_posi);
-            mp_posis[i](0)=out_posi.at<float>(0)/out_posi.at<float>(3);
-            mp_posis[i](1)=out_posi.at<float>(1)/out_posi.at<float>(3);
-            mp_posis[i](2)=out_posi.at<float>(2)/out_posi.at<float>(3);
+//             if(cv::norm(out_posi)>100){
+//                 std::cout<<out_posi.t()<<std::endl;
+//             }
+            mp_posis_out[i](0)=out_posi.at<float>(0)/out_posi.at<float>(3);
+            mp_posis_out[i](1)=out_posi.at<float>(1)/out_posi.at<float>(3);
+            mp_posis_out[i](2)=out_posi.at<float>(2)/out_posi.at<float>(3);
             //std::cout<<mp_posis[i].transpose()<<std::endl;
         }
+//         int temp_count=0;
+//         double err_total=0;
+//         for(int i=0; i<mp_infos.size(); i++){
+//             for(int j=0; j<mp_infos[i].size(); i++){
+//                 Eigen::Vector3d mp_posi = mp_posis_out[mp_infos[i][j].mp_id];
+//                 double t_u = mp_infos[i][j].u;
+//                 double t_v = mp_infos[i][j].v;
+//                 Eigen::Matrix4d proj_pose = poses_alin[mp_infos[i][j].frame_id].inverse();
+//                 Eigen::Vector4d mp_homo;
+//                 mp_homo.block(0,0,3,1)=mp_posi;
+//                 mp_homo(3)=1;
+//                 double fx = cam_inter(0,0);
+//                 double fy = cam_inter(1,1);
+//                 double cx = cam_inter(0,2);
+//                 double cy = cam_inter(1,2);
+//                 //std::cout<<t_u<<":"<<t_v<<std::endl;
+//                 Eigen::Vector4d mp_cam = proj_pose*mp_homo;
+//                 //std::cout<<mp_cam.transpose()<<std::endl;
+//                 double u = mp_cam(0)*fx/mp_cam(2)+cx;
+//                 double v = mp_cam(1)*fy/mp_cam(2)+cy;
+//                 double err=sqrt((u-t_u)*(u-t_u)+(v-t_v)*(v-t_v));
+//                 err_total=err_total+err;
+//                 //std::cout<<u<<":"<<v<<std::endl;
+//                 //std::cout<<err<<std::endl;
+//                 temp_count++;
+//             }
+//         }
+//         
+//         std::cout<<"err_total: "<<err_total/temp_count<<std::endl;
+        
+        Eigen::Matrix3d Rwi_=Eigen::Matrix3d::Identity();
+        show_mp_as_cloud(mp_posis_out, Rwi_, "/temp_mp");
         std::cout<<"procece mp"<<std::endl;
         
         int nlevels=8;
@@ -135,12 +168,14 @@ namespace OptimizerTool
             new g2o::BlockSolverX(
                 new g2o::LinearSolverEigen<g2o::BlockSolverX::PoseMatrixType>()));
         optimizer.setAlgorithm(solver);
+        
+        //add all vertice, number equal all poses 
         std::vector<g2o::VertexSE3Expmap*> kf_verts;
         long unsigned int maxKFid = 0;
-        for(int i=0; i<pose_vec.size(); i++){
+        for(int i=0; i<poses_alin.size(); i++){
             g2o::VertexSE3Expmap* vSE3 = new g2o::VertexSE3Expmap();
-            Eigen::Matrix<double,3,3> R=pose_vec[i].block(0,0,3,3);
-            Eigen::Matrix<double,3,1> t=pose_vec[i].block(0,3,3,1);
+            Eigen::Matrix<double,3,3> R=poses_alin[i].block(0,0,3,3);
+            Eigen::Matrix<double,3,1> t=poses_alin[i].block(0,3,3,1);
             vSE3->setEstimate(g2o::SE3Quat(R,t).inverse());
             vSE3->setId(i);
             kf_verts.push_back(vSE3);
@@ -150,38 +185,33 @@ namespace OptimizerTool
         }
         std::cout<<"add vertice"<<std::endl;
         
-        g2o::VertexSE3Expmap* cam_lidar_offset = new g2o::VertexSE3Expmap();
-        Eigen::Matrix<double,3,3> R=Eigen::Matrix<double,3,3>::Identity();
-        Eigen::Matrix<double,3,1> t=Eigen::Matrix<double,3,1>::Zero();
-        cam_lidar_offset->setEstimate(g2o::SE3Quat(R,t));
-        cam_lidar_offset->setId(maxKFid+1);
+        //add gps edge, leave vertice without gps empty 
         std::vector<g2o::EdgePosiPre*> lidar_edges;
-        for(int i=0; i<pose_vec.size(); i++){
-            g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
-            e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(kf_verts[i]));
-            //e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(cam_lidar_offset));
-            //Eigen::Matrix<double,3,3> R=lidar_poses[i].block(0,0,3,3);
-            //Eigen::Matrix<double,3,1> t=lidar_poses[i].block(0,3,3,1);
-            e->setMeasurement(lidar_poses[i].block(0,3,3,1));
-            //e->setMeasurement(g2o::SE3Quat(R,t).inverse());
-            //e->setInformation(Eigen::Matrix<double, 6, 6>::Identity()*1000000);
-            e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*1000);
-            optimizer.addEdge(e);
-            lidar_edges.push_back(e);
-            
+        for(int i=0; i<poses_alin.size(); i++){
+            if(gps_inlers[i]==1){
+                g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
+                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(kf_verts[i]));
+                e->setMeasurement(gps_alin[i]);
+                e->setInformation(Eigen::Matrix<double, 3, 3>::Identity());
+                optimizer.addEdge(e);
+                lidar_edges.push_back(e);
+            }
         }
         std::cout<<"add lidar edge"<<std::endl;
         
         const float thHuber2D = sqrt(5.99);
         const float thHuber3D = sqrt(7.815);
         
+        //add projection edge, number equal to mappoints*track
+        //add mappoint vertice
         std::vector<g2o::VertexSBAPointXYZ*> mp_verts;
         std::vector<g2o::EdgeSE3ProjectXYZ*> proj_edges;
         for(int i=0; i<mp_infos.size(); i++){
             for(int j=0; j<mp_infos[i].size(); j++){
                 if(j==0){
                     g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
-                    vPoint->setEstimate(mp_posis[mp_infos[i][j].mp_id]);
+                    //std::cout<<mp_posis_out[mp_infos[i][j].mp_id].transpose()<<std::endl;
+                    vPoint->setEstimate(mp_posis_out[mp_infos[i][j].mp_id]);
                     vPoint->setMarginalized(true);
                     const int id = i+maxKFid+1+2;
                     vPoint->setId(id);
@@ -195,6 +225,26 @@ namespace OptimizerTool
 
                 e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(mp_verts.back()));
                 e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(kf_verts[mp_infos[i][j].frame_id]));
+                
+//                 Eigen::Vector3d mp_posi = mp_verts.back()->estimate();
+//                 double t_u = obs(0);
+//                 double t_v = obs(1);
+//                 Eigen::Matrix4d proj_pose = kf_verts[mp_infos[i][j].frame_id]->estimate().to_homogeneous_matrix();
+//                 Eigen::Vector4d mp_homo;
+//                 mp_homo.block(0,0,3,1)=mp_posi;
+//                 mp_homo(3)=1;
+//                 double fx = cam_inter(0,0);
+//                 double fy = cam_inter(1,1);
+//                 double cx = cam_inter(0,2);
+//                 double cy = cam_inter(1,2);
+//                 //std::cout<<t_u<<":"<<t_v<<std::endl;
+//                 Eigen::Vector4d mp_cam = proj_pose*mp_homo;
+//                 //std::cout<<mp_cam.transpose()<<std::endl;
+//                 double u = mp_cam(0)*fx/mp_cam(2)+cx;
+//                 double v = mp_cam(1)*fy/mp_cam(2)+cy;
+//                 double err=sqrt((u-t_u)*(u-t_u)+(v-t_v)*(v-t_v));
+//                 std::cout<<"err: "<<err<<std::endl;
+                
                 e->setMeasurement(obs);
                 const float &invSigma2 = mvInvLevelSigma2[mp_infos[i][j].octove];
                 e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
@@ -209,11 +259,11 @@ namespace OptimizerTool
 
                 optimizer.addEdge(e);
                 
-//                 if(i==0){
-//                     std::cout<<mp_verts.back()->estimate()<<std::endl;
-//                     e->computeError();
-//                     std::cout<<sqrt(e->chi2())<<std::endl;
-//                 }
+                if(true){
+                    //std::cout<<mp_verts.back()->estimate().transpose()<<std::endl;
+                    e->computeError();
+                    //std::cout<<sqrt(e->chi2())<<std::endl;
+                }
                 proj_edges.push_back(e);
             }
         }
@@ -229,7 +279,10 @@ namespace OptimizerTool
         for(int i=0; i<proj_edges.size(); i++){
             proj_edges[i]->computeError();
             avg_error=avg_error+sqrt(proj_edges[i]->chi2())/proj_edges.size();
-
+            //std::cout<<"avg_error: "<<avg_error<<"||"<<sqrt(proj_edges[i]->chi2())<<std::endl;
+            if(avg_error<0){
+                return;
+            }
             
         }
         std::cout<<"project edge err before: "<<avg_error<<std::endl;
@@ -256,12 +309,23 @@ namespace OptimizerTool
         }
         
         for(int i=0; i<mp_verts.size(); i++){
-            mp_posis[i]=mp_verts[i]->estimate();
+            mp_posis_out[i]=mp_verts[i]->estimate();
         }
-        
+        poses_out.resize(kf_verts.size());
         for(int i=0; i<kf_verts.size(); i++){
-            pose_vec[i]=kf_verts[i]->estimate().inverse().to_homogeneous_matrix();
+            poses_out[i]=kf_verts[i]->estimate().inverse().to_homogeneous_matrix();
         }
+    }
+    
+    void findFramePoseByName(std::vector<std::string>& names, int& re_id, std::string query_name){
+        re_id=-1;
+        for(int i=0; i<names.size(); i++){
+            if(names[i]==query_name){
+                re_id=i;
+                return;
+            }
+        }
+        return;
     }
     
     void optimize_true_pose(std::string res_root){
@@ -271,27 +335,26 @@ namespace OptimizerTool
         Eigen::Vector4d cam_distort;
         Eigen::Matrix4d Tbc;
         CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
-        std::cout<<"Tbc: "<<Tbc<<std::endl;
+        std::cout<<"cam_inter: "<<cam_inter<<std::endl;
         
-        std::string img_time_addr=res_root+"/image_time.txt";
-        std::string pose_addr=res_root+"/traj.txt";
-        std::map<double, int> pose_list;
-        std::map<int, int> frame_ids;
-        std::vector<double> img_times;
-        std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> pose_vec;
-        CHAMO::read_pose_list(pose_list, frame_ids, pose_vec, img_times, pose_addr, img_time_addr);
-        std::cout<<"pose_list: "<<img_times.size()<<std::endl;
-
-        std::string posi_addr=res_root+"/posi.txt";
-        std::vector<Eigen::Vector3d> mp_posis;
-        CHAMO::read_mp_posi(posi_addr, mp_posis);
-        std::cout<<"mp_posis: "<<mp_posis.size()<<std::endl;
+        std::vector<Eigen::Matrix4d> poses_alin;
+        std::vector<std::string> frame_names;
+        std::string traj_file_addr = res_root+"/traj_alin.txt";
+        CHAMO::read_traj_file(traj_file_addr, poses_alin, frame_names);
+        std::cout<<"traj_out: "<<poses_alin.size()<<std::endl;
+        
+        show_pose_as_marker(poses_alin, "pose_in");
+        
+        std::string gps_alin_addr=res_root+"/gps_alin.txt";
+        std::vector<int> gps_inliers;
+        std::vector<Eigen::Vector3d> gps_alins;
+        CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers);
         
         std::string kp_addr=res_root+"/kps.txt";
         std::vector<Eigen::Vector2f> kp_uvs;
-        std::vector<int> kp_frameids;
+        std::vector<std::string> kp_framename;
         std::vector<int> kp_octoves;
-        CHAMO::read_kp_info(kp_addr, kp_uvs, kp_frameids, kp_octoves);
+        CHAMO::read_kp_info(kp_addr, kp_uvs, kp_framename, kp_octoves);
         std::cout<<"kp_uvs: "<<kp_uvs.size()<<std::endl;
         
         std::string track_addr=res_root+"/track.txt";
@@ -299,93 +362,51 @@ namespace OptimizerTool
         CHAMO::read_track_info(track_addr, tracks);
         std::cout<<"tracks: "<<tracks.size()<<std::endl;
         
-        std::vector<Eigen::Vector3d> lidar_posis;
-        std::vector<Eigen::Quaterniond> lidar_dirs;
-        std::vector<double> lidar_time;
-        //std::string lidar_addr="/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/old/wayz_2018_11_26.bag_trajectory.txt";
-        std::string lidar_addr=res_root+"/lidar_trajectory.txt";
-        CHAMO::read_lidar_pose(lidar_addr, lidar_dirs, lidar_posis, lidar_time);
-        std::cout<<"lidar_addr: "<<lidar_posis.size()<<std::endl;
-        
         std::vector<std::vector<orb_slam::MP_INFO>> mp_infos;
         for(int i=0; i<tracks.size(); i++){
             std::vector<orb_slam::MP_INFO> track_info;
             for(int j=0; j<tracks[i].size(); j++){
                 int kp_id=tracks[i][j];
-                orb_slam::MP_INFO info;
-                info.u=kp_uvs[kp_id].x();
-                info.v=kp_uvs[kp_id].y();
-                info.octove=kp_octoves[kp_id];
-                info.frame_id=frame_ids[kp_frameids[kp_id]];
-                info.mp_id=i;
-                track_info.push_back(info);
-            }
-            mp_infos.push_back(track_info);
-        }
-
-        std::vector<Eigen::Matrix4d> lidar_align;
-        for(int i=0; i<img_times.size(); i++){
-            int corres_lidar=-1;
-            for(int j=0; j<lidar_time.size(); j++){
-                if(fabs(lidar_time[j]-img_times[i])<0.01){
-                    corres_lidar=j;
-                    break;
+                int re_id;
+                findFramePoseByName(frame_names, re_id, kp_framename[kp_id]);
+                if(re_id==-1){
+//                     std::cout<<"kp frame id error: "<<kp_framename[kp_id]<<std::endl;
+                }else{
+                    orb_slam::MP_INFO info;
+                    info.u=kp_uvs[kp_id].x();
+                    info.v=kp_uvs[kp_id].y();
+                    info.octove=kp_octoves[kp_id];
+                    info.frame_id=re_id;
+                    track_info.push_back(info);
                 }
             }
-            if(corres_lidar>=0){
-                Eigen::Matrix<double,4,4> P_double=Eigen::Matrix<double,4,4>::Identity();
-                
-                P_double.block(0,3,3,1)=lidar_posis[corres_lidar];
-                Eigen::Matrix3d rot(lidar_dirs[corres_lidar]);
-                P_double.block(0,0,3,3)=rot;
-                P_double=P_double.inverse();
-                lidar_align.push_back(P_double.inverse());
-//                 if(i<100){
-//                     std::cout<<P_double<<std::endl;
-//                 }
-                
-            }else{
-                std::cout<<"error in lidar: "<<i<<std::endl;
-                lidar_align.push_back(lidar_align.back());
-                //we allow no lidar correspond to img, but every image must have a lidar attach to it.
+            if(track_info.size()>3){
+                for(int j=0; j<track_info.size(); j++){
+                    track_info[j].mp_id=mp_infos.size();
+                }
+                mp_infos.push_back(track_info);
             }
+            
         }
-        
-    //     for(int i=0; i<mp_infos.size(); i++){
-    //         for(int j=0; j<mp_infos[i].size(); i++){
-    //             Eigen::Vector3d mp_posi = mp_posis[mp_infos[i][j].mp_id];
-    //             double t_u = mp_infos[i][j].u;
-    //             double t_v = mp_infos[i][j].v;
-    //             Eigen::Matrix4d proj_pose = pose_vec[mp_infos[i][j].frame_id].inverse();
-    //             Eigen::Vector4d mp_homo;
-    //             mp_homo.block(0,0,3,1)=mp_posi;
-    //             mp_homo(3)=1;
-    //             double fx = cam_inter(0,0);
-    //             double fy = cam_inter(1,1);
-    //             double cx = cam_inter(0,2);
-    //             double cy = cam_inter(1,2);
-    //             //std::cout<<t_u<<":"<<t_v<<std::endl;
-    //             Eigen::Vector4d mp_cam = proj_pose*mp_homo;
-    //             //std::cout<<mp_cam.transpose()<<std::endl;
-    //             double u = mp_cam(0)*fx/mp_cam(2)+cx;
-    //             double v = mp_cam(1)*fy/mp_cam(2)+cy;
-    //             double err=sqrt((u-t_u)*(u-t_u)+(v-t_v)*(v-t_v));
-    //             //std::cout<<u<<":"<<v<<std::endl;
-    //             //std::cout<<err<<std::endl;
-    //         }
-    //     }
-        optimize_true_pose(lidar_align, mp_infos, mp_posis, pose_vec, cam_inter);
-        std::string posi_out_addr=res_root+"/posi_alin.txt";
+        std::vector<Eigen::Matrix4d> poses_out;
+        std::vector<Eigen::Vector3d> mp_posis_out;
+        optimize_true_pose(poses_alin, gps_alins, gps_inliers, mp_infos, cam_inter, poses_out, mp_posis_out);
+
+        std::string posi_out_addr=res_root+"/mp_posi_opt.txt";
         std::ofstream f;
         f.open(posi_out_addr.c_str());
-        for(int i=0; i<mp_posis.size(); i++){
-            f<<mp_posis[i](0)<<","<<mp_posis[i](1)<<","<<mp_posis[i](2)<<std::endl;
+        for(int i=0; i<mp_posis_out.size(); i++){
+            f<<mp_posis_out[i](0)<<","<<mp_posis_out[i](1)<<","<<mp_posis_out[i](2)<<std::endl;
         }
         f.close();
-        std::string pose_out_addr=res_root+"/traj_alin.txt";
+        std::string pose_out_addr=res_root+"/frame_pose_opt.txt";
         f.open(pose_out_addr.c_str());
-        for(int i=0; i<pose_vec.size(); i++){
-            f<<"chamo.jpg"<<i<<pose_vec[i](0,0)<<pose_vec[i](0,1)<<pose_vec[i](0,2)<<pose_vec[i](0,3)<<pose_vec[i](1,0)<<pose_vec[i](1,1)<<pose_vec[i](1,2)<<pose_vec[i](1,3)<<pose_vec[i](2,0)<<pose_vec[i](2,1)<<pose_vec[i](2,2)<<pose_vec[i](2,3)<<std::endl;
+        for(int i=0; i<poses_out.size(); i++){
+            f<<frame_names[i]<<","<<i
+            <<","<<poses_out[i](0,0)<<","<<poses_out[i](0,1)<<","<<poses_out[i](0,2)<<","<<poses_out[i](0,3)
+            <<","<<poses_out[i](1,0)<<","<<poses_out[i](1,1)<<","<<poses_out[i](1,2)<<","<<poses_out[i](1,3)
+            <<","<<poses_out[i](2,0)<<","<<poses_out[i](2,1)<<","<<poses_out[i](2,2)<<","<<poses_out[i](2,3)
+            <<std::endl;
         }
         f.close();
     }

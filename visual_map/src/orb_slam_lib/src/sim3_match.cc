@@ -15,7 +15,7 @@ namespace orb_slam
         }
     }
     
-    void ComputeSim3(cv::Mat &P1, cv::Mat &P2, cv::Mat& mT12i)
+    void ComputeSim3(cv::Mat &P1, cv::Mat &P2, cv::Mat& mT12i, double& scale)
     {
         cv::Mat mR12i;
         cv::Mat mt12i;
@@ -109,12 +109,12 @@ namespace orb_slam
         mT12i = cv::Mat::eye(4,4,P1.type());
 
         cv::Mat sR = ms12i*mR12i;
-
+        scale=ms12i;
         sR.copyTo(mT12i.rowRange(0,3).colRange(0,3));
         mt12i.copyTo(mT12i.rowRange(0,3).col(3));
     }
     
-    void ComputeSim3(std::vector<Eigen::Vector3d>& P1, std::vector<Eigen::Vector3d>& P2, Eigen::Matrix4d& T12i_eig){
+    void ComputeSim3(std::vector<Eigen::Vector3d>& P1, std::vector<Eigen::Vector3d>& P2, Eigen::Matrix4d& T12i_eig, double& scale){
         cv::Mat p1mat(3, P1.size(), CV_32FC1);
         cv::Mat p2mat(3, P2.size(), CV_32FC1);
         for(int i=0; i<P1.size(); i++){
@@ -126,7 +126,7 @@ namespace orb_slam
             p2mat.at<float>(2, i)=P2[i](2);
         }
         cv::Mat pose_mat;
-        ComputeSim3(p1mat, p2mat, pose_mat);
+        ComputeSim3(p1mat, p2mat, pose_mat, scale);
         for(int i=0; i<4; i++){
             for(int j=0; j<4; j++){
                 T12i_eig(i, j)=pose_mat.at<float>(i, j);

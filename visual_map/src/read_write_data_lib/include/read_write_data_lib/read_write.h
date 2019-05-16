@@ -22,7 +22,7 @@ namespace CHAMO
     
     void read_mp_posi(std::string posi_addr, std::vector<Eigen::Vector3d>& mp_posis);
     
-    void read_kp_info(std::string kp_addr, std::vector<Eigen::Vector2f>& kp_uvs, std::vector<int>& kp_frameids, std::vector<int>& kp_octoves);
+    void read_kp_info(std::string kp_addr, std::vector<Eigen::Vector2f>& kp_uvs, std::vector<std::string>& kp_framenames, std::vector<int>& kp_octoves);
     
     void read_track_info(std::string track_addr, std::vector<std::vector<int>>& tracks);
     
@@ -39,4 +39,5 @@ namespace CHAMO
         std::vector<double>& time_stamp
     );
     std::vector<std::string> split(const std::string& str, const std::string& delim);
+    void read_gps_alin(std::string gps_alin_addr, std::vector<Eigen::Vector3d>& gps_alins, std::vector<int>& inliars);
 }

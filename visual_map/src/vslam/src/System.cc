@@ -150,8 +150,9 @@ namespace ORB_SLAM2
         size_t re=-1;
         for(int i=0; i<target_list.size(); i++){
             if(query.first==target_list[i].first && query.second==target_list[i].second){
-                
-                re=i;
+                if(!target_list[i].first->isBad()){
+                    re=i;
+                }
                 //std::cout<<(int)re<<std::endl;
                 break;
             }
@@ -254,7 +255,7 @@ namespace ORB_SLAM2
         for(auto desc: desc_list){
             
             cv::KeyPoint kp = desc.first->mvKeysUn[desc.second];
-            f<<kp.pt.x<<","<<kp.pt.y<<","<<kp.octave<<","<<desc.first->mnId;
+            f<<kp.pt.x<<","<<kp.pt.y<<","<<kp.octave<<","<<desc.first->file_name_;
             f<<std::endl;
         }
         f.close();
