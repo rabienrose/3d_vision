@@ -7,7 +7,7 @@ namespace common {
 
 void getAllBinaryCombinations(
     size_t num_elements,
-    Aligned<std::vector, Eigen::VectorXi>* list_of_combinations) {
+    aslam::Aligned<std::vector, Eigen::VectorXi>* list_of_combinations) {
   CHECK_NOTNULL(list_of_combinations)->clear();
 
   if (num_elements == 0u) {

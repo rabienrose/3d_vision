@@ -320,7 +320,7 @@ class InvertedMultiIndex {
   // Vector containing the inverted files, one for each visual word in the
   // product vocabulary. Each inverted file holds all descriptors assigned to
   // the corresponding word and their indices.
-  Aligned<std::vector, InvFile> inverted_files_;
+  aslam::Aligned<std::vector, InvFile> inverted_files_;
   // The maximum index of the descriptor indices.
   int max_db_descriptor_index_;
 };

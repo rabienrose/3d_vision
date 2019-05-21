@@ -178,7 +178,7 @@ void getRotationMatrixNedToEcef(double lat_rad, double lon_rad,
 }
 
 void writeGlobalCoordinatesToKml(
-    const Aligned<std::vector, Eigen::Vector3d>& latitude_longitude_height,
+    const aslam::Aligned<std::vector, Eigen::Vector3d>& latitude_longitude_height,
     const std::string& filename) {
   std::ofstream logger(filename);
 

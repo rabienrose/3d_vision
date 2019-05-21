@@ -31,6 +31,9 @@
 
 #include <mutex>
 
+#define FRAME_GRID_ROWS 48
+#define FRAME_GRID_COLS 64
+
 
 namespace ORB_SLAM2
 {
@@ -49,7 +52,9 @@ class KeyFrame
 public:
     KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB);
     KeyFrame(); /* Default constructor for serialization */
-
+    void setData(int kf_id, double timestamp, std::vector<cv::KeyPoint>& keysUn, std::vector<float> cam_info, std::string file_name,
+                   int desc_level, float scaleFactor, cv::Mat pose_c_w,
+                   cv::Mat descriptors, Map *pMap, KeyFrameDatabase *pKFDB, ORBVocabulary* pORBvocabulary);
     // Pose functions
     void SetPose(const cv::Mat &Tcw);
     cv::Mat GetPose();
@@ -61,6 +66,7 @@ public:
 
     // Bag of Words Representation
     void ComputeBoW();
+    void finishDataSetting();
 
     // Covisibility graph functions
     void AddConnection(KeyFrame* pKF, const int &weight);
@@ -121,12 +127,10 @@ public:
         return pKF1->mnId<pKF2->mnId;
     }
     
-    void SetMap(Map* map);
-    void SetKeyFrameDatabase(KeyFrameDatabase* pKeyFrameDB);
-    void SetORBvocabulary(ORBVocabulary* pORBvocabulary);
-    void SetMapPoints(std::vector<MapPoint*> spMapPoints);
-    void SetSpanningTree(std::vector<KeyFrame*> vpKeyFrames);
-    void SetGridParams(std::vector<KeyFrame*> vpKeyFrames);
+    int AddKP(cv::KeyPoint kp, cv::Mat desc);
+    
+    void AssignFeaturesToGrid();
+    bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY);
 
 
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
@@ -134,15 +138,15 @@ public:
 
     static long unsigned int nNextId;
     long unsigned int mnId;
-    const long unsigned int mnFrameId;
+    long unsigned int mnFrameId;
 
-    const double mTimeStamp;
+    double mTimeStamp;
 
     // Grid (to speed up feature matching)
-    const int mnGridCols;
-    const int mnGridRows;
-    const float mfGridElementWidthInv;
-    const float mfGridElementHeightInv;
+    int mnGridCols;
+    int mnGridRows;
+    float mfGridElementWidthInv;
+    float mfGridElementHeightInv;
 
     // Variables used by the tracking
     long unsigned int mnTrackReferenceForFrame;
@@ -169,15 +173,15 @@ public:
     float fx, fy, cx, cy, invfx, invfy, mbf, mb, mThDepth;
 
     // Number of KeyPoints
-    const int N;
+    int N;
 
     // KeyPoints, stereo coordinate and descriptors (all associated by an index)
-    const std::vector<cv::KeyPoint> mvKeys;
-    const std::vector<cv::KeyPoint> mvKeysUn;
+    std::vector<cv::KeyPoint> mvKeys;
+    std::vector<cv::KeyPoint> mvKeysUn;
     std::vector<cv::Vec3b> mvColors;
-    const std::vector<float> mvuRight; // negative value for monocular points
-    const std::vector<float> mvDepth; // negative value for monocular points
-    const cv::Mat mDescriptors;
+    std::vector<float> mvuRight; // negative value for monocular points
+    std::vector<float> mvDepth; // negative value for monocular points
+    cv::Mat mDescriptors;
 
     //BoW
     DBoW2::BowVector mBowVec;
@@ -187,19 +191,19 @@ public:
     cv::Mat mTcp;
 
     // Scale
-    const int mnScaleLevels;
-    const float mfScaleFactor;
-    const float mfLogScaleFactor;
-    const std::vector<float> mvScaleFactors;
-    const std::vector<float> mvLevelSigma2;
-    const std::vector<float> mvInvLevelSigma2;
+    int mnScaleLevels;
+    float mfScaleFactor;
+    float mfLogScaleFactor;
+    std::vector<float> mvScaleFactors;
+    std::vector<float> mvLevelSigma2;
+    std::vector<float> mvInvLevelSigma2;
 
     // Image bounds and calibration
-    const int mnMinX;
-    const int mnMinY;
-    const int mnMaxX;
-    const int mnMaxY;
-    const cv::Mat mK;
+    int mnMinX;
+    int mnMinY;
+    int mnMaxX;
+    int mnMaxY;
+    cv::Mat mK;
     
     // Spanning Tree and Loop Edges
     bool mbFirstConnection;
@@ -218,7 +222,6 @@ protected:
 
     // MapPoints associated to keypoints
     std::vector<MapPoint*> mvpMapPoints;
-    std::map<long unsigned int, id_map>        mmMapPoints_nId;
 
     // BoW
     KeyFrameDatabase* mpKeyFrameDB;
@@ -227,18 +230,13 @@ protected:
     // Grid over the image to speed up feature matching
     
     std::map<KeyFrame*,int> mConnectedKeyFrameWeights;
-    std::map<long unsigned int, int>       mConnectedKeyFrameWeights_nId;
     std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;
-    std::map<long unsigned int, id_map>     mvpOrderedConnectedKeyFrames_nId;
     std::vector<int> mvOrderedWeights;
     
         
     KeyFrame* mpParent;
-    id_map mparent_KfId_map;
     std::set<KeyFrame*> mspChildrens;
-    std::map<long unsigned int, id_map>        mmChildrens_nId;
     std::set<KeyFrame*> mspLoopEdges;
-    std::map<long unsigned int, id_map>        mmLoopEdges_nId;
     std::vector< std::vector <std::vector<size_t> > > mGrid;
 
     // Bad flags

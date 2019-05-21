@@ -40,4 +40,5 @@ namespace CHAMO
     );
     std::vector<std::string> split(const std::string& str, const std::string& delim);
     void read_gps_alin(std::string gps_alin_addr, std::vector<Eigen::Vector3d>& gps_alins, std::vector<int>& inliars);
+    void read_image_info(std::string image_addr, int& width, int& height, float& desc_scale, int& desc_level, int& desc_count);
 }

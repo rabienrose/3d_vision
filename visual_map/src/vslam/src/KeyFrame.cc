@@ -23,275 +23,120 @@
 #include "ORBmatcher.h"
 #include<mutex>
 
-vector<string> split(std::string s, string delimiter){
-    vector<string> list;
-    size_t pos = 0;
-    string token;
-    while ((pos = s.find(delimiter)) != string::npos) {
-        token = s.substr(0, pos);
-        list.push_back(token);
-        s.erase(0, pos + delimiter.length());
-    }
-    return list;
-}
-
 namespace ORB_SLAM2
 {
 
 long unsigned int KeyFrame::nNextId=0;
 
-void KeyFrame::SetMapPoints(std::vector<MapPoint*> spMapPoints)
-{
-    // We assume the mvpMapPoints_nId list has been initialized and contains the Map point IDS
-    // With nid, Search the KetFrame List and populate mvpMapPoints
-    long unsigned int id;
-    bool is_valid = false;
-    bool mapp_found = false;
-
-    int j = 0, ctr = 0;
-    for (std::map<long unsigned int,id_map>::iterator it = mmMapPoints_nId.begin(); 
-            it != mmMapPoints_nId.end(); 
-            j++,++it) 
+void KeyFrame::finishDataSetting(){
+    N=mvpMapPoints.size();
+    std::vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptors);
+    mpORBvocabulary->transform(vCurrentDesc,mBowVec,mFeatVec,4);
+    mGrid.resize(mnGridCols);
+    for(int i=0; i<mnGridCols;i++)
     {
-        is_valid = it->second.is_valid; 
-        if (!is_valid)  
-        {
-            //j--; 
-            //continue;
-            mvpMapPoints[j] = static_cast<MapPoint*>(NULL);
-        }
-        else
-        {
-            id = it->second.id;  
-            //cout << "pushing a map point to mvp mappoint" << endl;
-            mapp_found = false;
-            for(std::vector<MapPoint*>::iterator mit=spMapPoints.begin(); mit !=spMapPoints.end(); mit++)
-            {
-                MapPoint* pMp = *mit;
-               
-                if(id == pMp->mnId)
-                {    
-                    ctr ++;
-                    mvpMapPoints[j] = pMp;
-                    mapp_found = true;
-                    break;
-                }
-            }
-            if (mapp_found == false)
-            {
-                cout << " map point [" << id <<"] not found in KF " << mnId << endl;
-                mvpMapPoints[j] = static_cast<MapPoint*>(NULL);
-            }
-
-        }
-
+        mGrid[i].resize(mnGridRows);
     }
-}
-
-void KeyFrame::SetSpanningTree(std::vector<KeyFrame*> vpKeyFrames)
-{
-    // We assume the mvpMapPoints_nId list has been initialized and contains the Map point IDS
-    // With nid, Search the KetFrame List and populate mvpMapPoints
-    long unsigned int id;
-    bool is_valid = false;
-    bool kf_found = false;
-
-    int j = 0, ctr = 0;
-    // Search Parent
-    if (mparent_KfId_map.is_valid)
-    {        
-        for(std::vector<KeyFrame*>::iterator mit=vpKeyFrames.begin(); mit !=vpKeyFrames.end(); mit++)
-        {
-            KeyFrame* pKf = *mit;
-            id = pKf->mnId;
-            //if (mnId == 10 && 964 == id)
-                 //cout << "[" << pMp->mnId <<"]";
-            if(id == mparent_KfId_map.id)
-            {    
-                ctr ++;
-                mpParent = pKf;
-                kf_found = true;
-                break;
-            }
-        }
-        if (kf_found == false)
-        {
-            cout << endl << "Parent KF [" << mparent_KfId_map.id <<"] not found for KF " << mnId << endl;
-            //mpParent = new KeyFrame();
-            //mpParent->mbBad = true;     
-            mpParent = static_cast<KeyFrame*>(NULL);             
-        }
-    }
-    // Search Child
-    kf_found = false;
-    j = 0; ctr = 0;
-    is_valid = false;
-    for (std::map<long unsigned int,id_map>::iterator it = mmChildrens_nId.begin(); 
-            it != mmChildrens_nId.end(); 
-            j++,++it) 
-    {
-        is_valid = it->second.is_valid;  
-        if (!is_valid) 
-        {
-            //j--;
-            continue;
-            //mspChildrens.insert(NULL);            
-        }  
-
-        else
-        {
-            id = it->second.id;  
-            
-            kf_found = false;
-            for(std::vector<KeyFrame*>::iterator mit=vpKeyFrames.begin(); mit !=vpKeyFrames.end(); mit++)
-            {
-                KeyFrame* pKf = *mit;
-                //if (mnId == 10 && 964 == id)
-                     //cout << "[" << pMp->mnId <<"]";
-                if(id == pKf->mnId)
-                {    
-                    ctr ++;
-                    mspChildrens.insert(pKf);
-                    kf_found = true;
-                    break;
-                }
-            }
-            if (kf_found == false)
-                cout << endl << "Child [" << id <<"] not found for KF " << mnId << endl;
-
-        }
-
-    }
-
-    // Search Loop Edges
-    kf_found = false;
-    j = 0; ctr = 0;
-    is_valid = false;
-    for (std::map<long unsigned int,id_map>::iterator it = mmLoopEdges_nId.begin(); 
-            it != mmLoopEdges_nId.end(); 
-            j++,++it) 
-    {
-        is_valid = it->second.is_valid;  
-
-
-        if (!is_valid) 
-        {
-            //j--;
-            continue;
-            //mspLoopEdges.insert(NULL);
-        }  
-            
-        else
-        {
-            id = it->second.id;  
-            
-            kf_found = false;
-            for(std::vector<KeyFrame*>::iterator mit=vpKeyFrames.begin(); mit !=vpKeyFrames.end(); mit++)
-            {
-                KeyFrame* pKf = *mit;
-              
-                if(id == pKf->mnId)
-                {    
-                    ctr ++;                    
-                    mspLoopEdges.insert(pKf);
-                    kf_found = true;
-                    break;
-                }
-            }
-            if (kf_found == false)
-                cout << endl << "Loop Edge [" << id <<"] not found for KF " << mnId << endl;
-
-        }
-
-    }
-
-}
-void KeyFrame::SetGridParams(std::vector<KeyFrame*> vpKeyFrames)
-{
-    long unsigned int id; int weight;  
-    bool Kf_found = false;  
-    //cout << "KF" << mnId <<" valid indexes-" << endl;
-    int j = 0; 
-    int ctr = 0;
-    bool is_valid = false;
-
+    AssignFeaturesToGrid();
     
-    // Set up mConnectedKeyFrameWeights
-    for (map<long unsigned int, int>::iterator it = mConnectedKeyFrameWeights_nId.begin(); 
-            it != mConnectedKeyFrameWeights_nId.end(); 
-            j++,++it) 
-    {
-        id = it->first;
-        weight = it->second;        
-        {
-            
-            for(std::vector<KeyFrame*>::iterator mit=vpKeyFrames.begin(); mit !=vpKeyFrames.end(); mit++)
-            {
-                KeyFrame* pKf = *mit;
-               
-                if(id == pKf->mnId)
-                {   
-                    mConnectedKeyFrameWeights[pKf] = weight;
-                    break;
-                }
-            }
-            
-        }
-    }
-
-    // Set up mvpOrderedConnectedKeyFrames
-    j = 0;
-    for (std::map<long unsigned int,id_map>::iterator it = mvpOrderedConnectedKeyFrames_nId.begin(); 
-            it != mvpOrderedConnectedKeyFrames_nId.end(); 
-            ++it) 
-    {
-        is_valid = it->second.is_valid; 
-        if (!is_valid)  
-        {   
-            continue; 
-            ;//mvpOrderedConnectedKeyFrames[j] = NULL;
-        }
-        else
-        {
-            id = it->second.id;  
-            
-            Kf_found = false;
-            for(std::vector<KeyFrame*>::iterator mit=vpKeyFrames.begin(); mit !=vpKeyFrames.end(); mit++)
-            {
-                KeyFrame* pKf = *mit;
-
-                if(id == pKf->mnId)
-                {    
-                    ctr ++;
-                    mvpOrderedConnectedKeyFrames.push_back(pKf);
-                    Kf_found = true;
-                    break;
-                }
-            }
-            if (Kf_found == false)
-            {
-                //cout << "[" << id <<"] not found in KF " << mnId << endl;
-                
-            }
-
-        }
-
-    }
 }
 
-void KeyFrame::SetMap(Map* map)
-{
-    mpMap = map;   
-}
-
-void KeyFrame::SetKeyFrameDatabase(KeyFrameDatabase* pKeyFrameDB)
-{
-    mpKeyFrameDB = pKeyFrameDB;
-}
-
-void KeyFrame::SetORBvocabulary(ORBVocabulary* pORBvocabulary)
-{
+void KeyFrame::setData(int kf_id, double timestamp, std::vector<cv::KeyPoint>& keysUn, std::vector<float> cam_info, std::string file_name,
+                   int desc_level, float scaleFactor, cv::Mat pose_c_w,
+                   cv::Mat descriptors, Map *pMap, KeyFrameDatabase *pKFDB, ORBVocabulary* pORBvocabulary){
+    mpKeyFrameDB = pKFDB;
     mpORBvocabulary = pORBvocabulary;
+    mpMap = pMap;
+    mnId=kf_id;
+    mTimeStamp =timestamp;
+    mnGridCols=FRAME_GRID_COLS;
+    mnGridRows=FRAME_GRID_ROWS;
+    fx=cam_info[0];
+    fy=cam_info[1];
+    invfx=1/fx;
+    invfy=1/fy;
+    cx=cam_info[2];
+    cy=cam_info[3];
+    cv::Mat K = cv::Mat::eye(3,3,CV_32F);
+    K.at<float>(0,0) = fx;
+    K.at<float>(1,1) = fy;
+    K.at<float>(0,2) = cx;
+    K.at<float>(1,2) = cy;
+    K.copyTo(mK);
+    mnMinY=0;
+    mnMinX=0;
+    mnMaxX=cam_info[4];
+    mnMaxY=cam_info[5];
+    mfGridElementWidthInv=static_cast<float>(FRAME_GRID_COLS)/(mnMaxX-mnMinX);
+    mfGridElementHeightInv=static_cast<float>(FRAME_GRID_ROWS)/(mnMaxY-mnMinY);
+    mnFrameId=0;
+    mnTrackReferenceForFrame=0;
+    mnFuseTargetForKF=0;
+    mnBALocalForKF=0;
+    mnBAFixedForKF=0;
+    mnLoopQuery=0;
+    mnLoopWords=0;
+    mnRelocQuery=0;
+    mnRelocWords=0;
+    mnBAGlobalForKF=0;
+    N=keysUn.size();
+    mvKeysUn=keysUn;
+    mDescriptors=descriptors;
+    if(mDescriptors.empty()!=true){
+        std::vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptors);
+        mpORBvocabulary->transform(vCurrentDesc,mBowVec,mFeatVec,4);
+    }
+    
+    mvScaleFactors.resize(desc_level);
+    mvLevelSigma2.resize(desc_level);
+    mvScaleFactors[0]=1.0f;
+    mvLevelSigma2[0]=1.0f;
+    for(int i=1; i<desc_level; i++)
+    {
+        mvScaleFactors[i]=mvScaleFactors[i-1]*scaleFactor;
+        mvLevelSigma2[i]=mvScaleFactors[i]*mvScaleFactors[i];
+    }
+    mvInvLevelSigma2.resize(desc_level);
+    for(int i=0; i<desc_level; i++)
+    {
+        mvInvLevelSigma2[i]=1.0f/mvLevelSigma2[i];
+    }
+    if(keysUn.size()>0){
+        AssignFeaturesToGrid();
+    }
+    
+    if(pose_c_w.empty()!=true){
+        SetPose(pose_c_w);
+    }
+}
+
+void KeyFrame::AssignFeaturesToGrid()
+{
+    int nReserve = 0.5f*N/(FRAME_GRID_COLS*FRAME_GRID_ROWS);
+    for(unsigned int i=0; i<FRAME_GRID_COLS;i++)
+        for (unsigned int j=0; j<FRAME_GRID_ROWS;j++)
+            mGrid[i][j].reserve(nReserve);
+
+    for(int i=0;i<N;i++)
+    {
+        const cv::KeyPoint &kp = mvKeysUn[i];
+
+        int nGridPosX, nGridPosY;
+        if(PosInGrid(kp,nGridPosX,nGridPosY))
+            mGrid[nGridPosX][nGridPosY].push_back(i);
+    }
+}
+
+bool KeyFrame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY)
+{
+    posX = round((kp.pt.x-mnMinX)*mfGridElementWidthInv);
+    posY = round((kp.pt.y-mnMinY)*mfGridElementHeightInv);
+
+    //Keypoint's coordinates are undistorted, which could cause to go out of the image
+    if(posX<0 || posX>=FRAME_GRID_COLS || posY<0 || posY>=FRAME_GRID_ROWS)
+        return false;
+
+    return true;
 }
 
 
@@ -332,7 +177,7 @@ KeyFrame::KeyFrame():
     mnLoopQuery(0), mnLoopWords(0), mnRelocQuery(-1), mnRelocWords(0), mnBAGlobalForKF(0),
     fx(0.0), fy(0.0), cx(0.0), cy(0.0), invfx(0.0), invfy(0.0),
     mbf(0.0), mb(0.0), mThDepth(0.0), N(0), mnScaleLevels(0), mfScaleFactor(0),
-    mfLogScaleFactor(0.0),
+    mfLogScaleFactor(0.0),mpParent(NULL), mbNotErase(false), mbToBeErased(false), mbBad(false),
     mnMinX(0), mnMinY(0), mnMaxX(0),
     mnMaxY(0)
 {
@@ -429,6 +274,14 @@ void KeyFrame::AddConnection(KeyFrame *pKF, const int &weight)
     }
 
     UpdateBestCovisibles();
+}
+
+int KeyFrame::AddKP(cv::KeyPoint kp, cv::Mat desc)
+{
+    mvKeysUn.push_back(kp);
+    mDescriptors.push_back(desc); 
+    mvpMapPoints.resize(mvKeysUn.size());
+    return mvKeysUn.size()-1;
 }
 
 void KeyFrame::UpdateBestCovisibles()
@@ -667,11 +520,9 @@ void KeyFrame::UpdateConnections()
         if(mbFirstConnection && mnId!=0)
         {
             mpParent = mvpOrderedConnectedKeyFrames.front();
-            std::cout<<"new kf get parent: "<<mnId<<"->"<<mpParent->mnId<<std::endl;
             mpParent->AddChild(this);
             mbFirstConnection = false;
         }
-
     }
 }
 
@@ -932,8 +783,6 @@ float KeyFrame::ComputeSceneMedianDepth(const int q)
     vector<MapPoint*> vpMapPoints;
     cv::Mat Tcw_;
     {
-        //unique_lock<mutex> lock(mMutexFeatures);
-        //unique_lock<mutex> lock2(mMutexPose);
         vpMapPoints = mvpMapPoints;
         Tcw_ = Tcw.clone();
     }

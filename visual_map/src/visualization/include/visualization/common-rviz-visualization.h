@@ -24,7 +24,7 @@ static const std::string kDefaultMissionFrame = "mission";
 static const std::string kDefaultImuFrame = "imu";
 static const std::string kDefaultNamespace = "aslam_map_manager";
 
-typedef Aligned<std::vector, Eigen::Vector3d> Vector3dList;
+typedef aslam::Aligned<std::vector, Eigen::Vector3d> Vector3dList;
 
 void publishCoordinateFrame(
     const aslam::Transformation& T_fi_fj, const std::string& label, size_t id,
@@ -97,7 +97,7 @@ void publishFilledBox(
     const std::string& filling_namespace, const std::string& topic);
 
 void publishMesh(
-    const Aligned<std::vector, Eigen::Matrix3d>& triangles, size_t marker_id,
+    const aslam::Aligned<std::vector, Eigen::Matrix3d>& triangles, size_t marker_id,
     double scale, const std::string& frame, const std::string name_space,
     const std::string& topic);
 

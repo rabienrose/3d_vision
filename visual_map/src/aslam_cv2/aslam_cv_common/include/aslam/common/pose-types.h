@@ -13,9 +13,9 @@
 namespace aslam {
 
 typedef kindr::minimal::QuatTransformation Transformation;
-typedef Aligned<std::vector, Transformation> TransformationVector;
+typedef aslam::Aligned<std::vector, Transformation> TransformationVector;
 typedef Eigen::Matrix<double, 6, 6> TransformationCovariance;
-typedef Aligned<std::vector, TransformationCovariance>
+typedef aslam::Aligned<std::vector, TransformationCovariance>
     TransformationCovarianceList;
 typedef kindr::minimal::RotationQuaternion Quaternion;
 typedef kindr::minimal::AngleAxis AngleAxis;

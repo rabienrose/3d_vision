@@ -13,7 +13,7 @@
 #include <Eigen/StdVector>
 
 #include "aslam/common/eigen-hash.h"
-
+namespace aslam {
 template <template <typename, typename> class Container, typename Type>
 using Aligned = Container<Type, Eigen::aligned_allocator<Type>>;
 
@@ -46,6 +46,7 @@ inline std::shared_ptr<Type> aligned_shared(Arguments&&... arguments) {
   typedef typename std::remove_const<Type>::type TypeNonConst;
   return std::allocate_shared<Type>(Eigen::aligned_allocator<TypeNonConst>(),
                                     std::forward<Arguments>(arguments)...);
+}
 }
 
 namespace internal {

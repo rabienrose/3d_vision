@@ -12,7 +12,7 @@ namespace common {
 template <typename ElementType>
 class FixedSizeQueue {
  public:
-  typedef Aligned<std::deque, ElementType> BufferType;
+  typedef aslam::Aligned<std::deque, ElementType> BufferType;
 
   explicit FixedSizeQueue(size_t max_buffer_size)
       : max_buffer_size_(max_buffer_size) {

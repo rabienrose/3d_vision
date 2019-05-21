@@ -28,64 +28,6 @@ namespace ORB_SLAM2
 
 long unsigned int MapPoint::nNextId=0;
 mutex MapPoint::mGlobalMutex;
-void MapPoint::SetMap(Map* map)
-{
-    mpMap = map;   
-}
-
-void MapPoint::SetObservations(std::vector<KeyFrame*> spKeyFrames)
-{
-    
-    long unsigned int id, kfRef_id; size_t size;    
-    //cout << "KF" << mnId <<" valid indexes-" << endl;
-    int j = 0; 
-    bool found_reference = false;
-    kfRef_id = mref_KfId_pair.first;
-    bool is_ref_valid = mref_KfId_pair.second;
-
-
-    for (map<long unsigned int, size_t>::iterator it = mObservations_nId.begin(); it != mObservations_nId.end(); j++,++it) {
-        id = it->first;
-        size = it->second;        
-        {
-            for(std::vector<KeyFrame*>::iterator mit=spKeyFrames.begin(); mit !=spKeyFrames.end(); mit++)
-            {
-                KeyFrame* pKf = *mit;
-                //cout << "[" << pKf->mnId << "]";               
-                if(id == pKf->mnId)
-                {                    
-                    //cout << "[" << id <<"]";                    
-                    mObservations[pKf] = size;
-                    //id = -1;
-                    break;
-                }
-            }
-            
-        }
-
-    }
-
-    for(std::vector<KeyFrame*>::iterator mit=spKeyFrames.begin(); mit !=spKeyFrames.end(); mit++)
-    {
-       KeyFrame* pKf = *mit;
-       if (is_ref_valid && kfRef_id == pKf->mnId )
-       {
-            // Set the refernce Keyframe
-            mpRefKF = pKf;
-            found_reference = true;
-       }
-   }
-
-    if (!found_reference)
-    {
-        //todo deal with this situation
-            mpRefKF = static_cast<KeyFrame*>(NULL);
-            cout << "refernce KF - " << kfRef_id << "is not found for mappoint " << mnId << endl;  
-            SetBadFlag();
-            // Dummy KF
-            //mpRefKF = new KeyFrame();  
-    }
-}
 
 MapPoint::MapPoint():
     nObs(0), mnTrackReferenceForFrame(0),
@@ -171,11 +113,7 @@ void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
     if(mObservations.count(pKF))
         return;
     mObservations[pKF]=idx;
-
-    if(pKF->mvuRight[idx]>=0)
-        nObs+=2;
-    else
-        nObs++;
+    nObs++;
 }
 
 void MapPoint::EraseObservation(KeyFrame* pKF)
@@ -186,10 +124,7 @@ void MapPoint::EraseObservation(KeyFrame* pKF)
         if(mObservations.count(pKF))
         {
             int idx = mObservations[pKF];
-            if(pKF->mvuRight[idx]>=0)
-                nObs-=2;
-            else
-                nObs--;
+            nObs--;
 
             mObservations.erase(pKF);
 

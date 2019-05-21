@@ -11,7 +11,7 @@ namespace pose {
 typedef kindr::minimal::QuatTransformation Transformation;
 typedef kindr::minimal::RotationQuaternion Quaternion;
 typedef kindr::minimal::Position Position3D;
-typedef Aligned<std::vector, Position3D> Position3DVector;
+typedef aslam::Aligned<std::vector, Position3D> Position3DVector;
 
 // Types used in ceres error terms, where templating for Jet types
 // is necessary.

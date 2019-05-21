@@ -78,33 +78,40 @@ namespace OptimizerTool
         std::cout<<"mp_posis count: "<<mp_posis_out.size()<<std::endl;
         mp_posis_out.resize(mp_infos.size());
         
-
+        std::vector<bool> mp_mask;
+        mp_mask.resize(mp_infos.size());
         for(int i=0; i<mp_infos.size(); i++){
-    //         std::cout<<i<<"/"<<mp_infos.size()<<std::endl;
-            int last_id=mp_infos[i].size()-1;
-            std::vector<cv::Point2f> pts1;
-            cv::Point2f pt1( mp_infos[i][0].u, mp_infos[i][0].v);
-            pts1.push_back(pt1);
-            std::vector<cv::Point2f> pts2;
-            cv::Point2f pt2( mp_infos[i][last_id].u, mp_infos[i][last_id].v);
-            pts2.push_back(pt2);
-            if(proj_cv_mats.size()<=mp_infos[i][0].frame_id){
-                std::cout<<"proj_cv_mats index wrong: "<<mp_infos[i][0].frame_id<<std::endl;
+            if(mp_infos.size()>5){
+                mp_mask[i]=true;
+                int last_id=mp_infos[i].size()-1;
+                std::vector<cv::Point2f> pts1;
+                cv::Point2f pt1( mp_infos[i][0].u, mp_infos[i][0].v);
+                pts1.push_back(pt1);
+                std::vector<cv::Point2f> pts2;
+                cv::Point2f pt2( mp_infos[i][last_id].u, mp_infos[i][last_id].v);
+                pts2.push_back(pt2);
+                if(proj_cv_mats.size()<=mp_infos[i][0].frame_id){
+                    std::cout<<"proj_cv_mats index wrong: "<<mp_infos[i][0].frame_id<<std::endl;
+                }
+                if(proj_cv_mats.size()<=mp_infos[i][last_id].frame_id){
+                    std::cout<<"proj_cv_mats index wrong: "<<mp_infos[i][last_id].frame_id<<std::endl;
+                }
+                cv::Mat proj1=proj_cv_mats[mp_infos[i][0].frame_id];
+                cv::Mat proj2=proj_cv_mats[mp_infos[i][last_id].frame_id];
+                cv::Mat out_posi;
+                cv::triangulatePoints(proj1, proj2, pts1, pts2, out_posi);
+    //             if(cv::norm(out_posi)>100){
+    //                 std::cout<<out_posi.t()<<std::endl;
+    //             }
+                mp_posis_out[i](0)=out_posi.at<float>(0)/out_posi.at<float>(3);
+                mp_posis_out[i](1)=out_posi.at<float>(1)/out_posi.at<float>(3);
+                mp_posis_out[i](2)=out_posi.at<float>(2)/out_posi.at<float>(3);
+            }else{
+                mp_mask[i]=false;
+                mp_posis_out[i](0)=1000000;
+                mp_posis_out[i](1)=1000000;
+                mp_posis_out[i](2)=1000000;
             }
-            if(proj_cv_mats.size()<=mp_infos[i][last_id].frame_id){
-                std::cout<<"proj_cv_mats index wrong: "<<mp_infos[i][last_id].frame_id<<std::endl;
-            }
-            cv::Mat proj1=proj_cv_mats[mp_infos[i][0].frame_id];
-            cv::Mat proj2=proj_cv_mats[mp_infos[i][last_id].frame_id];
-            cv::Mat out_posi;
-            cv::triangulatePoints(proj1, proj2, pts1, pts2, out_posi);
-//             if(cv::norm(out_posi)>100){
-//                 std::cout<<out_posi.t()<<std::endl;
-//             }
-            mp_posis_out[i](0)=out_posi.at<float>(0)/out_posi.at<float>(3);
-            mp_posis_out[i](1)=out_posi.at<float>(1)/out_posi.at<float>(3);
-            mp_posis_out[i](2)=out_posi.at<float>(2)/out_posi.at<float>(3);
-            //std::cout<<mp_posis[i].transpose()<<std::endl;
         }
 //         int temp_count=0;
 //         double err_total=0;
@@ -192,7 +199,7 @@ namespace OptimizerTool
                 g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
                 e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(kf_verts[i]));
                 e->setMeasurement(gps_alin[i]);
-                e->setInformation(Eigen::Matrix<double, 3, 3>::Identity());
+                e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*1);
                 optimizer.addEdge(e);
                 lidar_edges.push_back(e);
             }
@@ -207,6 +214,10 @@ namespace OptimizerTool
         std::vector<g2o::VertexSBAPointXYZ*> mp_verts;
         std::vector<g2o::EdgeSE3ProjectXYZ*> proj_edges;
         for(int i=0; i<mp_infos.size(); i++){
+            if(mp_mask[i]==false){
+                mp_verts.push_back(0);
+                continue;
+            }
             for(int j=0; j<mp_infos[i].size(); j++){
                 if(j==0){
                     g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
@@ -309,7 +320,10 @@ namespace OptimizerTool
         }
         
         for(int i=0; i<mp_verts.size(); i++){
-            mp_posis_out[i]=mp_verts[i]->estimate();
+            if(mp_verts[i]!=0){
+                mp_posis_out[i]=mp_verts[i]->estimate();
+            }
+            
         }
         poses_out.resize(kf_verts.size());
         for(int i=0; i<kf_verts.size(); i++){
@@ -380,12 +394,15 @@ namespace OptimizerTool
                     track_info.push_back(info);
                 }
             }
-            if(track_info.size()>3){
+//             if(track_info.size()>3){
                 for(int j=0; j<track_info.size(); j++){
                     track_info[j].mp_id=mp_infos.size();
                 }
                 mp_infos.push_back(track_info);
-            }
+//             }else{
+//                 std::vector<orb_slam::MP_INFO> track_info1;
+//                 mp_infos.push_back(track_info1);
+//             }
             
         }
         std::vector<Eigen::Matrix4d> poses_out;

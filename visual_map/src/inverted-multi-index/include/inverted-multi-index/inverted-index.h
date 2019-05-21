@@ -110,7 +110,7 @@ class InvertedIndex {
                                     closest_word[0],
                                     static_cast<int>(db_descriptors_.size())))
                             .first;
-        Aligned<std::vector, DescriptorType> new_word;
+        aslam::Aligned<std::vector, DescriptorType> new_word;
         new_word.emplace_back(descriptors.col(i));
         db_descriptors_.push_back(new_word);
 
@@ -170,7 +170,7 @@ class InvertedIndex {
       if (word_index_it == word_index_map_.end())
         continue;
 
-      const Aligned<std::vector, DescriptorType>& descriptors =
+      const aslam::Aligned<std::vector, DescriptorType>& descriptors =
           db_descriptors_[word_index_it->second];
       int num_descriptors = static_cast<int>(descriptors.size());
       for (int j = 0; j < num_descriptors; ++j) {
@@ -274,8 +274,8 @@ class InvertedIndex {
   // Vector containing the database descriptors. Each entry of db_descriptors_
   // holds all descriptors assigned to a single visual word from the large
   // vocabulary obtained as the product of the two small ones.
-  typedef Aligned<std::vector, DescriptorType> DescriptorBucket;
-  Aligned<std::vector, DescriptorBucket> db_descriptors_;
+  typedef aslam::Aligned<std::vector, DescriptorType> DescriptorBucket;
+  aslam::Aligned<std::vector, DescriptorBucket> db_descriptors_;
   // The indices of the database descriptors for each word.
   std::vector<std::vector<int> > db_descriptor_indices_;
   // The maximum index of the descriptor indices.

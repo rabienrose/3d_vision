@@ -147,7 +147,7 @@ void getRotationMatrixNedToEcef(double lat_rad, double lon_rad,
   ///                                        ellipsoid in meter.
   /// @param[in]  filename                   Name of the KML-file.
 void writeGlobalCoordinatesToKml(
-    const Aligned<std::vector, Eigen::Vector3d>& latitude_longitude_height,
+    const aslam::Aligned<std::vector, Eigen::Vector3d>& latitude_longitude_height,
     const std::string& filename);
 
 /// \brief  Simple scalar conversion from degree to radian.

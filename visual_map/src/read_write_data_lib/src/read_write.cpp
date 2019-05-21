@@ -54,6 +54,36 @@ namespace CHAMO
         Tbc(2,3)=atof(splited[11].c_str());
     }
     
+    void read_image_info(std::string image_addr, int& width, int& height, float& desc_scale, int& desc_level, int& desc_count){
+        std::string line;
+        std::ifstream infile(image_addr.c_str()); 
+        if(infile.is_open()){
+            std::getline(infile, line);
+            std::vector<std::string> splited = split(line, ",");
+            if(splited.size()==2){
+                width=atoi(splited[0].c_str());
+                height=atoi(splited[1].c_str()); 
+            }else{
+                std::cout<<"image size reading wrong!!"<<std::endl;
+                std::exit(0);
+            }
+            std::getline(infile, line);
+            splited = split(line, ",");
+            if(splited.size()==3){
+                desc_scale=atof(splited[0].c_str());
+                desc_level=atoi(splited[1].c_str());
+                desc_count=atoi(splited[2].c_str());
+            }else{
+                std::cout<<"desc config reading wrong!!"<<std::endl;
+                std::exit(0);
+            }
+        }else{
+            std::cout<<"file open wrong: "<<image_addr<<std::endl;
+            std::exit(0);
+        }
+        
+    }
+    
     void read_traj_file(std::string traj_file_addr, std::vector<Eigen::Matrix4d>& traj_out, std::vector<std::string>& frame_names){
         std::ifstream infile_pose(traj_file_addr.c_str());
         std::string line;

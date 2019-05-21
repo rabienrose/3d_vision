@@ -785,7 +785,7 @@ void publishSpheres(
 }
 
 void publishMesh(
-    const Aligned<std::vector, Eigen::Matrix3d>& triangles, size_t marker_id,
+    const aslam::Aligned<std::vector, Eigen::Matrix3d>& triangles, size_t marker_id,
     double scale, const std::string& frame, const std::string name_space,
     const std::string& topic) {
   CHECK(!topic.empty());

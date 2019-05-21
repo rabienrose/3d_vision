@@ -7,8 +7,8 @@
 #include <maplab-common/pose_types.h>
 
 namespace common {
-typedef Aligned<std::vector, Eigen::Matrix<double, 4, 1>> VectorOfJPLQuaternia;
-typedef Aligned<std::vector, Eigen::Matrix<double, 3, 1>> VectorOfPositions;
+typedef aslam::Aligned<std::vector, Eigen::Matrix<double, 4, 1>> VectorOfJPLQuaternia;
+typedef aslam::Aligned<std::vector, Eigen::Matrix<double, 3, 1>> VectorOfPositions;
 
 template <typename Derived>
 inline Eigen::Matrix<typename Derived::Scalar, 3, 3> skew(

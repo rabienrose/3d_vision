@@ -33,3 +33,7 @@ cs_add_executable(create_vol
 Examples/Monocular/create_vol.cc)
 target_link_libraries(create_vol ${PROJECT_NAME})
 
+cs_install()
+cs_export()
+
+

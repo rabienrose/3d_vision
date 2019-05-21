@@ -14,7 +14,7 @@ namespace common {
 //  (1,0,1), (1,1,1)]
 void getAllBinaryCombinations(
     size_t num_elements,
-    Aligned<std::vector, Eigen::VectorXi>* list_of_combinations);
+    aslam::Aligned<std::vector, Eigen::VectorXi>* list_of_combinations);
 
 }  // namespace common
 

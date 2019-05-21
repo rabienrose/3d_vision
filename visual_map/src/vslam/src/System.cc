@@ -152,6 +152,8 @@ namespace ORB_SLAM2
             if(query.first==target_list[i].first && query.second==target_list[i].second){
                 if(!target_list[i].first->isBad()){
                     re=i;
+                }else{
+                    re=0;
                 }
                 //std::cout<<(int)re<<std::endl;
                 break;
@@ -220,12 +222,15 @@ namespace ORB_SLAM2
             std::vector<size_t> track_out;
             for(auto item: tracks){
                 size_t desc_id = findDesc(desc_list, item);
-                if(desc_id==-1){
-                    desc_list.push_back(item);
-                    track_out.push_back(desc_list.size()-1);
-                }else{
-                    track_out.push_back(desc_id);
+                if(desc_id!=0){
+                    if(desc_id==-1){
+                        desc_list.push_back(item);
+                        track_out.push_back(desc_list.size()-1);
+                    }else{
+                        track_out.push_back(desc_id);
+                    }
                 }
+                
             }
             if(track_out.size()>=3){
                 track_list.push_back(track_out);

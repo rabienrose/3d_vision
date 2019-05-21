@@ -38,7 +38,7 @@ struct InvertedFile {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typedef Eigen::Matrix<DescScalarType, DescDim, 1> Descriptor;
   // The descriptors stored in the InvertedFile.
-  Aligned<std::vector, Descriptor> descriptors_;
+  aslam::Aligned<std::vector, Descriptor> descriptors_;
   // Each stored descriptor has a corresponding index.
   std::vector<int> indices_;
 };
@@ -207,11 +207,11 @@ template <typename DescType, int DescDim>
 void AddDescriptor(
     const Eigen::Matrix<DescType, DescDim, 1>& descriptor, int descriptor_id,
     int word_index, std::unordered_map<int, int>* word_index_map,
-    Aligned<std::vector, InvertedFile<DescType, DescDim> >* inverted_files) {
+    aslam::Aligned<std::vector, InvertedFile<DescType, DescDim> >* inverted_files) {
   CHECK_NOTNULL(word_index_map);
   CHECK_NOTNULL(inverted_files);
 
-  Aligned<std::vector, InvertedFile<DescType, DescDim> >& inverted_files_ref =
+  aslam::Aligned<std::vector, InvertedFile<DescType, DescDim> >& inverted_files_ref =
       *inverted_files;
 
   std::unordered_map<int, int>::const_iterator word_index_it;

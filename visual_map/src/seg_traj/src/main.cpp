@@ -139,7 +139,7 @@ int main(int argc, char* argv[]){
                 pc_poses.push_back(traj_out[i]);
                 pc_gps.push_back(img_gpss[img_to_gps_ids[re_imgid]]);
             }else{
-                //std::cout<<"cannot find frame name in pose list"<<std::endl;
+                //std::cout<<"cannot find frame name in pose list: "<<std::endl;
             }
         }
 
@@ -182,6 +182,7 @@ int main(int argc, char* argv[]){
             break;
         }
     }
+    std::cout<<"end segmentation"<<std::endl;
     std::ofstream f;
     std::string pose_out_addr=res_addr+"/traj_alin.txt";
     f.open(pose_out_addr.c_str());

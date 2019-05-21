@@ -77,10 +77,10 @@ struct Pose {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-typedef Aligned<std::vector, LineSegment> LineSegmentVector;
-typedef Aligned<std::vector, Sphere> SphereVector;
-typedef Aligned<std::vector, Pose> PoseVector;
-typedef Aligned<std::vector, FilledBox> FilledBoxVector;
+typedef aslam::Aligned<std::vector, LineSegment> LineSegmentVector;
+typedef aslam::Aligned<std::vector, Sphere> SphereVector;
+typedef aslam::Aligned<std::vector, Pose> PoseVector;
+typedef aslam::Aligned<std::vector, FilledBox> FilledBoxVector;
 
 }  // namespace visualization
 

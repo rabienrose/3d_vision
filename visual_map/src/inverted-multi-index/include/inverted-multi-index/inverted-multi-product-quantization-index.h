@@ -316,8 +316,8 @@ class InvertedMultiProductQuantizationIndex {
 
   // A set of product quantizers, one for each word from the lower dimensional
   // vocabularies.
-  Aligned<std::vector, ProductQuantizer> quantizers_words_1_;
-  Aligned<std::vector, ProductQuantizer> quantizers_words_2_;
+  aslam::Aligned<std::vector, ProductQuantizer> quantizers_words_1_;
+  aslam::Aligned<std::vector, ProductQuantizer> quantizers_words_2_;
 
   // The number of closest words from the product vocabulary that should be used
   // during nearest neighbor search.
@@ -330,7 +330,7 @@ class InvertedMultiProductQuantizationIndex {
   // Vector containing the inverted files, one for each visual word in the
   // product vocabulary. Each inverted file holds all descriptors assigned to
   // the corresponding word and their indices.
-  Aligned<std::vector, InvFile> inverted_files_;
+  aslam::Aligned<std::vector, InvFile> inverted_files_;
   // The maximum index of the descriptor indices.
   int max_db_descriptor_index_;
 };
