@@ -15,6 +15,7 @@
 #include "KeyFrame.h"
 #include "Converter.h"
 #include "ros/ros.h"
+#include "vis_loc.h"
 
 double pose_time;
 bool init_flag = false;

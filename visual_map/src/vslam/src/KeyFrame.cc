@@ -79,6 +79,7 @@ void KeyFrame::setData(int kf_id, double timestamp, std::vector<cv::KeyPoint>& k
     mnRelocQuery=0;
     mnRelocWords=0;
     mnBAGlobalForKF=0;
+    file_name_=file_name;
     N=keysUn.size();
     mvKeysUn=keysUn;
     mDescriptors=descriptors;

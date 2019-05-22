@@ -54,7 +54,7 @@ class KDTreeIndex {
   // added on the next time the index is queried.
   void AddDescriptors(const DescriptorMatrixType& descriptors, int frame_id, int track_id) {
     pending_descriptor_blocks_.push_back(
-        aligned_shared<Eigen::MatrixXf>(descriptors));
+        aslam::aligned_shared<Eigen::MatrixXf>(descriptors));
     frame_indice.push_back(frame_id);
     track_indice.push_back(track_id);
   }

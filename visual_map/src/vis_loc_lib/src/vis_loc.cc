@@ -18,6 +18,5 @@
 #include "vis_loc.h"
 
 namespace chamo {
-
     
 }
