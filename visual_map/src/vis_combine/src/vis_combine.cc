@@ -173,16 +173,23 @@ namespace chamo {
         }
 
     }
+    void printFrameInfo(ORB_SLAM2::Frame& frame){
+        std::cout<<"kp count: "<<frame.mvKeysUn.size()<<std::endl;
+        std::cout<<"desc size (w:h) "<<frame.mDescriptors.cols<<":"<<frame.mDescriptors.rows<<std::endl;
+    }
     
     void GetAFrame(cv::Mat img, ORB_SLAM2::Frame& frame, ORB_SLAM2::ORBextractor* mpORBextractor, ORB_SLAM2::ORBVocabulary*& mpVocabulary,
                    cv::Mat mK, cv::Mat mDistCoef, std::string file_name, double timestamp){
         cv::Mat mImGray;
         cv::undistort(img, mImGray, mK, mDistCoef);
         cv::Mat distCoefZero=cv::Mat::zeros(mDistCoef.rows, mDistCoef.cols, mDistCoef.type());
-        frame = ORB_SLAM2::Frame(mImGray, timestamp, mpORBextractor, mpVocabulary, mK, distCoefZero, 0, 0, file_name);                      
+        frame = ORB_SLAM2::Frame(mImGray, timestamp, mpORBextractor, mpVocabulary, mK, distCoefZero, 0, 0, file_name);
+        //cv::imshow("sdfsd", mImGray);
+        //cv::waitKey(1);
+        //printFrameInfo(frame);
     }
     
-    void GetORBextractor(std::string res_root, ORB_SLAM2::ORBextractor*& mpORBextractor, cv::Mat& mK, cv::Mat& mDistCoef){
+    void GetORBextractor(std::string res_root, ORB_SLAM2::ORBextractor** mpORBextractor, cv::Mat& mK, cv::Mat& mDistCoef){
         std::string cam_addr=res_root+"/camera_config.txt";
         Eigen::Matrix3d cam_inter;
         Eigen::Vector4d cam_distort;
@@ -196,8 +203,8 @@ namespace chamo {
         int desc_level; 
         int desc_count;
         CHAMO::read_image_info(image_config_addr, width, height, desc_scale, desc_level, desc_count);
-        std::cout<<"image_conf: "<<width<<":"<<height<<std::endl;
-        mpORBextractor = new ORB_SLAM2::ORBextractor(desc_count,desc_scale,desc_level,20,7);
+        std::cout<<"image_conf: (desc_scale: desc_level: desc_count)"<<desc_scale<<":"<<desc_level<<":"<<desc_count<<std::endl;
+        *mpORBextractor = new ORB_SLAM2::ORBextractor(desc_count,desc_scale,desc_level,20,7);
         mK = cv::Mat::eye(3,3,CV_32F);
         mK.at<float>(0,0) = cam_inter(0,0);
         mK.at<float>(1,1) = cam_inter(1,1);

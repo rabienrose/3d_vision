@@ -70,8 +70,8 @@ namespace CHAMO
             std::getline(infile, line);
             splited = split(line, ",");
             if(splited.size()==3){
-                desc_count=atof(splited[0].c_str());
-                desc_scale=atoi(splited[1].c_str());
+                desc_count=atoi(splited[0].c_str());
+                desc_scale=atof(splited[1].c_str());
                 desc_level=atoi(splited[2].c_str());
             }else{
                 std::cout<<"desc config reading wrong!!"<<std::endl;

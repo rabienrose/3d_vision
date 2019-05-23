@@ -15,6 +15,17 @@
 #include <fstream>
 namespace DescIndex
 {
+    void findIdByName(std::vector<std::string>& names, int& re_id, std::string query_name){
+        re_id=-1;
+        for(int i=0; i<names.size(); i++){
+            if(names[i]==query_name){
+                re_id=i;
+                return;
+            }
+        }
+        return;
+    }
+    
     void create_desc_index(std::string resource_dir){
         std::ifstream in_stream(resource_dir+"/words_projmat.dat", std::ios_base::binary);
         int deserialized_version;
@@ -60,17 +71,15 @@ namespace DescIndex
         
         std::string kp_addr=resource_dir+"/kps.txt";
         std::vector<Eigen::Vector2f> kp_uvs;
-        std::vector<int> kp_frameids;
+        std::vector<std::string> kp_framenames;
         std::vector<int> kp_octoves;
-        CHAMO::read_kp_info(kp_addr, kp_uvs, kp_frameids, kp_octoves);
+        CHAMO::read_kp_info(kp_addr, kp_uvs, kp_framenames, kp_octoves);
         
         std::string img_time_addr=resource_dir+"/image_time.txt";
-        std::string pose_addr=resource_dir+"/traj.txt";
-        std::map<double, int> pose_list;
-        std::map<int, int> frame_ids;
-        std::vector<double> img_times;
-        std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> pose_vec;
-        CHAMO::read_pose_list(pose_list, frame_ids, pose_vec, img_times ,pose_addr, img_time_addr);
+        std::vector<double> img_timess;
+        std::vector<std::string> imgtime_names;
+        CHAMO::read_img_time(img_time_addr, img_timess, imgtime_names);
+        std::cout<<"img_timess: "<<img_timess.size()<<std::endl;
 
         
         Eigen::VectorXf projected_desc;
@@ -81,7 +90,10 @@ namespace DescIndex
             for(int j=0; j<tracks[i].size(); j++){
                 int kp_id=tracks[i][j];
                 descriptor_projection::ProjectDescriptor(descs[kp_id], projection_matrix_, 10, projected_desc);
-                index_->AddDescriptors(projected_desc, frame_ids[kp_frameids[kp_id]], mp_id);
+                int re_id;
+                findIdByName(imgtime_names, re_id, kp_framenames[kp_id]);
+                
+                index_->AddDescriptors(projected_desc, re_id, mp_id);
                 //std::cout<<projected_desc.transpose()<<std::endl;
                 if(desc_count==0){
                     projected_desc_c=projected_desc;

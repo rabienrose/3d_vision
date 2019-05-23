@@ -624,7 +624,6 @@ bool Tracking::TrackReferenceKeyFrame()
     vector<MapPoint*> vpMapPointMatches;
 
     int nmatches = matcher.SearchByBoW(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
-    std::cout<<"nmatches1: "<<nmatches<<std::endl;
 
     if(nmatches<15)
         return false;
@@ -633,7 +632,6 @@ bool Tracking::TrackReferenceKeyFrame()
     mCurrentFrame.SetPose(mLastFrame.mTcw);
 
     Optimizer::PoseOptimization(&mCurrentFrame);
-    std::cout<<"bbb"<<std::endl;
 
     // Discard outliers
     int nmatchesMap = 0;

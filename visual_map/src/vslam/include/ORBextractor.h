@@ -80,6 +80,8 @@ public:
     }
 
     std::vector<cv::Mat> mvImagePyramid;
+    
+    int nfeatures;
 
 protected:
 
@@ -91,7 +93,7 @@ protected:
     void ComputeKeyPointsOld(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);
     std::vector<cv::Point> pattern;
 
-    int nfeatures;
+    
     double scaleFactor;
     int nlevels;
     int iniThFAST;

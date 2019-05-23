@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include <Eigen/Core>
 #include <aslam/common/memory.h>

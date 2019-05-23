@@ -444,6 +444,7 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
         mnFeaturesPerLevel[level] = cvRound(nDesiredFeaturesPerScale);
         sumFeatures += mnFeaturesPerLevel[level];
         nDesiredFeaturesPerScale *= factor;
+        
     }
     mnFeaturesPerLevel[nlevels-1] = std::max(nfeatures - sumFeatures, 0);
 
@@ -1110,6 +1111,9 @@ void ORBextractor::ExtractDesc( InputArray _image, InputArray _mask, vector<KeyP
         for (int level = 0; level < nlevels; ++level)
         {
             vector<KeyPoint>& keypoints = allKeypoints[level];
+            for(int i=0; i<keypoints.size(); i++){
+                keypoints[i].octave=0;
+            }
             int nkeypointsLevel = (int)keypoints.size();
 
             if(nkeypointsLevel==0)
@@ -1126,8 +1130,11 @@ void ORBextractor::ExtractDesc( InputArray _image, InputArray _mask, vector<KeyP
             {
                 float scale = mvScaleFactor[level]; //getScale(level, firstLevel, scaleFactor);
                 for (vector<KeyPoint>::iterator keypoint = keypoints.begin(),
-                    keypointEnd = keypoints.end(); keypoint != keypointEnd; ++keypoint)
-                    keypoint->pt *= scale;
+                    keypointEnd = keypoints.end(); keypoint != keypointEnd; ++keypoint){
+                        keypoint->pt *= scale;
+                        keypoint->octave = level;
+                    }
+                    
             }
             // And add the keypoints to the output
             _keypoints.insert(_keypoints.end(), keypoints.begin(), keypoints.end());

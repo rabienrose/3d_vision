@@ -14,10 +14,7 @@ int main(int argc, char* argv[]) {
     visualization::RVizVisualizationSink::init();
     
     Eigen::Matrix3d Rwi_=Eigen::Matrix3d::Identity();
-    
-    
-    
-    
+
     //OptimizerTool::optimize_imu(res_root);
     OptimizerTool::optimize_true_pose(res_root);
     //show_pose_as_marker(pose_vec, "pose_cam");
