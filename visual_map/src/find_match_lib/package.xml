@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>find_match_lib</name>
+  <version>0.0.0</version>
+  <description>
+
+	find matched between frames
+
+  </description>
+  <url></url>
+  <author>albert</author>
+  <maintainer email="bloeschm@ethz.ch">bloeschm</maintainer>
+  <license>BSD License</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>glog_catkin</depend>
+  <depend>kindr</depend>
+  <depend>lightweight_filtering</depend>
+  <depend>opencv3_catkin</depend>
+  <depend>eigen_catkin</depend>
+  <depend>inverted_multi_index</depend>
+  <depend>descriptor_projection</depend>
+  <depend>read_write_data_lib</depend>
+  <depend>orb_slam_lib</depend>
+  <depend>vslam</depend>
+  <depend>visualization</depend>
+  <depend>roscpp</depend>
+  <depend>cv_bridge</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+</package>

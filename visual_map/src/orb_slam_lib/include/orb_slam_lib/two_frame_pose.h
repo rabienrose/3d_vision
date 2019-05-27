@@ -2,13 +2,14 @@
 #define TWO_FRAME_POSE_H
 
 #include<opencv2/opencv.hpp>
+#include <Eigen/Dense>
 
 namespace orb_slam
 {
 typedef std::pair<int,int> Match;
 
 void FindRT(std::vector<cv::KeyPoint>& mvKeys1, std::vector<cv::KeyPoint>& mvKeys2, std::vector<bool> &vbMatchesInliers,
-            cv::Mat &R21, cv::Mat &t21, std::vector<Match>& mvMatches12, cv::Mat mK, cv::Mat debug_img
+            cv::Mat &R21, cv::Mat &t21, std::vector<Match>& mvMatches12, cv::Mat mK, cv::Mat debug_img, bool flag_rt = true
 );
 
 void FindHomography(std::vector<bool> &vbMatchesInliers, float &score, cv::Mat &H21,
@@ -62,6 +63,16 @@ void ExtractOrb(std::string img_name, cv::Mat& desc_list, std::vector<cv::KeyPoi
 void ExtractOrb(cv::Mat img, cv::Mat& desc_list, std::vector<cv::KeyPoint>& kps_list,
                     std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
                     cv::Mat cam_m, cv::Mat cam_dis);
+bool FindMatchInTwoFrame(std::vector<cv::KeyPoint>& kp1, std::vector<cv::KeyPoint>& kp2, 
+        cv::Mat& desc1, cv::Mat& desc2, int width, int height,
+        std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
+        std::vector<std::pair<int, int>>& mvMatches12,cv::Mat& cam_m);
+bool MatchTwoFrame(std::vector<cv::KeyPoint>& kp1, std::vector<cv::KeyPoint>& kp2, 
+        cv::Mat& desc1, cv::Mat& desc2, int width, int height,
+        std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
+        cv::Mat cam_m, Eigen::Matrix3d& R, Eigen::Vector3d& t, cv::Mat debug_img);
+void CalGrid(std::vector<cv::KeyPoint>& kps_list, int width_img, int height_img,
+              std::vector<std::vector<std::vector<std::size_t>>>& mGrid);
 }
 
 

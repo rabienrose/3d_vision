@@ -5,7 +5,7 @@
 namespace orb_slam
 {
     void FindRT(std::vector<cv::KeyPoint>& mvKeys1, std::vector<cv::KeyPoint>& mvKeys2, std::vector<bool> &vbMatchesInliers,
-                cv::Mat &R21, cv::Mat &t21, std::vector<Match>& mvMatches12, cv::Mat mK, cv::Mat debug_img
+                cv::Mat &R21, cv::Mat &t21, std::vector<Match>& mvMatches12, cv::Mat mK, cv::Mat debug_img, bool flag_rt
     ){
         //R21=cv::Mat::eye(3, 3, CV_32FC1);
         //t21=cv::Mat::zeros(3, 1, CV_32FC1);
@@ -24,7 +24,7 @@ namespace orb_slam
         {
             vAllIndices.push_back(i);
         }
-        
+    
         for(int it=0; it<mMaxIterations; it++)
         {
             vAvailableIndices = vAllIndices;
@@ -45,8 +45,11 @@ namespace orb_slam
         }
         float SH=0, SF;
         cv::Mat H, F;
+        cv::Mat1f mk_32;
+        mK.convertTo(mk_32,CV_32FC1);
         FindFundamental(vbMatchesInliersF, SF, F, mvKeys1, mvKeys2, mvSets, mMaxIterations, mSigma, mvMatches12);
         FindHomography(vbMatchesInliersH, SH, H, mvKeys1, mvKeys2, mvSets, mMaxIterations, mSigma, mvMatches12);
+
         
     //     cv::cvtColor(debug_img, debug_img, cv::COLOR_GRAY2BGR);
     //     for(int i=0; i<vbMatchesInliersF.size(); i++){
@@ -69,10 +72,19 @@ namespace orb_slam
     //     cv::imshow("chamo", debug_img);
     //     cv::waitKey(-1);
 
-        //std::cout<<SH<<":"<<SF<<std::endl;
+        // std::cout<<"score: "<<SH<<" : "<<SF<<std::endl;
 
         float RH = SH/(SH+SF);
+        if(RH>0.40)
+        {
+            vbMatchesInliers.assign(vbMatchesInliersH.cbegin(),vbMatchesInliersH.cend());
+        }
+        else
+        {
+            vbMatchesInliers.assign(vbMatchesInliersF.cbegin(),vbMatchesInliersF.cend());
+        }
 
+        if(!flag_rt) return;
         // Try to reconstruct from homography or fundamental depending on the ratio (0.40-0.45)
     //     if(RH>0.60){
     //         std::cout<<"initial with Homegrahpy"<<std::endl;
@@ -82,9 +94,9 @@ namespace orb_slam
         std::vector<cv::Point3f> vP3D;
         std::vector<bool> vbTriangulated;
         if(RH>0.40){
-            ReconstructH(vbMatchesInliersH,H,mK,R21,t21,vP3D,vbTriangulated, mvKeys1, mvKeys2, mSigma, 1.0,50, mvMatches12);
+            ReconstructH(vbMatchesInliersH,H,mk_32,R21,t21,vP3D,vbTriangulated, mvKeys1, mvKeys2, mSigma, 1.0,50, mvMatches12);
         }else{
-            ReconstructF(vbMatchesInliersF,F,mK,R21,t21,vP3D,vbTriangulated, mvKeys1, mvKeys2, mSigma, 1.0,50, mvMatches12);
+            ReconstructF(vbMatchesInliersF,F,mk_32,R21,t21,vP3D,vbTriangulated, mvKeys1, mvKeys2, mSigma, 1.0,50, mvMatches12);
         }
     }
 
@@ -574,7 +586,6 @@ namespace orb_slam
         // We recover 8 motion hypotheses using the method of Faugeras et al.
         // Motion and structure from motion in a piecewise planar environment.
         // International Journal of Pattern Recognition and Artificial Intelligence, 1988
-
         cv::Mat invK = K.inv();
         cv::Mat A = invK*H21*K;
 
@@ -582,6 +593,7 @@ namespace orb_slam
         cv::SVD::compute(A,w,U,Vt,cv::SVD::FULL_UV);
         V=Vt.t();
         float s = cv::determinant(U)*cv::determinant(Vt);
+
 
         float d1 = w.at<float>(0);
         float d2 = w.at<float>(1);
@@ -969,6 +981,53 @@ namespace orb_slam
         }
     }
     
+    bool FindMatchInTwoFrame(std::vector<cv::KeyPoint>& kp1, std::vector<cv::KeyPoint>& kp2, 
+            cv::Mat& desc1, cv::Mat& desc2, int width, int height,
+            std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
+            std::vector<std::pair<int, int>>& mvMatches12,cv::Mat& cam_m){
+        std::vector<cv::Point2f> vbPrevMatched;
+        vbPrevMatched.resize(kp1.size());
+        for(size_t i=0; i<kp1.size(); i++)
+            vbPrevMatched[i]=kp1[i].pt;
+        std::vector<int> vnMatches12;
+        std::vector<std::pair<int, int>> good_matches;
+        orb_slam::SearchForInitialization(kp1, kp2, desc1, desc2, 0.95, mGrid, 0, 0, width, height, false, vbPrevMatched, vnMatches12);
+        // orb_slam::SearchForMultipleMatch(kp1, kp2, desc1, desc2, 0.90, mGrid, 0, 0, width, height, false, vbPrevMatched, vnMatches12);
+        // orb_slam::SearchForMatch(kp1, kp2, desc1, desc2, 0.90, mGrid, 0, 0, width, height, false, vbPrevMatched, vnMatches12);
+        
+        cv::Mat R21;
+        cv::Mat t21;
+        cv::Mat outlier_cv;
+        cv::Mat debug_img;
+        std::vector<bool> vbMatchesInliers;
+        
+        for(size_t i=0, iend=vnMatches12.size();i<iend; i++)
+        {
+            if(vnMatches12[i]>=0)
+            {
+                good_matches.push_back(std::make_pair(i,vnMatches12[i]));
+            }
+        }
+        if(good_matches.size() < 8) 
+          return false;
+        orb_slam::FindRT(kp1, kp2, vbMatchesInliers, R21, t21, good_matches , cam_m, debug_img,false);
+//         if(R21.cols==0){
+//             return false;
+//         }
+        mvMatches12.reserve(vbMatchesInliers.size());
+        for(size_t i=0, iend=vbMatchesInliers.size();i<iend; i++)
+        {
+            if(vbMatchesInliers[i]>0)
+            {
+                mvMatches12.push_back(good_matches[i]);
+            }
+        }        
+        std::cout<<"mvMatches12: "<<mvMatches12.size()<<std::endl;
+        
+        return true;
+        
+
+    }    
     
     bool PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY, int mnMinX, int mnMinY, int mnMaxX, int mnMaxY)
     {
@@ -1014,7 +1073,7 @@ namespace orb_slam
     void ExtractOrb(cv::Mat img, cv::Mat& desc_list, std::vector<cv::KeyPoint>& kps_list,
                     std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
                     cv::Mat cam_m, cv::Mat cam_dis){
-        int features_count=700;
+        int features_count=2000;
         float features_scale_rate=1.2;
         int features_level=8;
         int ini_cell_fast=20;
@@ -1027,6 +1086,27 @@ namespace orb_slam
         orb_slam::ORBextractor extractor = orb_slam::ORBextractor(features_count, features_scale_rate, features_level, ini_cell_fast, min_cell_fast);
         extractor(img_undistort, kps_list, desc_list);
 
+        int N=kps_list.size();
+        int nReserve = 0.5f*N/(FRAME_GRID_COLS*FRAME_GRID_ROWS);
+        mGrid.resize(FRAME_GRID_COLS);
+        for(unsigned int i=0; i<FRAME_GRID_COLS;i++){
+            mGrid[i].resize(FRAME_GRID_ROWS);
+            for (unsigned int j=0; j<FRAME_GRID_ROWS;j++){
+                mGrid[i][j].reserve(nReserve);
+            }  
+        }
+        for(int i=0;i<N;i++)
+        {
+            const cv::KeyPoint &kp = kps_list[i];
+
+            int nGridPosX, nGridPosY;
+            if(PosInGrid(kp,nGridPosX,nGridPosY, 0, 0, width_img, height_img))
+                mGrid[nGridPosX][nGridPosY].push_back(i);
+        }
+    }
+    
+    void CalGrid(std::vector<cv::KeyPoint>& kps_list, int width_img, int height_img,
+                 std::vector<std::vector<std::vector<std::size_t>>>& mGrid){
         int N=kps_list.size();
         int nReserve = 0.5f*N/(FRAME_GRID_COLS*FRAME_GRID_ROWS);
         mGrid.resize(FRAME_GRID_COLS);

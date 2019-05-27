@@ -15,7 +15,18 @@ namespace orb_slam
                             cv::Mat desc1, cv::Mat desc2, float mfNNratio,
                             std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
                             int mnMinX, int mnMinY, int mnMaxX, int mnMaxY, bool mbCheckOrientation,
-                            std::vector<cv::Point2f> &vbPrevMatched, std::vector<int> &vnMatches12, int windowSize=100);
+                            std::vector<cv::Point2f> &vbPrevMatched, std::vector<int> &vnMatches12, int windowSize=150);
+    int SearchForMatch(std::vector<cv::KeyPoint> &key1, std::vector<cv::KeyPoint> &key2, 
+                            cv::Mat desc1, cv::Mat desc2, float mfNNratio,
+                            std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
+                            int mnMinX, int mnMinY, int mnMaxX, int mnMaxY, bool mbCheckOrientation,
+                            std::vector<cv::Point2f> &vbPrevMatched, std::vector<int> &vnMatches12);
+    int SearchForMultipleMatch(std::vector<cv::KeyPoint> &key1, std::vector<cv::KeyPoint> &key2, 
+                            cv::Mat desc1, cv::Mat desc2, float mfNNratio,
+                            std::vector<std::vector<std::vector<std::size_t>>>& mGrid,
+                            int mnMinX, int mnMinY, int mnMaxX, int mnMaxY, bool mbCheckOrientation,
+                            std::vector<cv::Point2f> &vbPrevMatched, std::vector<int> &vnMatches12, int windowSize=200);
+    std::vector<bool> GetMatchArea(std::vector<cv::KeyPoint> &mvKeysUn, int mnMinX, int mnMinY, int mnMaxX, int mnMaxY);    
 
 }// namespace ORB_SLAM
 

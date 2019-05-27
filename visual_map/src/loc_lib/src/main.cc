@@ -64,7 +64,7 @@ int main(int argc, char* argv[]){
     ros::Publisher  pose_pub;
     
     imu_subscriber_ = nh.subscribe("imu/raw_data", 1000, imu_callback);
-    img_subscriber_ = nh.subscribe("camera/right/image_raw", 1, image_callback);
+    img_subscriber_ = nh.subscribe("camera/left/image_raw", 1, image_callback);
     //imu_subscriber_ = nh.subscribe("imu", 1000, imu_callback);
     //img_subscriber_ = nh.subscribe("img", 10, image_callback);
     

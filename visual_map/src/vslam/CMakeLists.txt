@@ -35,5 +35,3 @@ target_link_libraries(create_vol ${PROJECT_NAME})
 
 cs_install()
 cs_export()
-
-

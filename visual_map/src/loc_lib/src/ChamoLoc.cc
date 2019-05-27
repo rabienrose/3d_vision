@@ -110,11 +110,12 @@ namespace wayz {
         //std::cout<<mpFilter_->init_.state_.aux().MrMC_[0]<<std::endl;
     };
     
-    bool ChamoLoc::UpdateByMap(cv::Mat Img, double timestamp, std::vector<cv::Point3f>& inliers_mp, std::vector<cv::Point2f>& inliers_kp){
+    int ChamoLoc::UpdateByMap(cv::Mat Img, double timestamp, std::vector<cv::Point3f>& inliers_mp, std::vector<cv::Point2f>& inliers_kp){
         cv::Mat desc_list;
         std::vector<cv::KeyPoint> kps_list;
         std::vector<std::vector<std::vector<std::size_t>>> mGrid;
         orb_slam::ExtractOrb(Img, desc_list, kps_list, mGrid, cam_inter_cv, cam_distort_cv);
+        int final_match_count=0;
             
         std::map<int, int> match_count_per_frame;
         std::unordered_map<int, std::vector<Match>> frame_to_match;
@@ -287,8 +288,9 @@ namespace wayz {
             cv::solvePnPRansac(point3ds, point2ds, cam_inter_cv, cam_distort_zero, rvec, tvec, false, 1000, 2.0f, 0.99, inliers, cv::SOLVEPNP_EPNP);
             
             if(inliers.rows<20){
-                return false;
+                return final_match_count;
             }
+            final_match_count=inliers.rows;
             std::cout<<"inliers.rows: "<<inliers.rows<<std::endl;
             for(int i=0; i<inliers.rows; i++){
                 //std::cout<<inliers.at<int>(i)<<std::endl;
@@ -321,6 +323,8 @@ namespace wayz {
             
             posi_match_vec.push_back(eigen_wb.block(0,3,3,1));
             rot_match_vec.push_back(pose_qua);
+            
+            return final_match_count;
             if(posi_list.size()==0){
             //if(false){
                 mpFilter_->safe_.state_.WrWM()=eigen_wb.block(0,3,3,1);
@@ -352,64 +356,157 @@ namespace wayz {
                     break;
                 }
             }
-            return true;
+            return final_match_count;
         }
-        return false;
+        return final_match_count;
     }
+    void ChamoLoc::Debug_Image_pose(const double timestamp,const int camera_id, cv::Mat& img_distort)
+    {
+//         if (!init_state_.isInitialized() || img_distort.empty()) {
+//             return;
+//         }
+//         cv::Mat Img;
+//         cv::undistort(img_distort, Img, cam_inter_cv, cam_distort_cv);
+//         
+//         if(posi_list.size()!=0){
+//             double msgTime = timestamp;
+//             if (msgTime != imgUpdateMeas_.template get<mtImgMeas::_aux>().imgTime_) {
+//                 for (int i = 0; i < FilterType::mtState::nCam_; i++) {
+//                     if (imgUpdateMeas_.template get<mtImgMeas::_aux>().isValidPyr_[i]) {
+//                         std::cout
+//                             << "    \033[31mFailed Synchronization of Camera Frames, t = "
+//                             << msgTime << "\033[0m" << std::endl;
+//                     }
+//                 }
+//                 imgUpdateMeas_.template get<mtImgMeas::_aux>().reset(msgTime);
+//             }
+//             imgUpdateMeas_.template get<mtImgMeas::_aux>().pyr_[camera_id].computeFromImage(Img, true);
+//             imgUpdateMeas_.template get<mtImgMeas::_aux>().isValidPyr_[camera_id] = true;
+// 
+//             bool measurement_accepted = false;
+//             if (imgUpdateMeas_.template get<mtImgMeas::_aux>().areAllValid()) {
+//                 measurement_accepted = mpFilter_->template addUpdateMeas<0>(imgUpdateMeas_, msgTime);
+//                 imgUpdateMeas_.template get<mtImgMeas::_aux>().reset(msgTime);
+//                 //std::thread::id this_id = std::this_thread::get_id();
+//             }
+//         }
+//         std::vector<cv::Point3f> inliers_mp;
+//         std::vector<cv::Point2f> inliers_kp;
+//         bool loc_re = UpdateByMap(Img, timestamp, inliers_mp, inliers_kp);
+//         updateFilter();
+//         
+//         Eigen::Matrix4d t_mb=Eigen::Matrix4d::Identity();
+//         t_mb.block(0,3,3,1)=mpFilter_->safe_.state_.WrWM();
+//         t_mb.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.qWM()).matrix();
+//         Eigen::Matrix4d t_wm=Eigen::Matrix4d::Identity();
+//         t_wm.block(0,3,3,1)=mpFilter_->safe_.state_.poseLin(0);
+//         t_wm.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.poseRot(0)).matrix();
+//         
+//         Eigen::Matrix4d t_re=t_mb;
+//         posi_vec.push_back(t_re.block(0,3,3,1));
+//         posi_list[timestamp]=t_re.block(0,3,3,1);
+//         Eigen::Matrix3d rot_eigen = t_re.block(0,0,3,3);
+//         Eigen::Quaterniond rot_q(rot_eigen);
+//         rot_list[timestamp]=rot_q;
+//         timestamp_list.push_back(timestamp);
+//         posi_loc_vec.push_back(t_re.block(0,3,3,1));
+//         rot_loc_vec.push_back(rot_q);
+//         
+//         if(loc_re){
+//             cv::Mat debug_img;
+//             cv::cvtColor(Img, debug_img, cv::COLOR_GRAY2RGB);
+//             for(int i=0; i<inliers_kp.size(); i++){
+//                 cv::circle(debug_img, inliers_kp[i], 4, CV_RGB(0,0,255), 2);
+//             }
+// 
+//             img_distort = debug_img.clone();
+//             //visualization::RVizVisualizationSink::publish("match_img", debug_img);
+//             //visualization::LineSegmentVector matches;
+//             for(int i=0; i<inliers_mp.size(); i++){
+//                 visualization::LineSegment line_segment;
+//                 line_segment.from = posi_match_vec.back();
+//                 line_segment.scale = 0.03;
+//                 line_segment.alpha = 0.6;
+// 
+//                 line_segment.color.red = 255;
+//                 line_segment.color.green = 255;
+//                 line_segment.color.blue = 255;
+//                 Eigen::Vector3d mp_posi_eig;
+//                 mp_posi_eig(0)=inliers_mp[i].x;
+//                 mp_posi_eig(1)=inliers_mp[i].y;
+//                 mp_posi_eig(2)=inliers_mp[i].z;
+//                 line_segment.to = mp_posi_eig;
+// 
+//                 fea_match_vec.push_back(mp_posi_eig);
+//                 //std::cout<<line_segment.to.transpose()<<std::endl;
+//                 //std::cout<<posi_match_vec.back()<<std::endl;
+//                 //matches.push_back(line_segment);
+//             }
+//             //visualization::publishLines(matches, 0, visualization::kDefaultMapFrame,visualization::kDefaultNamespace, "map_match1");
+//         }
+        
+    }
+    void ChamoLoc::Debug_Feature_pose(std::vector<Eigen::Vector3d>& vec)
+    {
+        if (fea_match_vec.size() > 0)
+        {
+            vec.swap(fea_match_vec);
 
-    void ChamoLoc::AddImage(const double timestamp,const int camera_id, const cv::Mat& img_distort){
-        if (!init_state_.isInitialized() || img_distort.empty()) {
-            return;
+            std::vector<Eigen::Vector3d>().swap(fea_match_vec);
         }
+    }
+    void ChamoLoc::AddImage(const double timestamp,const int camera_id, const cv::Mat& img_distort){
+//         if (!init_state_.isInitialized() || img_distort.empty()) {
+//             return;
+//         }
         cv::Mat Img;
         cv::undistort(img_distort, Img, cam_inter_cv, cam_distort_cv);
-        
-        if(posi_list.size()!=0){
-            double msgTime = timestamp;
-            if (msgTime != imgUpdateMeas_.template get<mtImgMeas::_aux>().imgTime_) {
-                for (int i = 0; i < FilterType::mtState::nCam_; i++) {
-                    if (imgUpdateMeas_.template get<mtImgMeas::_aux>().isValidPyr_[i]) {
-                        std::cout
-                            << "    \033[31mFailed Synchronization of Camera Frames, t = "
-                            << msgTime << "\033[0m" << std::endl;
-                    }
-                }
-                imgUpdateMeas_.template get<mtImgMeas::_aux>().reset(msgTime);
-            }
-            imgUpdateMeas_.template get<mtImgMeas::_aux>().pyr_[camera_id].computeFromImage(Img, true);
-            imgUpdateMeas_.template get<mtImgMeas::_aux>().isValidPyr_[camera_id] = true;
-
-            bool measurement_accepted = false;
-            if (imgUpdateMeas_.template get<mtImgMeas::_aux>().areAllValid()) {
-                measurement_accepted = mpFilter_->template addUpdateMeas<0>(imgUpdateMeas_, msgTime);
-                imgUpdateMeas_.template get<mtImgMeas::_aux>().reset(msgTime);
-                //std::thread::id this_id = std::this_thread::get_id();
-            }
-        }
+//         if(posi_list.size()!=0){
+//             double msgTime = timestamp;
+//             if (msgTime != imgUpdateMeas_.template get<mtImgMeas::_aux>().imgTime_) {
+//                 for (int i = 0; i < FilterType::mtState::nCam_; i++) {
+//                     if (imgUpdateMeas_.template get<mtImgMeas::_aux>().isValidPyr_[i]) {
+//                         std::cout
+//                             << "    \033[31mFailed Synchronization of Camera Frames, t = "
+//                             << msgTime << "\033[0m" << std::endl;
+//                     }
+//                 }
+//                 imgUpdateMeas_.template get<mtImgMeas::_aux>().reset(msgTime);
+//             }
+//             imgUpdateMeas_.template get<mtImgMeas::_aux>().pyr_[camera_id].computeFromImage(Img, true);
+//             imgUpdateMeas_.template get<mtImgMeas::_aux>().isValidPyr_[camera_id] = true;
+// 
+//             bool measurement_accepted = false;
+//             if (imgUpdateMeas_.template get<mtImgMeas::_aux>().areAllValid()) {
+//                 measurement_accepted = mpFilter_->template addUpdateMeas<0>(imgUpdateMeas_, msgTime);
+//                 imgUpdateMeas_.template get<mtImgMeas::_aux>().reset(msgTime);
+//                 //std::thread::id this_id = std::this_thread::get_id();
+//             }
+//         }
         std::vector<cv::Point3f> inliers_mp;
         std::vector<cv::Point2f> inliers_kp;
-        bool loc_re = UpdateByMap(Img, timestamp, inliers_mp, inliers_kp);
-        updateFilter();
+        int match_count = UpdateByMap(Img, timestamp, inliers_mp, inliers_kp);
+        //updateFilter();
         
-        Eigen::Matrix4d t_mb=Eigen::Matrix4d::Identity();
-        t_mb.block(0,3,3,1)=mpFilter_->safe_.state_.WrWM();
-        t_mb.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.qWM()).matrix();
-        Eigen::Matrix4d t_wm=Eigen::Matrix4d::Identity();
-        t_wm.block(0,3,3,1)=mpFilter_->safe_.state_.poseLin(0);
-        t_wm.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.poseRot(0)).matrix();
-        
-        Eigen::Matrix4d t_re=t_mb;
-        posi_vec.push_back(t_re.block(0,3,3,1));
-        posi_list[timestamp]=t_re.block(0,3,3,1);
-        Eigen::Matrix3d rot_eigen = t_re.block(0,0,3,3);
-        Eigen::Quaterniond rot_q(rot_eigen);
-        rot_list[timestamp]=rot_q;
-        timestamp_list.push_back(timestamp);
-        posi_loc_vec.push_back(t_re.block(0,3,3,1));
-        rot_loc_vec.push_back(rot_q);
+//         Eigen::Matrix4d t_mb=Eigen::Matrix4d::Identity();
+//         t_mb.block(0,3,3,1)=mpFilter_->safe_.state_.WrWM();
+//         t_mb.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.qWM()).matrix();
+//         Eigen::Matrix4d t_wm=Eigen::Matrix4d::Identity();
+//         t_wm.block(0,3,3,1)=mpFilter_->safe_.state_.poseLin(0);
+//         t_wm.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.poseRot(0)).matrix();
+//         
+//         Eigen::Matrix4d t_re=t_mb;
+//         posi_vec.push_back(t_re.block(0,3,3,1));
+//         posi_list[timestamp]=t_re.block(0,3,3,1);
+//         Eigen::Matrix3d rot_eigen = t_re.block(0,0,3,3);
+//         Eigen::Quaterniond rot_q(rot_eigen);
+//         rot_list[timestamp]=rot_q;
+//         timestamp_list.push_back(timestamp);
+//         posi_loc_vec.push_back(t_re.block(0,3,3,1));
+//         rot_loc_vec.push_back(rot_q);
 #ifndef __APPLE__
-        show_mp_as_cloud(posi_vec, "temp_kf");
-        if(loc_re){
+        //show_mp_as_cloud(posi_vec, "temp_kf");
+        if(match_count){
             show_mp_as_cloud(posi_match_vec, "temp_match");
             cv::Mat debug_img;
             cv::cvtColor(Img, debug_img, cv::COLOR_GRAY2RGB);
@@ -442,6 +539,7 @@ namespace wayz {
     };
     
     void ChamoLoc::AddIMU(const double time_s, const Eigen::Vector3d& Accl, const Eigen::Vector3d& Gyro){
+        return;
         predictionMeas_.template get<mtPredictionMeas::_acc>() = Accl;
         predictionMeas_.template get<mtPredictionMeas::_gyr>() = Gyro;
 
@@ -494,8 +592,11 @@ namespace wayz {
         }
         index_->deserialize(proto_inverted_multi_index);
         
-        std::string posi_addr=folder_path+"/posi_alin.txt";
+        //feature points
+        std::string posi_addr=folder_path+"/mp_posi_opt.txt";
         CHAMO::read_mp_posi(posi_addr, mp_posis);
+
+        /*
         Eigen::Matrix3Xd points1;
         points1.resize(3,mp_posis.size());
         for(int i=0; i<mp_posis.size(); i++){
@@ -503,8 +604,9 @@ namespace wayz {
             points1(1,i)=mp_posis[i].y();
             points1(2,i)=mp_posis[i].z();
         }
-        show_mp_as_cloud(mp_posis, "temp_mp");
-//
+        */
+        //show_mp_as_cloud(mp_posis, "temp_mp");
+        
         std::string cam_addr=folder_path+"/camera_config.txt";
         CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
         convert_eigen_double_mat_float(cam_inter, cam_inter_cv);
@@ -529,6 +631,28 @@ namespace wayz {
     
     void ChamoLoc::Shutdown(){
         
+    };
+
+    bool ChamoLoc::Debug_QueryPose(const double timestamp, Eigen::Vector3d& Pos, Eigen::Quaterniond& Ori)
+    {
+        if (posi_match_vec.empty())
+        {
+            std::cout << "[fail][Debug_QueryPose] posi_loc_queue is empty!" << std::endl;
+            return false;
+        }
+        if (rot_loc_vec.empty())
+        {
+            std::cout << "[fail][Debug_QueryPose] rot_loc_queue is empty!" << std::endl;
+            return false;
+        }
+
+        Pos = posi_match_vec.back();
+        Ori = rot_loc_vec.back();
+
+        std::vector<Eigen::Vector3d>().swap(posi_match_vec);
+        std::vector<Eigen::Quaterniond>().swap(rot_loc_vec);
+
+        return true;
     };
 
     bool ChamoLoc::QueryPose(const double timestamp, Eigen::Vector3d& Pos, Eigen::Vector3d& Vel, Eigen::Quaterniond& Ori) const{

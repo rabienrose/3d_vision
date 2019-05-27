@@ -5,7 +5,6 @@
 #include "test_imu_tool/visual_tool.h"
 #include "visualization/common-rviz-visualization.h"
 #include "read_write_data_lib/read_write.h"
-#include "test_imu_tool/visual_tool.h"
 
 
 int main(int argc, char* argv[]) {
@@ -16,7 +15,8 @@ int main(int argc, char* argv[]) {
     Eigen::Matrix3d Rwi_=Eigen::Matrix3d::Identity();
 
     //OptimizerTool::optimize_imu(res_root);
-    OptimizerTool::optimize_true_pose(res_root);
+    OptimizerTool::optimize_gps_pose(res_root);
+    //OptimizerTool::optimize_lidar_pose(res_root);  
     //show_pose_as_marker(pose_vec, "pose_cam");
     
     std::string posi_addr=res_root+"/mp_posi_opt.txt";
@@ -29,5 +29,5 @@ int main(int argc, char* argv[]) {
     std::vector<Eigen::Vector3d> gps_alins;
     CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers);
     show_mp_as_cloud(gps_alins, Rwi_, "/chamo/gps");
-    ros::spin();
+    //ros::spin();
 }

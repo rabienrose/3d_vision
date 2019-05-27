@@ -8,6 +8,8 @@ add_definitions(--std=c++11 -Wno-unknown-pragmas)
 
 cs_add_library(${PROJECT_NAME} 
     src/optimizer_tool.cc
+    src/sim3_graph_opt.cc
+    src/opti_based_lidar.cc
     #src/opti_imu.cc
 )
 

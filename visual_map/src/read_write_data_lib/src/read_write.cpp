@@ -287,6 +287,10 @@ namespace CHAMO
     ){
         std::string line;
         std::ifstream infile_lidar(lidar_addr);
+        if(!infile_lidar.is_open()){
+            std::cout<<"open lidar file wrong !!!"<<std::endl;
+        }
+        std::getline(infile_lidar, line);
         while (true)
         {
             std::getline(infile_lidar, line);
@@ -316,6 +320,10 @@ namespace CHAMO
     ){
         std::string line;
         std::ifstream infile_lidar(lidar_addr);
+        if(!infile_lidar.is_open()){
+            std::cout<<"open lidar file wrong !!!"<<std::endl;
+        }
+        std::getline(infile_lidar, line);
         while (true)
         {
             std::getline(infile_lidar, line);
@@ -324,23 +332,18 @@ namespace CHAMO
             }
             std::vector<std::string> splited = split(line, ",");
             Eigen::Vector3d posi;
-            posi.x()=atof(splited[6].c_str());
-            posi.y()=atof(splited[10].c_str());
-            posi.z()=atof(splited[14].c_str());
-            Eigen::Matrix3d rot;
-            rot(0,0)=atof(splited[3].c_str());
-            rot(0,1)=atof(splited[4].c_str());
-            rot(0,2)=atof(splited[5].c_str());
-            rot(1,0)=atof(splited[7].c_str());
-            rot(1,1)=atof(splited[8].c_str());
-            rot(1,2)=atof(splited[9].c_str());
-            rot(2,0)=atof(splited[11].c_str());
-            rot(2,1)=atof(splited[12].c_str());
-            rot(2,2)=atof(splited[13].c_str());
-            double time= atof(splited[2].c_str());
-            lidar_dirs.push_back(Eigen::Quaterniond(rot));
+            posi.x()=atof(splited[1].c_str());
+            posi.y()=atof(splited[2].c_str());
+            posi.z()=atof(splited[3].c_str());
+            Eigen::Quaterniond qua;
+            qua.w()=atof(splited[4].c_str());
+            qua.x()=atof(splited[5].c_str());
+            qua.y()=atof(splited[6].c_str());
+            qua.z()=atof(splited[7].c_str());
+            double time= atof(splited[0].c_str());
             time_stamp.push_back(time);
             lidar_posis.push_back(posi);
+            lidar_dirs.push_back(qua);
         }
     }
     

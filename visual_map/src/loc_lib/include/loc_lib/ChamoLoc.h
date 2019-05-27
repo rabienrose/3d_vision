@@ -24,6 +24,10 @@ public:
     void AddGPS(const double timestamp, const Eigen::Vector3d& LatLonHei){};//LatLonHei means Lattitude Longitude and Height
   
     void AddImage(const double timestamp,const int camera_id, const cv::Mat& Img);
+    //add by yao 20190513
+    void Debug_Image_pose(const double timestamp,const int camera_id, cv::Mat& img_distort);
+    bool Debug_QueryPose(const double timestamp, Eigen::Vector3d& Pos, Eigen::Quaterniond& Ori);
+    void Debug_Feature_pose(std::vector<Eigen::Vector3d>& vec);
     
     void AddIMU(const double timestamp, const Eigen::Vector3d& Accl, const Eigen::Vector3d& Gyro);
 
@@ -35,7 +39,7 @@ public:
 
     bool QueryPose(const double timestamp, Eigen::Vector3d& Pos, Eigen::Vector3d& Vel, Eigen::Quaterniond& Ori) const;
 private:
-    bool UpdateByMap(cv::Mat Img, double timestamp, std::vector<cv::Point3f>& inliers_mp, std::vector<cv::Point2f>& inliers_kp);
+    int UpdateByMap(cv::Mat Img, double timestamp, std::vector<cv::Point3f>& inliers_mp, std::vector<cv::Point2f>& inliers_kp);
     //kMaxNumFeatures, kPyramidLevels, kFeaturePatchSizePx, kNumCameras, kLocalizationMode
     typedef rovio::RovioFilter<rovio::FilterState<25, 4, 6, 1, 1>> FilterType; 
     std::shared_ptr<FilterType> mpFilter_;
@@ -103,6 +107,8 @@ private:
     std::vector<Eigen::Vector3d> posi_loc_vec;
     std::vector<Eigen::Quaterniond> rot_loc_vec;
     std::vector<double> timestamp_list;
+    //add by yao
+    std::vector<Eigen::Vector3d> fea_match_vec;
 
 };
 
