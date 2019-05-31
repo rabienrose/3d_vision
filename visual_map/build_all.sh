@@ -5,3 +5,5 @@ catkin build vslam
 catkin build optimizer_tool
 catkin build bag_tool
 catkin build create_desc_index
+catkin build seg_traj
+catkin build convert_lidar_2_gps
