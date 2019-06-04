@@ -234,9 +234,9 @@ bool FullSystem::doStepFromBackup(float stepfacC,float stepfacT,float stepfacR,f
 		for(FrameHessian* fh : frameHessians)
 		{
 			Vec10 step = fh->step;
-			step.head<6>() += 0.5f*(fh->step_backup.head<6>());
+			step.head<6>() = 0.0f*(fh->step_backup.head<6>());
 
-			fh->setState(fh->state_backup + step);
+			//fh->setState(fh->state_backup + step);
 			sumA += step[6]*step[6];
 			sumB += step[7]*step[7];
 			sumT += step.segment<3>(0).squaredNorm();
@@ -259,11 +259,13 @@ bool FullSystem::doStepFromBackup(float stepfacC,float stepfacT,float stepfacR,f
 		Hcalib.setValue(Hcalib.value_backup + stepfacC*Hcalib.step);
 		for(FrameHessian* fh : frameHessians)
 		{
-			fh->setState(fh->state_backup + pstepfac.cwiseProduct(fh->step));
-			sumA += fh->step[6]*fh->step[6];
-			sumB += fh->step[7]*fh->step[7];
-			sumT += fh->step.segment<3>(0).squaredNorm();
-			sumR += fh->step.segment<3>(3).squaredNorm();
+            Vec10 step = fh->step;
+            step.head<6>() = 0.0f*(fh->step_backup.head<6>());
+			//fh->setState(fh->state_backup + pstepfac.cwiseProduct(step));
+			sumA += step[6]*step[6];
+			sumB += step[7]*step[7];
+			sumT += step.segment<3>(0).squaredNorm();
+			sumR += step.segment<3>(3).squaredNorm();
 
 			for(PointHessian* ph : fh->pointHessians)
 			{
@@ -505,7 +507,7 @@ float FullSystem::optimize(int mnumOptIts)
 
 
 
-        if(!setting_debugout_runquiet)
+        if(false)
         {
             printf("%s %d (L %.2f, dir %.2f, ss %.1f): \t",
 				(newEnergy[0] +  newEnergy[1] +  newEnergyL + newEnergyM <
@@ -556,15 +558,7 @@ float FullSystem::optimize(int mnumOptIts)
 	EFAdjointsValid=false;
 	ef->setAdjointsF(&Hcalib);
 	setPrecalcValues();
-
-
-
-
 	lastEnergy = linearizeAll(true);
-
-
-
-
 	if(!std::isfinite((double)lastEnergy[0]) || !std::isfinite((double)lastEnergy[1]) || !std::isfinite((double)lastEnergy[2]))
     {
         printf("KF Tracking failed: LOST!\n");
@@ -587,6 +581,9 @@ float FullSystem::optimize(int mnumOptIts)
 		std::unique_lock<std::mutex> crlock(shellPoseMutex);
 		for(FrameHessian* fh : frameHessians)
 		{
+            //std::cout<<fh->shell->camToWorld.matrix()<<std::endl;
+            //std::cout<<fh->PRE_camToWorld.matrix()<<std::endl;
+            //std::cout<<"====================="<<std::endl;
 			fh->shell->camToWorld = fh->PRE_camToWorld;
 			fh->shell->aff_g2l = fh->aff_g2l();
 		}

@@ -250,7 +250,7 @@ void Frame::AssignFeaturesToGrid()
 
 void Frame::ExtractORB(int flag, const cv::Mat &im)
 {
-    mpORBextractorLeft->ExtractDesc(im,cv::Mat(),mvKeys,mDescriptors,false);
+    mpORBextractorLeft->ExtractDesc(im,cv::Mat(),mvKeys,mDescriptors,true);
     
 }
 

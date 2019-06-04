@@ -188,7 +188,8 @@ int PixelSelector::makeMaps(
 		// sub-select!
 		numHave = n[0]+n[1]+n[2];
 		quotia = numWant / numHave;
-
+        std::cout<<"quotia: "<<quotia<<std::endl;
+        std::cout<<"n[0]+n[1]+n[2]: "<<n[0]<<"+"<<n[1]<<"+"<<n[2]<<std::endl;
 		// by default we want to over-sample by 40% just to be sure.
 		float K = numHave * (currentPotential+1) * (currentPotential+1);
 		idealPotential = sqrtf(K/numWant)-1;	// round down.
@@ -228,24 +229,24 @@ int PixelSelector::makeMaps(
 	}
 
 	int numHaveSub = numHave;
-	if(quotia < 0.95)
-	{
-		int wh=wG[0]*hG[0];
-		int rn=0;
-		unsigned char charTH = 255*quotia;
-		for(int i=0;i<wh;i++)
-		{
-			if(map_out[i] != 0)
-			{
-				if(randomPattern[rn] > charTH )
-				{
-					map_out[i]=0;
-					numHaveSub--;
-				}
-				rn++;
-			}
-		}
-	}
+// 	if(quotia < 0.95)
+// 	{
+// 		int wh=wG[0]*hG[0];
+// 		int rn=0;
+// 		unsigned char charTH = 255*quotia;
+// 		for(int i=0;i<wh;i++)
+// 		{
+// 			if(map_out[i] != 0)
+// 			{
+// 				if(randomPattern[rn] > charTH )
+// 				{
+// 					map_out[i]=0;
+// 					numHaveSub--;
+// 				}
+// 				rn++;
+// 			}
+// 		}
+// 	}
 
 //	printf("PixelSelector: have %.2f%%, need %.2f%%. KEEPCURR with pot %d -> %d. Subsampled to %.2f%%\n",
 //			100*numHave/(float)(wG[0]*hG[0]),

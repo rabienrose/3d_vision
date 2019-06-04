@@ -89,7 +89,7 @@ bool CoarseInitializer::trackFrame(FrameHessian* newFrameHessian)
 	alphaW = 150*150;//*freeDebugParam2*freeDebugParam2;
 	regWeight = 0.8;//*freeDebugParam4;
 	couplingWeight = 1;//*freeDebugParam5;
-
+    
 	if(!snapped)
 	{
 		thisToNext.translation().setZero();
@@ -105,9 +105,10 @@ bool CoarseInitializer::trackFrame(FrameHessian* newFrameHessian)
 			}
 		}
 	}
-
-
-	SE3 refToNew_current = thisToNext;
+	
+	thisToNext = newFrame->shell->camToWorld.inverse()*firstFrame->shell->camToWorld;
+	
+	SE3 refToNew_current=thisToNext;
 	AffLight refToNew_aff_current = thisToNext_aff;
 
 	if(firstFrame->ab_exposure>0 && newFrame->ab_exposure>0)
@@ -117,14 +118,11 @@ bool CoarseInitializer::trackFrame(FrameHessian* newFrameHessian)
 	Vec3f latestRes = Vec3f::Zero();
 	for(int lvl=pyrLevelsUsed-1; lvl>=0; lvl--)
 	{
-
-
-
 		if(lvl<pyrLevelsUsed-1)
 			propagateDown(lvl+1);
 
 		Mat88f H,Hsc; Vec8f b,bsc;
-		resetPoints(lvl);
+		//resetPoints(lvl);
 		Vec3f resOld = calcResAndGS(lvl, H, b, Hsc, bsc, refToNew_current, refToNew_aff_current, false);
 		applyStep(lvl);
 
@@ -132,7 +130,7 @@ bool CoarseInitializer::trackFrame(FrameHessian* newFrameHessian)
 		float eps = 1e-4;
 		int fails=0;
 
-		if(printDebug)
+		if(true)
 		{
 			printf("lvl %d, it %d (l=%f) %s: %.3f+%.5f -> %.3f+%.5f (%.3f->%.3f) (|inc| = %f)! \t",
 					lvl, 0, lambda,
@@ -169,7 +167,9 @@ bool CoarseInitializer::trackFrame(FrameHessian* newFrameHessian)
 				inc = - (wM * (Hl.ldlt().solve(bl)));	//=-H^-1 * b.
 
 
-			SE3 refToNew_new = SE3::exp(inc.head<6>().cast<double>()) * refToNew_current;
+			SE3 refToNew_new = refToNew_current;
+            //std::cout<<"after_pose: "<<std::endl;
+            //std::cout<<refToNew_new.matrix()<<std::endl;
 			AffLight refToNew_aff_new = refToNew_aff_current;
 			refToNew_aff_new.a += inc[6];
 			refToNew_aff_new.b += inc[7];
@@ -180,13 +180,13 @@ bool CoarseInitializer::trackFrame(FrameHessian* newFrameHessian)
 			Vec3f resNew = calcResAndGS(lvl, H_new, b_new, Hsc_new, bsc_new, refToNew_new, refToNew_aff_new, false);
 			Vec3f regEnergy = calcEC(lvl);
 
-			float eTotalNew = (resNew[0]+resNew[1]+regEnergy[1]);
-			float eTotalOld = (resOld[0]+resOld[1]+regEnergy[0]);
+			float eTotalNew = (resNew[0]+regEnergy[1]);
+			float eTotalOld = (resOld[0]+regEnergy[0]);
 
 
 			bool accept = eTotalOld > eTotalNew;
 
-			if(printDebug)
+			if(true)
 			{
 				printf("lvl %d, it %d (l=%f) %s: %.5f + %.5f + %.5f -> %.5f + %.5f + %.5f (%.2f->%.2f) (|inc| = %f)! \t",
 						lvl, iteration, lambda,
@@ -200,20 +200,21 @@ bool CoarseInitializer::trackFrame(FrameHessian* newFrameHessian)
 						eTotalOld / resNew[2],
 						eTotalNew / resNew[2],
 						inc.norm());
-				std::cout << refToNew_new.log().transpose() << " AFF " << refToNew_aff_new.vec().transpose() <<"\n";
+				std::cout<<std::endl;
+                //std::cout << refToNew_new.log().transpose() << " AFF " << refToNew_aff_new.vec().transpose() <<"\n";
 			}
 
 			if(accept)
 			{   
-				if(resNew[1] == alphaK*numPoints[lvl])
-					snapped = true;
+				//if(resNew[1] == alphaK*numPoints[lvl])
+                snapped = true;
 				H = H_new;
 				b = b_new;
 				Hsc = Hsc_new;
 				bsc = bsc_new;
 				resOld = resNew;
 				refToNew_aff_current = refToNew_aff_new;
-				refToNew_current = refToNew_new;
+				refToNew_current = refToNew_current;
 				applyStep(lvl);
 				optReg(lvl);
 				lambda *= 0.5;
@@ -243,10 +244,8 @@ bool CoarseInitializer::trackFrame(FrameHessian* newFrameHessian)
 		latestRes = resOld;
 
 	}
-
-
-
-	thisToNext = refToNew_current;
+    //thisToNext = refToNew_current;
+	thisToNext =  newFrame->shell->camToWorld.inverse();
 	thisToNext_aff = refToNew_aff_current;
 
 	for(int i=0;i<pyrLevelsUsed-1;i++)
@@ -377,8 +376,9 @@ Vec3f CoarseInitializer::calcResAndGS(
 			float Kv = fyl * v + cyl;
 			float new_idepth = point->idepth_new/pt[2];
 
-			if(!(Ku > 1 && Kv > 1 && Ku < wl-2 && Kv < hl-2 && new_idepth > 0))
+			if(!(Ku > 1 && Kv > 1 && Ku < wl-2 && Kv < hl-2))
 			{
+                //std::cout<<Ku<<","<<Kv<<","<<hl<<","<<new_idepth<<std::endl;
 				isGood = false;
 				break;
 			}
@@ -476,11 +476,6 @@ Vec3f CoarseInitializer::calcResAndGS(
 	E.finish();
 	acc9.finish();
 
-
-
-
-
-
 	// calculate alpha energy, and decide if we cap it.
 	Accumulator11 EAlpha;
 	EAlpha.initialize();
@@ -489,15 +484,17 @@ Vec3f CoarseInitializer::calcResAndGS(
 		Pnt* point = ptsl+i;
 		if(!point->isGood_new)
 		{
-			E.updateSingle((float)(point->energy[1]));
+			EAlpha.updateSingle((float)(point->energy[1]));
 		}
 		else
 		{
 			point->energy_new[1] = (point->idepth_new-1)*(point->idepth_new-1);
-			E.updateSingle((float)(point->energy_new[1]));
+            //std::cout<<"energy_new[1]: "<<point->idepth_new<<std::endl;
+			EAlpha.updateSingle((float)(point->energy_new[1]));
 		}
 	}
 	EAlpha.finish();
+    //std::cout<<"EAlpha.A: "<<EAlpha.A/EAlpha.num<<std::endl;
 	float alphaEnergy = alphaW*(EAlpha.A + refToNew.translation().squaredNorm() * npts);
 
 	//printf("AE = %f * %f + %f\n", alphaW, EAlpha.A, refToNew.translation().squaredNorm() * npts);
@@ -559,10 +556,6 @@ Vec3f CoarseInitializer::calcResAndGS(
 	b_out[0] += tlog[0]*alphaOpt*npts;
 	b_out[1] += tlog[1]*alphaOpt*npts;
 	b_out[2] += tlog[2]*alphaOpt*npts;
-
-
-
-
 
 	return Vec3f(E.A, alphaEnergy ,E.num);
 }

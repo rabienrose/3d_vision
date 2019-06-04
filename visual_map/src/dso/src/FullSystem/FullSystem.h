@@ -135,7 +135,7 @@ public:
 	virtual ~FullSystem();
 
 	// adds a new frame, and creates point & residual structs.
-	void addActiveFrame(ImageAndExposure* image, int id);
+	void addActiveFrame(ImageAndExposure* image, int id, Eigen::Matrix4d pre_pose);
 
 	// marginalizes a frame. drops / marginalizes points & residuals.
 	void marginalizeFrame(FrameHessian* frame);
@@ -158,6 +158,8 @@ public:
 
 	void setGammaFunction(float* BInv);
 	void setOriginalCalib(const VecXf &originalCalib, int originalW, int originalH);
+    
+    std::vector<FrameHessian*> frameHessians;   // ONLY changed in marginalizeFrame and addFrame.
 
 private:
 
@@ -260,7 +262,7 @@ private:
 	PixelSelector* pixelSelector;
 	CoarseDistanceMap* coarseDistanceMap;
 
-	std::vector<FrameHessian*> frameHessians;	// ONLY changed in marginalizeFrame and addFrame.
+	
 	std::vector<PointFrameResidual*> activeResiduals;
 	float currentMinActDist;
 

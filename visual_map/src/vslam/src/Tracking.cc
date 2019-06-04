@@ -81,8 +81,8 @@ Tracking::Tracking(ORBVocabulary* pVoc, Map *pMap, KeyFrameDatabase* pKFDB, cons
         fps=30;
 
     // Max/Min Frames to insert keyframes and to check relocalisation
-    mMinFrames = 15;
-    mMaxFrames = 15;
+    mMinFrames = 1;
+    mMaxFrames = 1;
 
     cout << endl << "Camera Parameters: " << endl;
     cout << "- fx: " << fx << endl;

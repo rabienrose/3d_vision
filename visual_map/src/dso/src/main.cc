@@ -7,6 +7,7 @@
 
 #include "util/NumType.h"
 #include "FullSystem/FullSystem.h"
+#include "FullSystem/ImmaturePoint.h"
 #include "OptimizationBackend/MatrixAccumulators.h"
 #include "FullSystem/PixelSelector2.h"
 
@@ -59,6 +60,58 @@ void findIDByName(std::vector<std::string>& names, int& re_id, std::string query
     }
     return;
 };
+
+void addMP(PointHessian* ph, std::vector<Eigen::Vector3d>& mp_list, Eigen::Matrix3f& K){
+    float fxi = 1/K(0,0);
+    float fyi = 1/K(1,1);
+    float cxi = -K(0,2) / K(0,0);
+    float cyi = -K(1,2) / K(1,1);
+    float depth = 1.0f / ph->idepth;
+    
+    //std::cout<<ph->idepth_scaled<<std::endl;
+    //for(int pnt=0;pnt<patternNum;pnt++){
+        //int dx = patternP[pnt][0];
+        //int dy = patternP[pnt][1];
+        int dx = 0;
+        int dy = 0;
+        Eigen::Vector3d mp_posi;
+        mp_posi(0) = ((ph->u+dx)*fxi + cxi) * depth;
+        mp_posi(1) = ((ph->v+dy)*fyi + cyi) * depth;
+        mp_posi(2) = depth/**(1 + 2*fxi * (rand()/(float)RAND_MAX-0.5f))*/;
+        if(mp_posi(2)>20){
+            return;
+        }
+        FrameHessian* host = ph->host;
+        Eigen::Vector4d mp_posi_homo;
+        mp_posi_homo.block(0,0,3,1)=mp_posi;
+        mp_posi_homo(3)=1;
+        mp_posi_homo = host->shell->camToWorld.matrix()*mp_posi_homo;
+        mp_posi=mp_posi_homo.block(0,0,3,1);
+        mp_list.push_back(mp_posi);
+    //}
+}
+
+void addMP(ImmaturePoint* ph, std::vector<Eigen::Vector3d>& mp_list, Eigen::Matrix3f& K){
+    float fxi = 1/K(0,0);
+    float fyi = 1/K(1,1);
+    float cxi = -K(0,2) / K(0,0);
+    float cyi = -K(1,2) / K(1,1);
+    float depth = 1.0f / ((ph->idepth_max+ph->idepth_min)*0.5f);
+    //std::cout<<ph->idepth_scaled<<std::endl;
+    int dx = 0;
+    int dy = 0;
+    Eigen::Vector3d mp_posi;
+    mp_posi(0) = ((ph->u+dx)*fxi + cxi) * depth;
+    mp_posi(1) = ((ph->v+dy)*fyi + cyi) * depth;
+    mp_posi(2) = depth;
+    FrameHessian* host = ph->host;
+    Eigen::Vector4d mp_posi_homo;
+    mp_posi_homo.block(0,0,3,1)=mp_posi;
+    mp_posi_homo(3)=1;
+    mp_posi_homo = host->shell->camToWorld.matrix()*mp_posi_homo;
+    mp_posi=mp_posi_homo.block(0,0,3,1);
+    mp_list.push_back(mp_posi);
+}
             
 int main(int argc, char* argv[]){
     ros::init(argc, argv, "vis_loc");
@@ -93,6 +146,17 @@ int main(int argc, char* argv[]){
     fullSystem->setGammaFunction(reader->getPhotometricGamma());
     fullSystem->linearizeOperation = false;
     
+    Eigen::Matrix3f K;
+    int w;
+    int h;
+    reader->getCalibMono(K, w, h);
+    float fxi = 1/K(0,0);
+    float fyi = 1/K(1,1);
+    float cxi = -K(0,2) / K(0,0);
+    float cyi = -K(1,2) / K(1,1);
+    
+    std::vector<Eigen::Vector3d> traj_display;
+    std::vector<Eigen::Vector3d> mp_display;
     for(;it!=view.end();it++){
         if(!ros::ok()){
             break;
@@ -113,11 +177,37 @@ int main(int argc, char* argv[]){
                 ss_time<<"img_"<<img_count<<".jpg";
                 int re_id;
                 findIDByName(frame_names, re_id, ss_time.str());
+                
                 if(re_id!=-1){
                     Eigen::Matrix4d cur_pose=poses_alin[re_id];
                     ImageAndExposure* result = new ImageAndExposure(img.cols, img.rows, simg->header.stamp.toSec());
-//                     result->image=img.data();
-//                     fullSystem->addActiveFrame(result, img_count);
+                    cv::Mat img_float;
+                    img.convertTo(img_float, CV_32F, 1.0, 0);
+                    result->image=(float*)img_float.data;
+                    fullSystem->addActiveFrame(result, img_count, cur_pose);
+                    if(img_count%1==0){
+                        for(FrameHessian* fh : fullSystem->frameHessians){
+                            Eigen::Vector3d posi = fh->shell->camToWorld.matrix3x4().block(0,3,3,1);
+                            traj_display.push_back(posi);
+//                             for(PointHessian* ph : fh->pointHessiansOut){
+//                                 addMP(ph, mp_display, K);
+//                             }
+                            for(PointHessian* ph : fh->pointHessiansMarginalized){
+                                addMP(ph, mp_display, K);
+                            }
+//                             for(PointHessian* ph : fh->pointHessians){
+//                                 addMP(ph, mp_display, K);
+//                             }
+//                             for(ImmaturePoint* ph : fh->immaturePoints){
+//                                 addMP(ph, mp_display, K);
+//                             }
+                        }
+                        
+                    }
+                    if(img_count%100==0){
+                        show_mp_as_cloud(traj_display, "dso_traj");
+                        show_mp_as_cloud(mp_display, "dso_mp");
+                    }
                 }
             }catch (cv_bridge::Exception& e){
                 ROS_ERROR("cv_bridge exception: %s", e.what());
@@ -125,6 +215,8 @@ int main(int argc, char* argv[]){
             }
         }
     }
+    
+    ros::spin();
 
     return 0;
 }
