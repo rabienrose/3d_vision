@@ -11,7 +11,6 @@
 #include "OptimizationBackend/MatrixAccumulators.h"
 #include "FullSystem/PixelSelector2.h"
 
-
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/image_encodings.h>
@@ -24,6 +23,9 @@
 #include "ros/ros.h"
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
+
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
 
 void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic){
     Eigen::Matrix3Xd points;
@@ -87,6 +89,11 @@ void addMP(PointHessian* ph, std::vector<Eigen::Vector3d>& mp_list, Eigen::Matri
         mp_posi_homo(3)=1;
         mp_posi_homo = host->shell->camToWorld.matrix()*mp_posi_homo;
         mp_posi=mp_posi_homo.block(0,0,3,1);
+        for(int i=0;i<mp_list.size() ;i++){
+            if((mp_list[i]-mp_posi).norm()<0.01){
+                return;
+            }
+        }
         mp_list.push_back(mp_posi);
     //}
 }
@@ -110,6 +117,7 @@ void addMP(ImmaturePoint* ph, std::vector<Eigen::Vector3d>& mp_list, Eigen::Matr
     mp_posi_homo(3)=1;
     mp_posi_homo = host->shell->camToWorld.matrix()*mp_posi_homo;
     mp_posi=mp_posi_homo.block(0,0,3,1);
+    
     mp_list.push_back(mp_posi);
 }
             
@@ -165,7 +173,8 @@ int main(int argc, char* argv[]){
         sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
         if(simg!=NULL){
             img_count++;
-            if(img_count<0){
+            //if(img_count<0){
+            if(img_count<3400){
                 continue;
             }
             cv_bridge::CvImagePtr cv_ptr;
@@ -185,7 +194,7 @@ int main(int argc, char* argv[]){
                     img.convertTo(img_float, CV_32F, 1.0, 0);
                     result->image=(float*)img_float.data;
                     fullSystem->addActiveFrame(result, img_count, cur_pose);
-                    if(img_count%1==0){
+                    if(img_count%10==0){
                         for(FrameHessian* fh : fullSystem->frameHessians){
                             Eigen::Vector3d posi = fh->shell->camToWorld.matrix3x4().block(0,3,3,1);
                             traj_display.push_back(posi);
@@ -195,9 +204,9 @@ int main(int argc, char* argv[]){
                             for(PointHessian* ph : fh->pointHessiansMarginalized){
                                 addMP(ph, mp_display, K);
                             }
-//                             for(PointHessian* ph : fh->pointHessians){
-//                                 addMP(ph, mp_display, K);
-//                             }
+//                            for(PointHessian* ph : fh->pointHessians){
+//                                addMP(ph, mp_display, K);
+//                            }
 //                             for(ImmaturePoint* ph : fh->immaturePoints){
 //                                 addMP(ph, mp_display, K);
 //                             }
@@ -207,6 +216,7 @@ int main(int argc, char* argv[]){
                     if(img_count%100==0){
                         show_mp_as_cloud(traj_display, "dso_traj");
                         show_mp_as_cloud(mp_display, "dso_mp");
+                        std::cout<<"mp count: "<<mp_display.size()<<std::endl;
                     }
                 }
             }catch (cv_bridge::Exception& e){
@@ -216,7 +226,20 @@ int main(int argc, char* argv[]){
         }
     }
     
-    ros::spin();
+     std::string semi_pcd=res_root+"/semi_pc.pcd";
+    
+    pcl::PointCloud<pcl::PointXYZ> cloud;
+    cloud.width    = mp_display.size();
+    cloud.height   = 1; 
+    cloud.is_dense = false;
+    cloud.points.resize (cloud.width * cloud.height);
+    for (size_t i = 0; i < cloud.points.size (); ++i)
+    {
+        cloud.points[i].x = mp_display[i](0);
+        cloud.points[i].y = mp_display[i](1);
+        cloud.points[i].z = mp_display[i](2);
+    }
+    pcl::io::savePCDFileBinary(semi_pcd, cloud);
 
     return 0;
 }

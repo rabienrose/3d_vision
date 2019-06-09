@@ -13,4 +13,5 @@
   <depend>libnabo</depend>
   <depend>protobuf_catkin</depend>
   <depend>eigen_catkin</depend>
+  <depend>visualization</depend>
 </package>

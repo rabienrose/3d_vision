@@ -188,8 +188,8 @@ int PixelSelector::makeMaps(
 		// sub-select!
 		numHave = n[0]+n[1]+n[2];
 		quotia = numWant / numHave;
-        std::cout<<"quotia: "<<quotia<<std::endl;
-        std::cout<<"n[0]+n[1]+n[2]: "<<n[0]<<"+"<<n[1]<<"+"<<n[2]<<std::endl;
+//         std::cout<<"quotia: "<<quotia<<std::endl;
+//         std::cout<<"n[0]+n[1]+n[2]: "<<n[0]<<"+"<<n[1]<<"+"<<n[2]<<std::endl;
 		// by default we want to over-sample by 40% just to be sure.
 		float K = numHave * (currentPotential+1) * (currentPotential+1);
 		idealPotential = sqrtf(K/numWant)-1;	// round down.
