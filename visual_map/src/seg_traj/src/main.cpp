@@ -60,11 +60,16 @@ void transformPoseUseSim3(Eigen::Matrix4d& sim3, double scale,  Eigen::Matrix4d&
     out_pose.block(0,3,4,1) = t_out;
 }
 
+void createFolder(std::string dir){
+    
+}
+
 int main(int argc, char* argv[]){
     ros::init(argc, argv, "loc");
     ros::NodeHandle nh;
     visualization::RVizVisualizationSink::init();
     std::string res_addr=argv[1];
+    std::string out_map_addr=argv[2];
     std::string img_time_addr=res_addr+"/image_time.txt";
     std::vector<double> img_timess;
     std::vector<std::string> img_names;
@@ -123,9 +128,9 @@ int main(int argc, char* argv[]){
     int cur_frame_id=traj_out.size()-1;
     int last_frame_id=0;
     int max_seg_count=50000;
-    std::vector<Eigen::Vector3d> pc_frame_transformed;
-    std::vector<Eigen::Matrix4d> pose_transformed;
-    pose_transformed.resize(traj_out.size());
+    std::vector<std::vector<Eigen::Vector3d>> pc_frame_transformed;
+    std::vector<std::vector<Eigen::Matrix4d>> pose_transformed; 
+    std::vector<std::pair<int, int>> start_end_record;
     while(ros::ok()){
         std::vector<Eigen::Vector3d> pc_frame;
         std::vector<Eigen::Matrix4d> pc_poses;
@@ -162,18 +167,25 @@ int main(int argc, char* argv[]){
             //std::cout<<"avg_err: "<<cur_frame_id<<" | "<<pc_gps.size()<<" | "<<avg_err<<std::endl;
             if(avg_err>0.1 || pc_frame_transformed_temp.size()>max_seg_count || cur_frame_id==traj_out.size()-1){
                 //std::cout<<cur_frame_id<<std::endl;
-                pc_frame_transformed.insert(pc_frame_transformed.begin(), pc_frame_transformed_temp.begin(), pc_frame_transformed_temp.end());
-                for(int i=last_frame_id; i<cur_frame_id; i++){
+                pc_frame_transformed.push_back(pc_frame_transformed);
+                std::vector<Eigen::Matrix4d> temp_transformed_pose;
+                int extend_start=last_frame_id-10;
+                if(extend_start<0){
+                    extend_start=0;
+                }
+                int extend_end=cur_frame_id+10;
+                if(extend_end>=traj_out.size()){
+                    extend_end=traj_out.size()-1;
+                }
+                for(int i=extend_start; i<=extend_end; i++){
                     Eigen::Matrix4d pose_transformed_temp;
                     transformPoseUseSim3(T12, scale_12,  traj_out[i], pose_transformed_temp);
-                    pose_transformed[i]=pose_transformed_temp;
+                    temp_transformed_pose.push_back(pose_transformed_temp);
                 }
-                if(cur_frame_id==traj_out.size()-1){
-                    Eigen::Matrix4d pose_transformed_temp;
-                    transformPoseUseSim3(T12, scale_12,  traj_out[cur_frame_id], pose_transformed_temp);
-                    pose_transformed[cur_frame_id]=pose_transformed_temp;
-                }
-                show_mp_as_cloud(pc_frame_transformed, "test_frame_transformed");
+                
+                start_end_record.push_back(std::pair<int, int>(extend_start, extend_end));
+                pose_transformed.push_back(temp_transformed_pose);
+                //show_mp_as_cloud(pc_frame_transformed, "test_frame_transformed");
                 last_frame_id=cur_frame_id;
             }
         }
@@ -183,36 +195,65 @@ int main(int argc, char* argv[]){
         }
     }
     std::cout<<"end segmentation"<<std::endl;
-    std::ofstream f;
-    std::string pose_out_addr=res_addr+"/traj_alin.txt";
-    f.open(pose_out_addr.c_str());
-    for(int i=0; i<pose_transformed.size(); i++){
-        f<<frame_names[i]<<","<<i
-        <<","<<pose_transformed[i](0,0)<<","<<pose_transformed[i](0,1)<<","<<pose_transformed[i](0,2)<<","<<pose_transformed[i](0,3)
-        <<","<<pose_transformed[i](1,0)<<","<<pose_transformed[i](1,1)<<","<<pose_transformed[i](1,2)<<","<<pose_transformed[i](1,3)
-        <<","<<pose_transformed[i](2,0)<<","<<pose_transformed[i](2,1)<<","<<pose_transformed[i](2,2)<<","<<pose_transformed[i](2,3)
-        <<std::endl;
-    }
-    f.close();
     
-    std::string gps_out_addr=res_addr+"/gps_alin.txt";
-    f.open(gps_out_addr.c_str());
+    std::string kp_addr=res_root+"/kps.txt";
+    std::vector<Eigen::Vector2f> kp_uvs;
+    std::vector<std::string> kp_framename;
+    std::vector<int> kp_octoves;
+    CHAMO::read_kp_info(kp_addr, kp_uvs, kp_framename, kp_octoves);
+    std::cout<<"kp_uvs: "<<kp_uvs.size()<<std::endl;
+    
+    std::string track_addr=res_root+"/track.txt";
+    std::vector<std::vector<int>> tracks;
+    CHAMO::read_track_info(track_addr, tracks);
+    std::cout<<"tracks: "<<tracks.size()<<std::endl;
+    
+    std::string desc_addr=res_root+"/desc.txt";
+    std::vector<Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>> descs;
+    CHAMO::read_desc_eigen(desc_addr, descs);
+    
     for(int i=0; i<pose_transformed.size(); i++){
-        std::string query_img_name = frame_names[i];
-        int re_imgid;
-        findFramePoseByName(img_names, re_imgid, query_img_name);
-        int gps_id = img_to_gps_ids[re_imgid];
-        if(gps_id==-1){
-            f<<frame_names[i]<<","<<"-1"
+        std::ofstream f;
+        std::stringstream ss;
+        ss<<res_addr<<"/map_"<<1000+i;
+        createFolder(ss.str());
+        std::string pose_out_addr=ss.str()+"/traj_alin.txt";
+        f.open(pose_out_addr.c_str());
+        for(int j=0; j<pose_transformed[i].size(); j++){
+            int temp_current_frame=start_end_record[i].first+j;
+            f<<frame_names[temp_current_frame]<<","<<j
+            <<","<<pose_transformed[i][j](0,0)<<","<<pose_transformed[i][j](0,1)<<","<<pose_transformed[i][j](0,2)<<","<<pose_transformed[i][j](0,3)
+            <<","<<pose_transformed[i][j](1,0)<<","<<pose_transformed[i][j](1,1)<<","<<pose_transformed[i][j](1,2)<<","<<pose_transformed[i][j](1,3)
+            <<","<<pose_transformed[i][j](2,0)<<","<<pose_transformed[i][j](2,1)<<","<<pose_transformed[i][j](2,2)<<","<<pose_transformed[i][j](2,3)
             <<std::endl;
-        }else{
-            Eigen::Vector3d gps_temp= img_gpss[gps_id];
-            f<<frame_names[i]<<","<<i
-            <<","<<gps_temp(0)<<","<<gps_temp(1)<<","<<gps_temp(2)
-            <<std::endl;
+            
+            
         }
+        f.close();
+        
+        
+        
     }
-    f.close();
+    
+    
+//     std::string gps_out_addr=res_addr+"/gps_alin.txt";
+//     f.open(gps_out_addr.c_str());
+//     for(int i=0; i<pose_transformed.size(); i++){
+//         std::string query_img_name = frame_names[i];
+//         int re_imgid;
+//         findFramePoseByName(img_names, re_imgid, query_img_name);
+//         int gps_id = img_to_gps_ids[re_imgid];
+//         if(gps_id==-1){
+//             f<<frame_names[i]<<","<<"-1"
+//             <<std::endl;
+//         }else{
+//             Eigen::Vector3d gps_temp= img_gpss[gps_id];
+//             f<<frame_names[i]<<","<<i
+//             <<","<<gps_temp(0)<<","<<gps_temp(1)<<","<<gps_temp(2)
+//             <<std::endl;
+//         }
+//     }
+//     f.close();
     ros::spin();
 
     return 0;

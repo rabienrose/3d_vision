@@ -63,7 +63,7 @@ void findIDByName(std::vector<std::string>& names, int& re_id, std::string query
     return;
 };
 
-void addMP(PointHessian* ph, std::vector<Eigen::Vector3d>& mp_list, Eigen::Matrix3f& K){
+void addMP(PointHessian* ph, std::vector<Eigen::Vector3d>& mp_list, Eigen::Matrix3f& K, float max_range){
     float fxi = 1/K(0,0);
     float fyi = 1/K(1,1);
     float cxi = -K(0,2) / K(0,0);
@@ -80,7 +80,7 @@ void addMP(PointHessian* ph, std::vector<Eigen::Vector3d>& mp_list, Eigen::Matri
         mp_posi(0) = ((ph->u+dx)*fxi + cxi) * depth;
         mp_posi(1) = ((ph->v+dy)*fyi + cyi) * depth;
         mp_posi(2) = depth/**(1 + 2*fxi * (rand()/(float)RAND_MAX-0.5f))*/;
-        if(mp_posi(2)>20){
+        if(mp_posi(2)>max_range){
             return;
         }
         FrameHessian* host = ph->host;
@@ -120,6 +120,23 @@ void addMP(ImmaturePoint* ph, std::vector<Eigen::Vector3d>& mp_list, Eigen::Matr
     
     mp_list.push_back(mp_posi);
 }
+
+void saveToPcd(std::string semi_pcd, std::vector<Eigen::Vector3d>& mp_display){
+    //
+    
+    pcl::PointCloud<pcl::PointXYZ> cloud;
+    cloud.width    = mp_display.size();
+    cloud.height   = 1; 
+    cloud.is_dense = false;
+    cloud.points.resize (cloud.width * cloud.height);
+    for (size_t i = 0; i < cloud.points.size (); ++i)
+    {
+        cloud.points[i].x = mp_display[i](0);
+        cloud.points[i].y = mp_display[i](1);
+        cloud.points[i].z = mp_display[i](2);
+    }
+    pcl::io::savePCDFileBinary(semi_pcd, cloud);
+}
             
 int main(int argc, char* argv[]){
     ros::init(argc, argv, "vis_loc");
@@ -128,6 +145,9 @@ int main(int argc, char* argv[]){
     std::string res_root=argv[1];
     std::string bag_addr=argv[2];
     std::string img_topic=argv[3];
+    float max_Range=atof(argv[4]);
+    int dense_lv=atof(argv[5]);
+    int output_step=atof(argv[6]);
 
     std::vector<Eigen::Vector3d> re_traj;
     
@@ -143,6 +163,7 @@ int main(int argc, char* argv[]){
     topics.push_back(img_topic);
     rosbag::View view(bag, rosbag::TopicQuery(topics));
     int img_count=-1;
+    int output_count=0;
     rosbag::View::iterator it= view.begin();
     std::vector<Eigen::Vector3d> align_frame_posi2;
     std::vector<Eigen::Vector3d> frame_posi2;
@@ -173,8 +194,8 @@ int main(int argc, char* argv[]){
         sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
         if(simg!=NULL){
             img_count++;
-            //if(img_count<0){
-            if(img_count<3400){
+            if(img_count<0){
+            //if(img_count<3400){
                 continue;
             }
             cv_bridge::CvImagePtr cv_ptr;
@@ -194,23 +215,40 @@ int main(int argc, char* argv[]){
                     img.convertTo(img_float, CV_32F, 1.0, 0);
                     result->image=(float*)img_float.data;
                     fullSystem->addActiveFrame(result, img_count, cur_pose);
-                    if(img_count%10==0){
+                    int temp_step=10;
+                    if(output_step!=-1){
+                        temp_step=output_step;
+                    }
+                    if(img_count%temp_step==0){
+                        output_count++;
+                        if(output_step!=-1){
+                            mp_display.clear();
+                        }
                         for(FrameHessian* fh : fullSystem->frameHessians){
                             Eigen::Vector3d posi = fh->shell->camToWorld.matrix3x4().block(0,3,3,1);
                             traj_display.push_back(posi);
 //                             for(PointHessian* ph : fh->pointHessiansOut){
 //                                 addMP(ph, mp_display, K);
 //                             }
-                            for(PointHessian* ph : fh->pointHessiansMarginalized){
-                                addMP(ph, mp_display, K);
+                            if(dense_lv<=2){
+                                for(PointHessian* ph : fh->pointHessiansMarginalized){
+                                    addMP(ph, mp_display, K, max_Range);
+                                }
+                                if(dense_lv==2){
+                                    for(PointHessian* ph : fh->pointHessians){
+                                        addMP(ph, mp_display, K, max_Range);
+                                    }
+                                }
                             }
-//                            for(PointHessian* ph : fh->pointHessians){
-//                                addMP(ph, mp_display, K);
-//                            }
+                            
+                           
 //                             for(ImmaturePoint* ph : fh->immaturePoints){
 //                                 addMP(ph, mp_display, K);
 //                             }
                         }
+                        std::stringstream ss;
+                        ss<<res_root<<"/semi_pc_"<<output_count+100000<<".pcd";
+                        saveToPcd(ss.str(), mp_display);
                         
                     }
                     if(img_count%100==0){
@@ -226,20 +264,12 @@ int main(int argc, char* argv[]){
         }
     }
     
-     std::string semi_pcd=res_root+"/semi_pc.pcd";
-    
-    pcl::PointCloud<pcl::PointXYZ> cloud;
-    cloud.width    = mp_display.size();
-    cloud.height   = 1; 
-    cloud.is_dense = false;
-    cloud.points.resize (cloud.width * cloud.height);
-    for (size_t i = 0; i < cloud.points.size (); ++i)
-    {
-        cloud.points[i].x = mp_display[i](0);
-        cloud.points[i].y = mp_display[i](1);
-        cloud.points[i].z = mp_display[i](2);
+    if(output_step==-1){
+        std::string semi_pcd=res_root+"/semi_pc.pcd";
+        saveToPcd(semi_pcd, mp_display);
     }
-    pcl::io::savePCDFileBinary(semi_pcd, cloud);
+    
+
 
     return 0;
 }
