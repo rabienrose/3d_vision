@@ -1,0 +1,54 @@
+desc_matcher: {
+  SegMatch: {
+    segmentation_radius_m: 70.0,
+    segmentation_height_above_m: 999.0,
+    segmentation_height_below_m: 999.0,
+
+    filter_boundary_segments: true,
+    boundary_radius_m: 999.0,
+    filter_duplicate_segments: true,
+    centroid_distance_threshold_m: 2,
+    min_time_between_segment_for_matches_s: 0,
+    check_pose_lies_below_segments: false,
+  
+    LocalMap: {
+      voxel_size_m: 0.10,
+      min_points_per_voxel: 2,
+      radius_m: 200,
+      min_vertical_distance_m: -999.0,
+      max_vertical_distance_m: 999.0,
+      neighbors_provider_type: "KdTree",
+    },
+    
+    Segmenters: {
+      segmenter_type: "IncrementalEuclideanDistance", # IncrementalSmoothnessConstraints, SimpleSmoothnessConstraints
+      min_cluster_size: 50,
+      max_cluster_size: 10000,
+      radius_for_growing: 0.3
+    },
+
+    Descriptors: {
+      descriptor_types: ["EigenvalueBased"], # "EnsembleShapeFunctions"
+    },
+
+    Classifier: {
+     threshold_to_accept_match: 1000,
+     n_nearest_neighbours: 120,
+     knn_feature_dim: 7,
+     enable_two_stage_retrieval: true,
+     apply_hard_threshold_on_feature_distance: true,
+     feature_distance_threshold: 0.03,
+     
+     normalize_eigen_for_knn: false,
+     normalize_eigen_for_hard_threshold: false,
+     max_eigen_features_values: [2493.5, 186681.0, 188389.0, 0.3304, 188388.0, 1.0899, 0.9987]
+    },
+
+    GeometricConsistency: {
+      recognizer_type: "Incremental", #"Simple", "Partitioned"
+      resolution: 1,
+      min_cluster_size: 6,
+      max_consistency_distance_for_caching: 3.0,
+    }
+  },
+}
