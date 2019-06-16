@@ -74,7 +74,7 @@ int main(int argc, char* argv[]){
                 double u=proj_homo(0)/proj_homo(2);
                 double v=proj_homo(1)/proj_homo(2);
                 cv::Point2f uv= map.frames[i]->kps[j].pt;
-                std::cout<<u<<":"<<v<<"     "<<uv.x<<":"<<uv.y<<std::endl;
+                //std::cout<<u<<":"<<v<<"     "<<uv.x<<":"<<uv.y<<std::endl;
                 
                 float proj_err=sqrt((uv.x-u)*(uv.x-u)+(uv.y-v)*(uv.y-v));
                 

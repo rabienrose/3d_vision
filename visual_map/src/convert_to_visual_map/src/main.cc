@@ -163,8 +163,6 @@ int main(int argc, char* argv[]) {
         map.mappoints.push_back(mappoint_p);
     }
     
-    
-    
     std::cout<<"load map finished!"<<std::endl;
     
     vm::save_visual_map(map, res_root+"/chamo.map");
