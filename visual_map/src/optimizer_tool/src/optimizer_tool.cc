@@ -360,8 +360,9 @@ namespace OptimizerTool
         
         std::string gps_alin_addr=res_root+"/gps_alin.txt";
         std::vector<int> gps_inliers;
+        std::vector<float> gps_accu;
         std::vector<Eigen::Vector3d> gps_alins;
-        CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers);
+        CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers, gps_accu);
         
         std::string kp_addr=res_root+"/kps.txt";
         std::vector<Eigen::Vector2f> kp_uvs;

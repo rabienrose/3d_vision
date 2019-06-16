@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>pcdesc_matcher</name>
+  <name>pc_downsample</name>
   <version>0.0.1</version>
   <description>desc_matcher</description>
   <maintainer email="283136745@qq.com">chamo</maintainer>
@@ -13,7 +13,6 @@
   <depend>pcl_catkin</depend>
   <depend>roscpp</depend>
   <depend>rosbag</depend>
-  <depend>segmatch</depend>
   <depend>visualization</depend>
   <depend>libnabo</depend>
 </package>

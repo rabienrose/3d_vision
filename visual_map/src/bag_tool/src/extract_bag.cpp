@@ -22,6 +22,31 @@
 #include "CoorConv.h"
 #include <Eigen/Core>
 
+void findNearGPS(int& gps1, int& gps2, std::vector<double>& gps_times, double frame_time){
+    gps1=-1;
+    gps2=-1;
+    for(int i=0; i<gps_times.size() ; i++){
+        if(gps_times[i]>frame_time){
+            if(i==0){
+                return;
+            }
+            if(frame_time - gps_times[i-1]>2){
+                return;
+            }
+            if(gps_times[i] - frame_time >2){
+                return;
+            }
+            gps1=i-1;
+            gps2=i;
+            return;
+        }
+    }
+}
+
+void interDouble(double v1, double v2, double t1, double t2, double& v3_out, double t3){
+    v3_out=v1+(v2-v1)*(t3-t1)/(t2-t1);
+}
+
 
 void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_topic, std::string imu_topic, std::string gps_topic){
 
@@ -50,6 +75,12 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
     outfile_gps_orth.open (out_dir+"/gps_orth.txt");
     int gps_count=0;
     Eigen::Vector3d anchorGps;
+    std::vector<double> img_timess;
+    std::vector<double> gps_times_hcov;
+    std::vector<std::string> img_names;
+    std::vector<Eigen::Vector3d> gps_orths_hcov;
+    std::vector<double> gps_confid;
+    std::vector<double> new_gps_confid;
     for(;it!=view.end();it++){
         
         rosbag::MessageInstance m =*it;
@@ -61,10 +92,14 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
                 cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
                 std::stringstream ss;
                 ss<<out_dir+"/images/img_"<<img_count<<".jpg";
+                std::stringstream ss_name;
+                ss_name<<"img_"<<img_count<<".jpg";
                 cv::imwrite(ss.str(), cv_ptr->image);
                 std::stringstream ss_time;
                 ss_time<<"img_"<<img_count<<".jpg"<<","<<simg->header.stamp<<std::endl;
                 outfile_img_time<<ss_time.str();
+                img_timess.push_back(simg->header.stamp.toSec());
+                img_names.push_back(ss_name.str());
             }catch (cv_bridge::Exception& e){
                 ROS_ERROR("cv_bridge exception: %s", e.what());
                 return;
@@ -102,10 +137,58 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
             std::stringstream ss1;
             ss1<<std::setprecision (15)<<sec<<","<<coor_gps(0)<<","<<coor_gps(1)<<","<<coor_gps(2)<<","<<(int)sgps->position_covariance[0]<<std::endl; 
             outfile_gps_orth<<ss1.str();
+            gps_times_hcov.push_back(sec);
+            gps_orths_hcov.push_back(coor_gps);
+            gps_confid.push_back(sgps->position_covariance[0]);
         }
     }
     outfile_img_time.close();
     outfile_imu.close();
     outfile_gps.close();
     outfile_gps_orth.close();
+    
+    std::vector<int> img_to_gps_ids;
+    std::vector<Eigen::Vector3d> img_gpss;
+    for (int i=0; i<img_timess.size(); i++){
+        int gps1;
+        int gps2;
+        findNearGPS(gps1, gps2, gps_times_hcov, img_timess[i]);
+        
+        if(gps1== -1){
+            img_to_gps_ids.push_back(-1);
+            continue;
+        }
+        double i_gps_x;
+        double i_gps_y;
+        double i_gps_z;
+        double inter_confid;
+        interDouble(gps_orths_hcov[gps1](0), gps_orths_hcov[gps2](0), gps_times_hcov[gps1], gps_times_hcov[gps2], i_gps_x, img_timess[i]);
+        interDouble(gps_orths_hcov[gps1](1), gps_orths_hcov[gps2](1), gps_times_hcov[gps1], gps_times_hcov[gps2], i_gps_y, img_timess[i]);
+        interDouble(gps_orths_hcov[gps1](2), gps_orths_hcov[gps2](2), gps_times_hcov[gps1], gps_times_hcov[gps2], i_gps_z, img_timess[i]);
+        interDouble(gps_confid[gps1], gps_confid[gps2], gps_times_hcov[gps1], gps_times_hcov[gps2], inter_confid, img_timess[i]);
+        
+        Eigen::Vector3d new_gps_frame;
+        new_gps_frame(0)=i_gps_x;
+        new_gps_frame(1)=i_gps_y;
+        new_gps_frame(2)=i_gps_z;
+        img_gpss.push_back(new_gps_frame);
+        new_gps_confid.push_back(inter_confid);
+        img_to_gps_ids.push_back(img_gpss.size()-1);
+    }
+    std::string gps_out_addr=out_dir+"/gps_alin.txt";
+    std::ofstream outfile_gps_align;
+    outfile_gps_align.open(gps_out_addr.c_str());
+    for(int i=0; i<img_timess.size(); i++){
+        int gps_id = img_to_gps_ids[i];
+        if(gps_id==-1){
+            outfile_gps_align<<img_names[i]<<","<<"-1"
+            <<std::endl;
+        }else{
+            Eigen::Vector3d gps_temp= img_gpss[gps_id];
+            outfile_gps_align<<img_names[i]<<","<<i
+            <<","<<gps_temp(0)<<","<<gps_temp(1)<<","<<gps_temp(2)<<","<<(int)new_gps_confid[gps_id]
+            <<std::endl;
+        }
+    }
+    outfile_gps_align.close();
 };

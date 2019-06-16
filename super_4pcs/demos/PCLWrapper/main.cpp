@@ -125,7 +125,7 @@ main (int argc, char **argv)
     // Show alignment
     pcl::visualization::PCLVisualizer visu("Alignment - Super4PCS");
     visu.addPointCloud (scene, ColorHandlerT (scene, 0.0, 255.0, 0.0), "scene");
-    visu.addPointCloud (object_icp_aligned, ColorHandlerT (object_icp_aligned, 255.0, 0.0, 255.0), "object_icp_aligned");
+    //visu.addPointCloud (object_icp_aligned, ColorHandlerT (object_icp_aligned, 255.0, 0.0, 255.0), "object_icp_aligned");
     visu.addPointCloud (object_aligned, ColorHandlerT (object_aligned, 255.0, 255.0, 255.0), "object_aligned");
     visu.spin ();
 

@@ -71,7 +71,7 @@ void LocalMapping::DoMapping(){
             if(mpMap->KeyFramesInMap()>2){
                 Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
             }
-            //KeyFrameCulling();
+            KeyFrameCulling();
         }
         mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
         

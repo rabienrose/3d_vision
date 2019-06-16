@@ -216,8 +216,8 @@ void show_source_pc(Eigen::Matrix4f& pose_out){
 }
 
 int main(int argc, char **argv) {
-    typedef PointMatcher<float> PM;
-    typedef PM::DataPoints DP;
+    //typedef PointMatcher<float> PM;
+    //typedef PM::DataPoints DP;
     google::InitGoogleLogging(argv[0]);
     ros::init(argc, argv, "desc_matcher");
     ros::NodeHandle node_handle;

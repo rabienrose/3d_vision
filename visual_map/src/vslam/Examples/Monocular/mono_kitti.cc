@@ -64,7 +64,7 @@ int main(int argc, char **argv)
         if(simg!=NULL){
             cv_bridge::CvImagePtr cv_ptr;
             img_count++;
-            if(img_count<0){
+            if(img_count%1!=0){
                 continue;
             }
 //             if(img_count >3000){
@@ -75,7 +75,10 @@ int main(int argc, char **argv)
                 std::stringstream ss;
                 ss<<"img_"<<img_count<<".jpg";
                 cv_ptr = cv_bridge::toCvCopy(simg, "mono8");
+                cv::Mat resize_img;
+                //cv::resize(cv_ptr->image, resize_img, cv::Size(cv_ptr->image.cols/2, cv_ptr->image.rows/2));
                 sys.TrackMonocular(cv_ptr->image, simg->header.stamp.toSec(), ss.str());
+                
                 std::vector<Eigen::Vector3d> pcs;
                 sys.getPC(pcs);
                 std::vector<Eigen::Vector3d> posis;

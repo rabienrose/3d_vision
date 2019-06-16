@@ -11,6 +11,16 @@ namespace vm{
             proto::Frame* frame_proto = map_proto.add_frames();
             frame_proto->set_img_name(frame_p->frame_file_name);
             frame_proto->set_timestamp(frame_p->time_stamp);
+            frame_proto->set_fx(frame_p->fx);
+            frame_proto->set_fy(frame_p->fy);
+            frame_proto->set_cx(frame_p->cx);
+            frame_proto->set_cy(frame_p->cy);
+            frame_proto->set_k1(frame_p->k1);
+            frame_proto->set_k2(frame_p->k2);
+            frame_proto->set_p1(frame_p->p1);
+            frame_proto->set_p2(frame_p->p2);
+            frame_proto->set_w(frame_p->width);
+            frame_proto->set_h(frame_p->height);
             proto::Pose* pose_proto=frame_proto->mutable_pose();
             pose_proto->set_x(frame_p->position.x());
             pose_proto->set_y(frame_p->position.y());
@@ -19,6 +29,10 @@ namespace vm{
             pose_proto->set_qx(frame_p->direction.x());
             pose_proto->set_qy(frame_p->direction.y());
             pose_proto->set_qz(frame_p->direction.z());
+            pose_proto->set_gps_x(frame_p->gps_position.x());
+            pose_proto->set_gps_y(frame_p->gps_position.y());
+            pose_proto->set_gps_z(frame_p->gps_position.z());
+            pose_proto->set_gps_accu(frame_p->gps_accu);
             frame_time_to_index[frame_p->time_stamp]=map_proto.frames_size()-1;
             std::vector<cv::KeyPoint>& keypoints1=frame_p->kps;
             Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& descriptors1 = frame_p->descriptors;
@@ -27,15 +41,22 @@ namespace vm{
                 kp->set_u(keypoints1[i].pt.x);
                 kp->set_v(keypoints1[i].pt.y);
                 kp->set_obs(-1);
+                kp->set_octave(keypoints1[i].octave);
                 std::string temp_ss;
-                for(int j=0; j<descriptors1.cols(); j++){
-                    temp_ss.push_back(descriptors1(i, j));
+                if(i>=descriptors1.cols()){
+                    std::cout<<"[save_visual_map]kp count large than desc cols!"<<std::endl;
+                    exit(0);
+                }
+                for(int j=0; j<descriptors1.rows(); j++){
+                    temp_ss.push_back(descriptors1(j, i));
                     //std::cout<<(int)descriptors1.at<unsigned char>(j, i)<<std::endl;
                 }
                 //std::cout<<temp_ss<<std::endl;
                 kp->set_desc_byte(temp_ss);
             }
         }
+        
+        std::cout<<"[save_visual_map]finish process frames."<<std::endl;
         std::map<MapPoint*, int> mappoint_to_index;
         for(int i=0; i<map.mappoints.size(); i++){
             std::shared_ptr<MapPoint> mappoint_p = map.mappoints[i];
@@ -54,24 +75,36 @@ namespace vm{
                 }
             }
         }
+        
+        if(map.frames.size()!=map_proto.frames_size()){
+            std::cout<<"[save_visual_map][error]frame count not equal!!!"<<map.frames.size()<<":"<<map_proto.frames_size()<<std::endl;
+            exit(0);
+        }
+        std::cout<<"[save_visual_map]finish process mappoints."<<std::endl;
         for(int i=0; i<map.frames.size(); i++){
             std::shared_ptr<Frame> frame_p=map.frames[i];
-            proto::Frame frame_proto = map_proto.frames(i);
+            proto::Frame* frame_proto = map_proto.mutable_frames(i);
             for(int j=0; j<frame_p->obss.size(); j++){
                 if(frame_p->obss[j]!=nullptr){
                     if(mappoint_to_index.count(frame_p->obss[j].get())!=0){
-                        frame_proto.mutable_kps(j)->set_obs(mappoint_to_index[frame_p->obss[j].get()]);
+                        if(frame_proto->kps_size()<=j){
+                            std::cout<<"[save_visual_map]max obss count: "<<frame_p->obss.size()<<std::endl;
+                            std::cout<<"[save_visual_map][error]kp count less that index!!!"<<frame_proto->kps_size()<<":"<<j<<std::endl;
+                            exit(0);
+                        }
+                        frame_proto->mutable_kps(j)->set_obs(mappoint_to_index[frame_p->obss[j].get()]);
                     }
                 }
             }
         }
         
+        std::cout<<"[save_visual_map]finish process covisibility."<<std::endl;
         std::fstream output(file_addr.c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
         if (!map_proto.SerializeToOstream(&output)) {
             std::cerr << "Failed to write map data." << std::endl;
             return;
         }
-        
+        std::cout<<"[save_visual_map]finish save to disk."<<std::endl;
         output.close();
     }
 
@@ -97,18 +130,35 @@ namespace vm{
             frame_p->direction.x()=frame_proto.pose().qx();
             frame_p->direction.y()=frame_proto.pose().qy();
             frame_p->direction.z()=frame_proto.pose().qz();
+            frame_p->gps_position.x()=frame_proto.pose().gps_x();
+            frame_p->gps_position.y()=frame_proto.pose().gps_y();
+            frame_p->gps_position.z()=frame_proto.pose().gps_z();
+            frame_p->gps_accu=frame_proto.pose().gps_accu();
+            frame_p->fx=frame_proto.fx();
+            frame_p->fy=frame_proto.fy();
+            frame_p->cx=frame_proto.cx();
+            frame_p->cy=frame_proto.cy();
+            frame_p->k1=frame_proto.k1();
+            frame_p->k2=frame_proto.k2();
+            frame_p->p1=frame_proto.p1();
+            frame_p->p2=frame_proto.p2();
+            frame_p->width=frame_proto.w();
+            frame_p->height=frame_proto.h();
+            
             if(frame_proto.kps_size()>=0){
                 int desc_width=frame_proto.kps(0).desc_byte().size();
-                frame_p->descriptors.resize(frame_proto.kps_size(), desc_width);
+                frame_p->descriptors.resize(desc_width, frame_proto.kps_size());
                 for(int j=0; j<frame_proto.kps_size(); j++){
                     proto::KeyPoint keypoint_proto = frame_proto.kps(j);
                     cv::KeyPoint kp;
                     kp.pt.x=keypoint_proto.u();
                     kp.pt.y=keypoint_proto.v();
+                    kp.octave=keypoint_proto.octave();
                     frame_p->kps.push_back(kp);
                     for (int k=0; k<desc_width; k++){
-                        frame_p->descriptors(j,k)=keypoint_proto.desc_byte()[k];
+                        frame_p->descriptors(k,j)=keypoint_proto.desc_byte()[k];
                     }
+                    frame_p->obss.push_back(nullptr);
                 }
             }
             map.frames.push_back(frame_p);
@@ -134,7 +184,12 @@ namespace vm{
             const proto::Frame& frame_proto = map_proto.frames(i);
             for (int j=0; j<frame_proto.kps_size(); j++){
                 if(frame_proto.kps(j).obs()!=-1){
-                    map.frames[i]->obss.push_back(map.mappoints[frame_proto.kps(j).obs()]);
+                    if(frame_proto.kps(j).obs()>=map.mappoints.size()){
+                        std::cout<<"[loader_visual_map][error]frame_proto.kps(j).obs()"<<std::endl;
+                        exit(0);
+                        
+                    }
+                    map.frames[i]->obss[j]=map.mappoints[frame_proto.kps(j).obs()];
                 }
             }
         }

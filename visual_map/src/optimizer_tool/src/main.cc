@@ -27,7 +27,8 @@ int main(int argc, char* argv[]) {
     std::string gps_alin_addr=res_root+"/gps_alin.txt";
     std::vector<int> gps_inliers;
     std::vector<Eigen::Vector3d> gps_alins;
-    CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers);
+    std::vector<float> gps_accu;
+    CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers, gps_accu);
     show_mp_as_cloud(gps_alins, Rwi_, "/chamo/gps");
     //ros::spin();
 }

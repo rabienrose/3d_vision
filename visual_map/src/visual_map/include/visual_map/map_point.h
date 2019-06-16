@@ -11,6 +11,7 @@ namespace vm{
     
     class MapPoint{
     public:
+        int id;
         Eigen::Vector3d position;
         std::vector<TrackItem> track;
     };

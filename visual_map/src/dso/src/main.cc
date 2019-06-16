@@ -89,6 +89,9 @@ void addMP(PointHessian* ph, std::vector<Eigen::Vector3d>& mp_list, Eigen::Matri
         mp_posi_homo(3)=1;
         mp_posi_homo = host->shell->camToWorld.matrix()*mp_posi_homo;
         mp_posi=mp_posi_homo.block(0,0,3,1);
+        if(mp_posi(2)>15){
+            return;
+        }
         for(int i=0;i<mp_list.size() ;i++){
             if((mp_list[i]-mp_posi).norm()<0.01){
                 return;
@@ -246,12 +249,15 @@ int main(int argc, char* argv[]){
 //                                 addMP(ph, mp_display, K);
 //                             }
                         }
-                        std::stringstream ss;
-                        ss<<res_root<<"/semi_pc_"<<output_count+100000<<".pcd";
-                        saveToPcd(ss.str(), mp_display);
-                        
+                        if(output_step!=-1){
+                            if(mp_display.size()>1000){
+                                std::stringstream ss;
+                                ss<<res_root<<"/semi_pc_"<<output_count+100000<<".pcd";
+                                saveToPcd(ss.str(), mp_display);
+                            }
+                        }
                     }
-                    if(img_count%100==0){
+                    if(img_count%10==0){
                         show_mp_as_cloud(traj_display, "dso_traj");
                         show_mp_as_cloud(mp_display, "dso_mp");
                         std::cout<<"mp count: "<<mp_display.size()<<std::endl;

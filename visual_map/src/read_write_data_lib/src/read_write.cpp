@@ -172,7 +172,7 @@ namespace CHAMO
         }
     }
     
-    void read_gps_alin(std::string gps_alin_addr, std::vector<Eigen::Vector3d>& gps_alins, std::vector<int>& inliars){
+    void read_gps_alin(std::string gps_alin_addr, std::vector<Eigen::Vector3d>& gps_alins, std::vector<int>& inliars, std::vector<float>& accus){
         std::string line;
         std::ifstream infile(gps_alin_addr);
         while (true)
@@ -185,12 +185,14 @@ namespace CHAMO
             if(splited.size()==2){
                 Eigen::Vector3d temp=Eigen::Vector3d::Zero();
                 gps_alins.push_back(temp);
+                accus.push_back(9999);
                 inliars.push_back(0);
             }else{
                 Eigen::Vector3d temp;
                 temp(0)=atof(splited[2].c_str());
                 temp(1)=atof(splited[3].c_str());
                 temp(2)=atof(splited[4].c_str());
+                accus.push_back(atof(splited[5].c_str()));
                 gps_alins.push_back(temp);
                 inliars.push_back(1);
             }

@@ -9,5 +9,8 @@ namespace vm{
     public:
         std::vector<std::shared_ptr<Frame>> frames;
         std::vector<std::shared_ptr<MapPoint>> mappoints;
+
+        void CreateSubMap(int startframe_id, int endframe_id, VisualMap& submap);
+        void ComputeUniqueId();
     };
 }
