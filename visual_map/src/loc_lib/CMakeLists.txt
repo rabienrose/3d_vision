@@ -4,6 +4,11 @@ add_definitions(--std=c++11 -Wno-unknown-pragmas -w)
 
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
+
+file(GLOB ALL_HEADER_FILES "include/*")
+
+file(COPY ${ALL_HEADER_FILES} DESTINATION ${CATKIN_DEVEL_PREFIX}/include)
+
 cs_add_library(${PROJECT_NAME}
     src/ChamoLoc.cc
     src/FeatureDistance.cpp

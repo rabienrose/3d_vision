@@ -19,6 +19,10 @@ include_directories(${kindr_INCLUDE_DIRS})
 #include_directories(${EIGEN_INCLUDE_DIR})
 include_directories(include)
 
+file(GLOB ALL_HEADER_FILES "include/*")
+
+file(COPY ${ALL_HEADER_FILES} DESTINATION ${CATKIN_DEVEL_PREFIX}/include)
+
 if(DEFINED CATKIN_DEVEL_PREFIX)
   find_package(catkin REQUIRED)
 	catkin_package(

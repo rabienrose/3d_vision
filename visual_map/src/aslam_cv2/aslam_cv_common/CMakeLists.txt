@@ -5,6 +5,9 @@ find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/export_flags.cmake)
+file(GLOB ALL_HEADER_FILES "include/*")
+
+file(COPY ${ALL_HEADER_FILES} DESTINATION ${CATKIN_DEVEL_PREFIX}/include)
 
 #############
 # LIBRARIES #

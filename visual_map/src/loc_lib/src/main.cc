@@ -6,6 +6,15 @@
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
 
+#include <ros/ros.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
+
+#include <sstream>
+#include <iostream>
+#include <fstream>
+#include <string>
+
 #include "orb_slam_lib/two_frame_pose.h"
 #include "visualization/color-palette.h"
 #include "visualization/color.h"
@@ -38,6 +47,7 @@ void image_callback(const sensor_msgs::CompressedImageConstPtr& img_msg)
     cv_bridge::CvImagePtr cv_ptr;
     cv_ptr = cv_bridge::toCvCopy(img_msg, "bgr8");
     cv::Mat img = cv_ptr->image;
+
     double timestamp = img_msg->header.stamp.toSec();
     if(!init_flag)
     {
@@ -48,25 +58,47 @@ void image_callback(const sensor_msgs::CompressedImageConstPtr& img_msg)
     init_flag = true;
 }
 
-                                        
-int main(int argc, char* argv[]){
+void extract_bag(std::string bag_addr_, std::string img_topic, std::string imu_topic)
+{
+    std::string bag_addr = bag_addr_;
+    rosbag::Bag bag;
+    bag.open(bag_addr,rosbag::bagmode::Read);
+
+    std::vector<std::string> topics;
+    topics.push_back(img_topic);
+    topics.push_back(imu_topic);
+    rosbag::View view(bag, rosbag::TopicQuery(topics));
+    rosbag::View::iterator it= view.begin();
+    for(;it!=view.end();it++)
+    {
+        rosbag::MessageInstance m = *it;
+        sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
+        if(simg!=NULL)
+        {
+            image_callback(simg);
+        }
+
+        sensor_msgs::ImuPtr simu = m.instantiate<sensor_msgs::Imu>();
+        if(simu!=NULL)
+        {
+            imu_callback(simu);
+        }
+    }
+
+}
+
+void subscribe_bag(int argc, char* argv[],std::string img_topic, std::string imu_topic)
+{
     ros::init(argc, argv, "loc");
     ros::NodeHandle nh;
-    visualization::RVizVisualizationSink::init();
-    localizer.reset(new wayz::ChamoLoc);
-    std::string res_addr=argv[1];
-    localizer->StartLocalization(res_addr+"/rovio_default_config.info"); 
-    localizer->AddMap(res_addr);
-    
+
     ros::Rate loop_rate(1000);
     ros::Subscriber imu_subscriber_; 
     ros::Subscriber img_subscriber_;
     ros::Publisher  pose_pub;
     
     imu_subscriber_ = nh.subscribe("imu/raw_data", 1000, imu_callback);
-    img_subscriber_ = nh.subscribe("camera/left/image_raw", 1, image_callback);
-    //imu_subscriber_ = nh.subscribe("imu", 1000, imu_callback);
-    //img_subscriber_ = nh.subscribe("img", 10, image_callback);
+    img_subscriber_ = nh.subscribe("camera/left/image_raw", 10000, image_callback);
     
     ros::start();
     Eigen::Vector3d Pos;
@@ -87,9 +119,39 @@ int main(int argc, char* argv[]){
         ros::spinOnce();
         loop_rate.sleep();
     }
-    localizer->Shutdown();
     ros::shutdown();
-    
+}
+                                        
+int main(int argc, char* argv[])
+{
+    visualization::RVizVisualizationSink::init();
+    std::string imgtopic = "camera/left/image_raw";
+    std::string imutopic = "imu/raw_data";
+    std::string res_addr = argv[1];
 
+    std::string bagfilepath;
+    bool breadbag = false;
+    if (argc > 2)
+    {
+        breadbag = true;
+        bagfilepath = argv[2];
+    }
+    
+    localizer.reset(new wayz::ChamoLoc);
+    localizer->StartLocalization(res_addr+"/rovio_default_config.info");
+    localizer->AddMap(res_addr);
+
+    if (!breadbag)
+    {
+        subscribe_bag(argc,argv,imgtopic,imutopic);
+    }
+    else
+    {
+        extract_bag(bagfilepath,imgtopic,imutopic);
+    }
+    
+    localizer->Export_Raw_MatchFile(res_addr);
+    localizer->Shutdown();
+    
     return 0;
 }

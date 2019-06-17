@@ -16,6 +16,13 @@
 
 namespace wayz {
 
+struct raw_match
+{
+    double timestamp;
+    int gmatchnum;
+    double runtime;
+};
+
 class ChamoLoc: public LocalizationAPI {
 public:
     //EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -28,6 +35,7 @@ public:
     void Debug_Image_pose(const double timestamp,const int camera_id, cv::Mat& img_distort);
     bool Debug_QueryPose(const double timestamp, Eigen::Vector3d& Pos, Eigen::Quaterniond& Ori);
     void Debug_Feature_pose(std::vector<Eigen::Vector3d>& vec);
+    void Export_Raw_MatchFile(std::string& path);
     
     void AddIMU(const double timestamp, const Eigen::Vector3d& Accl, const Eigen::Vector3d& Gyro);
 
@@ -109,6 +117,7 @@ private:
     std::vector<double> timestamp_list;
     //add by yao
     std::vector<Eigen::Vector3d> fea_match_vec;
+    std::vector<raw_match>time_matchnum_vec;
 
 };
 

@@ -17,6 +17,10 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 find_package(PythonLibs REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 
+file(GLOB ALL_HEADER_FILES "include/*")
+
+file(COPY ${ALL_HEADER_FILES} DESTINATION ${CATKIN_DEVEL_PREFIX}/include)
+
 #############
 # LIBRARIES #
 #############

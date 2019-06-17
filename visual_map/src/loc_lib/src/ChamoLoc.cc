@@ -5,6 +5,8 @@
 #include "visualization/common-rviz-visualization.h"
 #endif
 
+#include <ctime>
+
 struct Match{
         int query_desc_id;
         int frame_id_tar;
@@ -286,12 +288,11 @@ namespace wayz {
             cam_distort_zero.at<float>(3)=0;
             std::cout<<"point3ds: "<<point3ds.size()<<std::endl;
             cv::solvePnPRansac(point3ds, point2ds, cam_inter_cv, cam_distort_zero, rvec, tvec, false, 1000, 2.0f, 0.99, inliers, cv::SOLVEPNP_EPNP);
-            
+            std::cout<<"inliers.rows: "<<inliers.rows<<std::endl;
             if(inliers.rows<20){
                 return final_match_count;
             }
             final_match_count=inliers.rows;
-            std::cout<<"inliers.rows: "<<inliers.rows<<std::endl;
             for(int i=0; i<inliers.rows; i++){
                 //std::cout<<inliers.at<int>(i)<<std::endl;
                 inliers_kp.push_back(point2ds[inliers.at<int>(i)]);
@@ -455,7 +456,25 @@ namespace wayz {
             std::vector<Eigen::Vector3d>().swap(fea_match_vec);
         }
     }
-    void ChamoLoc::AddImage(const double timestamp,const int camera_id, const cv::Mat& img_distort){
+    void ChamoLoc::Export_Raw_MatchFile(std::string& path)
+    {
+        std::ofstream outfile_raw;
+        outfile_raw.open(path + "/raw_match.txt");
+        std::vector<raw_match>::iterator time_matchnum_itor = time_matchnum_vec.begin();
+        for(;time_matchnum_itor != time_matchnum_vec.end();time_matchnum_itor++)
+        {
+            std::stringstream raw_info;
+            raw_info << std::setprecision(16) << time_matchnum_itor->timestamp << "," ;
+            raw_info << time_matchnum_itor->gmatchnum << ",";
+            raw_info << time_matchnum_itor->runtime << std::endl;
+            outfile_raw << raw_info.str();
+        }
+        
+        outfile_raw.close();
+    }
+    void ChamoLoc::AddImage(const double timestamp,const int camera_id, const cv::Mat& img_distort)
+    {
+        clock_t start = clock();
 //         if (!init_state_.isInitialized() || img_distort.empty()) {
 //             return;
 //         }
@@ -486,6 +505,7 @@ namespace wayz {
         std::vector<cv::Point3f> inliers_mp;
         std::vector<cv::Point2f> inliers_kp;
         int match_count = UpdateByMap(Img, timestamp, inliers_mp, inliers_kp);
+
         //updateFilter();
         
 //         Eigen::Matrix4d t_mb=Eigen::Matrix4d::Identity();
@@ -536,6 +556,14 @@ namespace wayz {
             visualization::publishLines(matches, 0, visualization::kDefaultMapFrame,visualization::kDefaultNamespace, "map_match1");
         }
 #endif
+        double dur = (double)(clock() - start)/CLOCKS_PER_SEC;
+
+        raw_match su = {0};
+        su.runtime = dur;
+        su.timestamp = timestamp;
+        su.gmatchnum = match_count;
+
+        time_matchnum_vec.push_back(su);
     };
     
     void ChamoLoc::AddIMU(const double time_s, const Eigen::Vector3d& Accl, const Eigen::Vector3d& Gyro){
@@ -605,7 +633,7 @@ namespace wayz {
             points1(2,i)=mp_posis[i].z();
         }
         */
-        //show_mp_as_cloud(mp_posis, "temp_mp");
+        show_mp_as_cloud(mp_posis, "temp_mp");
         
         std::string cam_addr=folder_path+"/camera_config.txt";
         CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);

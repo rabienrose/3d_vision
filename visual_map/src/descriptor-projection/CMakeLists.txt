@@ -6,6 +6,10 @@ catkin_simple(ALL_DEPS_REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+file(GLOB ALL_HEADER_FILES "include/*")
+
+file(COPY ${ALL_HEADER_FILES} DESTINATION ${CATKIN_DEVEL_PREFIX}/include)
+
 set(LIBRARY_NAME ${PROJECT_NAME})
 
 cs_add_library(${LIBRARY_NAME} src/build-projection-matrix.cc
