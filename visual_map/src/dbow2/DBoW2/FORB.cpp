@@ -23,7 +23,7 @@ namespace DBoW2 {
 
 // --------------------------------------------------------------------------
 
-const int FORB::L=64;
+const int FORB::L=32;
 
 void FORB::meanValue(const std::vector<FORB::pDescriptor> &descriptors, 
   FORB::TDescriptor &mean)
@@ -88,8 +88,8 @@ int FORB::distance(const FORB::TDescriptor &a,
   const int *pb = b.ptr<int32_t>();
 
   int dist=0;
-
-  for(int i=0; i<16; i++, pa++, pb++)
+  int count=a.cols/4;
+  for(int i=0; i<count; i++, pa++, pb++)
   {
       unsigned  int v = *pa ^ *pb;
       v = v - ((v >> 1) & 0x55555555);
@@ -142,6 +142,19 @@ void FORB::fromArray(FORB::TDescriptor &a, unsigned char* buffer){
 
 	  for(int i = 0; i < FORB::L; ++i, ++p)
 	      *p = buffer[i];
+}
+
+void FORB::toArray8U(const TDescriptor &descriptors, unsigned char * array)
+{
+    const unsigned char *d = descriptors.ptr<unsigned char>();
+    std::copy(d, d+FORB::L, array);
+}
+// --------------------------------------------------------------------------
+
+ void FORB::fromArray8U(TDescriptor &descriptors, unsigned char * array)
+{
+    unsigned char *d = descriptors.ptr<unsigned char>();
+    std::copy(array, array+FORB::L, d);
 }
 
 // --------------------------------------------------------------------------

@@ -106,10 +106,6 @@ namespace wayz {
     }
 
     void ChamoLoc::StartLocalization(const std::string& filename){
-        mpFilter_.reset(new FilterType);
-        mpFilter_->readFromInfo(filename);
-        mpFilter_->refreshProperties();
-        //std::cout<<mpFilter_->init_.state_.aux().MrMC_[0]<<std::endl;
     };
     
     int ChamoLoc::UpdateByMap(cv::Mat Img, double timestamp, std::vector<cv::Point3f>& inliers_mp, std::vector<cv::Point2f>& inliers_kp){
@@ -309,55 +305,10 @@ namespace wayz {
             pose_inv.block(0,0,3,3)=rot_m_eigen;
             pose_inv.block(0,3,3,1)=tvec_eigen;
             Eigen::Matrix4d pose_eigen=pose_inv.inverse();
-
-            Eigen::Matrix4d eigen_bc_t=Eigen::Matrix4d::Identity();
-            //eigen_bc_t.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.aux().qCM_[0]).matrix().transpose();
-            //eigen_bc_t.block(0,3,3,1)=mpFilter_->safe_.state_.aux().MrMC_[0];
-            eigen_bc_t.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.qCM(0)).matrix().transpose();
-            eigen_bc_t.block(0,3,3,1)=mpFilter_->safe_.state_.MrMC(0);
+            Eigen::Quaterniond pose_qua(pose_eigen.block<3,3>(0,0));
             
-            Eigen::Matrix4d eigen_wb;
-            eigen_wb=pose_eigen*eigen_bc_t.inverse();
-            
-            Eigen::Quaterniond pose_qua(eigen_wb.block<3,3>(0,0));
-            QPD pose_inv_QPD = QPD(pose_qua.inverse());
-            
-            posi_match_vec.push_back(eigen_wb.block(0,3,3,1));
+            posi_match_vec.push_back(pose_eigen.block(0,3,3,1));
             rot_match_vec.push_back(pose_qua);
-            
-            return final_match_count;
-            if(posi_list.size()==0){
-            //if(false){
-                mpFilter_->safe_.state_.WrWM()=eigen_wb.block(0,3,3,1);
-                mpFilter_->safe_.state_.qWM()=pose_inv_QPD;
-                //mpFilter_->safe_.state_.MvM() init??
-            }else{
-                poseUpdateMeas_.pos() = eigen_wb.block(0,3,3,1);
-                poseUpdateMeas_.att() = pose_inv_QPD;
-                mpFilter_->template addUpdateMeas<1>(poseUpdateMeas_, timestamp);
-                //updateFilter();
-            }
-
-            for(int i=1; i<timestamp_list.size(); i++){
-                int temp_id =timestamp_list.size()-i-1;
-                double temp_time= timestamp_list[temp_id];
-                if(timestamp-temp_time>1){
-                    Eigen::Matrix4d t_mb=Eigen::Matrix4d::Identity();
-                    t_mb.block(0,3,3,1)=mpFilter_->safe_.state_.WrWM();
-                    t_mb.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.qWM()).matrix();
-                    Eigen::Vector3d speed_w = (posi_match_vec.back() - posi_match_vec[temp_id])/(timestamp-temp_time);
-                    Eigen::Vector3d speed_b =t_mb.block(0,0,3,3).transpose()*speed_w;
-                    velocityUpdateMeas_.vel() = speed_b;
-                    this->mpFilter_->template addUpdateMeas<2>(this->velocityUpdateMeas_, timestamp);
-                    //updateFilter();
-                    //std::cout<<"posi: "<<posi_match_vec.back().transpose()<<std::endl;
-                    //std::cout<<"loc speed b: "<<speed_b.transpose()<<std::endl;
-                    
-                    //std::cout<<"filter speed: "<<mpFilter_->safe_.state_.MvM().transpose()<<std::endl;
-                    break;
-                }
-            }
-            return final_match_count;
         }
         return final_match_count;
     }
@@ -475,65 +426,20 @@ namespace wayz {
     void ChamoLoc::AddImage(const double timestamp,const int camera_id, const cv::Mat& img_distort)
     {
         clock_t start = clock();
-//         if (!init_state_.isInitialized() || img_distort.empty()) {
-//             return;
-//         }
         cv::Mat Img;
         cv::undistort(img_distort, Img, cam_inter_cv, cam_distort_cv);
-//         if(posi_list.size()!=0){
-//             double msgTime = timestamp;
-//             if (msgTime != imgUpdateMeas_.template get<mtImgMeas::_aux>().imgTime_) {
-//                 for (int i = 0; i < FilterType::mtState::nCam_; i++) {
-//                     if (imgUpdateMeas_.template get<mtImgMeas::_aux>().isValidPyr_[i]) {
-//                         std::cout
-//                             << "    \033[31mFailed Synchronization of Camera Frames, t = "
-//                             << msgTime << "\033[0m" << std::endl;
-//                     }
-//                 }
-//                 imgUpdateMeas_.template get<mtImgMeas::_aux>().reset(msgTime);
-//             }
-//             imgUpdateMeas_.template get<mtImgMeas::_aux>().pyr_[camera_id].computeFromImage(Img, true);
-//             imgUpdateMeas_.template get<mtImgMeas::_aux>().isValidPyr_[camera_id] = true;
-// 
-//             bool measurement_accepted = false;
-//             if (imgUpdateMeas_.template get<mtImgMeas::_aux>().areAllValid()) {
-//                 measurement_accepted = mpFilter_->template addUpdateMeas<0>(imgUpdateMeas_, msgTime);
-//                 imgUpdateMeas_.template get<mtImgMeas::_aux>().reset(msgTime);
-//                 //std::thread::id this_id = std::this_thread::get_id();
-//             }
-//         }
         std::vector<cv::Point3f> inliers_mp;
         std::vector<cv::Point2f> inliers_kp;
         int match_count = UpdateByMap(Img, timestamp, inliers_mp, inliers_kp);
-
-        //updateFilter();
-        
-//         Eigen::Matrix4d t_mb=Eigen::Matrix4d::Identity();
-//         t_mb.block(0,3,3,1)=mpFilter_->safe_.state_.WrWM();
-//         t_mb.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.qWM()).matrix();
-//         Eigen::Matrix4d t_wm=Eigen::Matrix4d::Identity();
-//         t_wm.block(0,3,3,1)=mpFilter_->safe_.state_.poseLin(0);
-//         t_wm.block(0,0,3,3)=MPD(mpFilter_->safe_.state_.poseRot(0)).matrix();
-//         
-//         Eigen::Matrix4d t_re=t_mb;
-//         posi_vec.push_back(t_re.block(0,3,3,1));
-//         posi_list[timestamp]=t_re.block(0,3,3,1);
-//         Eigen::Matrix3d rot_eigen = t_re.block(0,0,3,3);
-//         Eigen::Quaterniond rot_q(rot_eigen);
-//         rot_list[timestamp]=rot_q;
-//         timestamp_list.push_back(timestamp);
-//         posi_loc_vec.push_back(t_re.block(0,3,3,1));
-//         rot_loc_vec.push_back(rot_q);
 #ifndef __APPLE__
-        //show_mp_as_cloud(posi_vec, "temp_kf");
         if(match_count){
-            show_mp_as_cloud(posi_match_vec, "temp_match");
+            show_mp_as_cloud(posi_match_vec, "loc_lib_posi");
             cv::Mat debug_img;
             cv::cvtColor(Img, debug_img, cv::COLOR_GRAY2RGB);
             for(int i=0; i<inliers_kp.size(); i++){
                 cv::circle(debug_img, inliers_kp[i], 4, CV_RGB(0,0,255), 2);
             }
-            visualization::RVizVisualizationSink::publish("match_img", debug_img);
+            visualization::RVizVisualizationSink::publish("loc_lib_debug_img", debug_img);
             visualization::LineSegmentVector matches;
             for(int i=0; i<inliers_mp.size(); i++){
                 visualization::LineSegment line_segment;
@@ -553,7 +459,7 @@ namespace wayz {
                 //std::cout<<posi_match_vec.back()<<std::endl;
                 matches.push_back(line_segment);
             }
-            visualization::publishLines(matches, 0, visualization::kDefaultMapFrame,visualization::kDefaultNamespace, "map_match1");
+            visualization::publishLines(matches, 0, visualization::kDefaultMapFrame,visualization::kDefaultNamespace, "loc_lib_match_line");
         }
 #endif
         double dur = (double)(clock() - start)/CLOCKS_PER_SEC;
@@ -568,36 +474,6 @@ namespace wayz {
     
     void ChamoLoc::AddIMU(const double time_s, const Eigen::Vector3d& Accl, const Eigen::Vector3d& Gyro){
         return;
-        predictionMeas_.template get<mtPredictionMeas::_acc>() = Accl;
-        predictionMeas_.template get<mtPredictionMeas::_gyr>() = Gyro;
-
-        if (!init_state_.isInitialized()) {
-            switch (init_state_.state_) {
-            case FilterInitializationState::State::WaitForInitExternalPose:
-                std::cout << "-- Filter: Initializing using external pose ..." << std::endl;
-                mpFilter_->resetWithPose(init_state_.WrWM_, init_state_.qMW_, time_s);
-                break;
-            case FilterInitializationState::State::WaitForInitUsingAccel:
-                std::cout << "-- Filter: Initializing using accel. measurement ..."
-                        << std::endl;
-                mpFilter_->resetWithAccelerometer(
-                    predictionMeas_.template get<mtPredictionMeas::_acc>(), time_s);
-                break;
-            default:
-                std::cout << "Unhandeld initialization type." << std::endl;
-                // TODO(mfehr): Check what this actually does and what consequences it has
-                // for the ROS node.
-                abort();
-                break;
-            }
-
-            std::cout << std::setprecision(12);
-            std::cout << "-- Filter: Initialized at t = " << time_s << std::endl;
-            init_state_.state_ = FilterInitializationState::State::Initialized;
-            return;
-        }
-        const bool measurement_accepted = mpFilter_->addPredictionMeas(predictionMeas_, time_s);
-        //updateFilter();
         
     };
     void ChamoLoc::AddMap(const std::string& folder_path){
@@ -623,38 +499,12 @@ namespace wayz {
         //feature points
         std::string posi_addr=folder_path+"/mp_posi_opt.txt";
         CHAMO::read_mp_posi(posi_addr, mp_posis);
-
-        /*
-        Eigen::Matrix3Xd points1;
-        points1.resize(3,mp_posis.size());
-        for(int i=0; i<mp_posis.size(); i++){
-            points1(0,i)=mp_posis[i].x();
-            points1(1,i)=mp_posis[i].y();
-            points1(2,i)=mp_posis[i].z();
-        }
-        */
         show_mp_as_cloud(mp_posis, "temp_mp");
         
         std::string cam_addr=folder_path+"/camera_config.txt";
         CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
         convert_eigen_double_mat_float(cam_inter, cam_inter_cv);
         convert_eigen_double_mat_float(cam_distort, cam_distort_cv);
-
-        rovio::CameraCalibrationVector cameras;
-        rovio::CameraCalibration camera;
-        camera.K_= Eigen::Matrix3d::Identity();
-        
-        camera.K_=cam_inter;
-        camera.distortionModel_=rovio::DistortionModel::RADTAN;
-        camera.distortionParams_=Eigen::VectorXd::Zero(5);
-        camera.hasIntrinsics_=true;
-        //rovio::CameraCalibration calibration;
-        //calibration.loadFromFile("/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/orb_slam_re/office_out_v2_loc/cam.yaml");
-        cameras.push_back(camera);
-        
-        mpFilter_->setCameraCalibrations(cameras);
-        Eigen::Matrix4d Tcb  = Tbc.inverse();
-        mpFilter_->setExtrinsics(Tcb.block(0,0,3,3), Tcb.block(0,3,3,1));
     };
     
     void ChamoLoc::Shutdown(){
@@ -684,76 +534,12 @@ namespace wayz {
     };
 
     bool ChamoLoc::QueryPose(const double timestamp, Eigen::Vector3d& Pos, Eigen::Vector3d& Vel, Eigen::Quaterniond& Ori) const{
-//         std::cout<<std::setprecision(15)<<timestamp<<" : "<<posi_list.size()<<std::endl;
-//         for(auto item: posi_list){
-//             std::cout<<std::setprecision(15)<<item.first<<std::endl;
-//         }
-        if(timestamp<0){
-            if(posi_match_vec.size()>0){
-                //Pos=posi_match_vec.back();
-                Pos=(--posi_list.end())->second;
-                return true;
-            }else{
-                return false;
-            }
-        }else{
-            std::map<double, Eigen::Vector3d>::const_iterator it_posi;
-            it_posi=posi_list.upper_bound(timestamp);
-            if(it_posi!=posi_list.end()){
-                Pos=it_posi->second;
-            }else{
-                it_posi--;
-                if(it_posi!=posi_list.end()){
-                    Pos=it_posi->second;
-                }else{
-                    return false;
-                }
-            }
+        if(posi_match_vec.size()>0){
+            Pos=(--posi_list.end())->second;
             return true;
+        }else{
+            return false;
         }
-        //Ori=rot_list.lower_bound(timestamp)->second;
     };
     
-    bool ChamoLoc::updateFilter() {
-        // Statistics values that persist over all updates.
-        static double timing_T = 0;
-        static int timing_C = 0;
-
-        if (!init_state_.isInitialized()) {
-            return false;
-        }
-
-        // Execute the filter update.
-        const double t1 = (double)cv::getTickCount();
-        const double oldSafeTime = mpFilter_->safe_.t_;
-        const int c1 = std::get<0>(mpFilter_->updateTimelineTuple_).measMap_.size();
-        double lastImageTime;
-        if (std::get<0>(mpFilter_->updateTimelineTuple_).getLastTime(lastImageTime)) {
-            mpFilter_->updateSafe(&lastImageTime);
-        }
-        const double t2 = (double)cv::getTickCount();
-
-        const int c2 = std::get<0>(mpFilter_->updateTimelineTuple_).measMap_.size();
-        const double filterUpdateTimeMs = (t2 - t1) / cv::getTickFrequency() * 1000;
-        const size_t numberImagesProcessed = c1 - c2;
-
-        // Update statistics.
-        timing_T += filterUpdateTimeMs;
-        timing_C += numberImagesProcessed;
-        
-        //std::cout<<mpFilter_->safe_.state_.WrWM()<<std::endl;
-#ifndef __APPLE__
-        if(!mpFilter_->safe_.img_[0].empty()){
-            cv::imshow("chamo", mpFilter_->safe_.img_[0]);
-            cv::waitKey(1);
-        }
-#endif
-        
-
-        // If there is no change, return false.
-        if (mpFilter_->safe_.t_ <= oldSafeTime) {
-            return false;
-        }
-        return true;
-    }
 }

@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
     std::cout<<"start segmentation"<<std::endl;
     int cur_frame_id=100;
     int last_frame_id=0;
-    int max_seg_count=300;
+    int max_seg_count=30000;
     std::vector<vm::VisualMap> submaps;
     while(ros::ok()){
         std::vector<Eigen::Vector3d> pc_frame;
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]){
     
     for(int i=0; i<submaps.size(); i++){
         std::stringstream ss;
-        ss<<"/map_"<<1000+i<<".map";
+        ss<<"/chamo_"<<1000+i<<".map";
         vm::save_visual_map(submaps[i], res_root+ss.str());
     }
     return 0;

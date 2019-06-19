@@ -3,6 +3,7 @@ project(create_desc_index)
 
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
+add_definitions(--std=c++11 -Wno-unknown-pragmas -w)
 
 cs_add_library(create_desc_index
     src/create_desc_index.cc

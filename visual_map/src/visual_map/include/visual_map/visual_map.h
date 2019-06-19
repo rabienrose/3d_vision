@@ -12,5 +12,8 @@ namespace vm{
 
         void CreateSubMap(int startframe_id, int endframe_id, VisualMap& submap);
         void ComputeUniqueId();
+        void DelMappoint(int id);
+        void DelFrame(int id);
+        void GetMPPosiList(std::vector<Eigen::Vector3d>& mp_posis);
     };
 }

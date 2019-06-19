@@ -51,4 +51,32 @@ namespace vm{
             }
         }
     }
+    
+    void VisualMap::DelMappoint(int id){
+        for(int i=0; i<mappoints.size(); i++){
+            if(mappoints[i]->id==id){
+                std::shared_ptr<MapPoint> mp_p = mappoints[i];
+                for(int j=0; j<mp_p->track.size(); j++){
+                    std::shared_ptr<Frame> frame_p = mp_p->track[j].frame;
+                    for(int k=0; k<frame_p->obss.size(); k++){
+                        if(frame_p->obss[k]->id==mp_p->id){
+                            frame_p->obss.erase(frame_p->obss.begin()+k); 
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    void VisualMap::DelFrame(int id){
+        
+    }
+    
+    void VisualMap::GetMPPosiList(std::vector<Eigen::Vector3d>& mp_posis){
+        mp_posis.resize(mappoints.size());
+        for(int i=0; i<mappoints.size(); i++){
+            mp_posis[i]=mappoints[i]->position;
+        }
+    }
 }

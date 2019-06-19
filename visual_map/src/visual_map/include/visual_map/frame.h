@@ -30,6 +30,10 @@ namespace vm{
         Eigen::Matrix4d getPose();
         void setPose(Eigen::Matrix4d pose);
         
+        Eigen::Matrix<double,3, 3> getKMat();
         Eigen::Matrix<double,3, 4> getProjMat();
+        
+        void getDesc(int ind, Eigen::Matrix<unsigned char, Eigen::Dynamic, 1>& desc_out);
+        
     };
 }

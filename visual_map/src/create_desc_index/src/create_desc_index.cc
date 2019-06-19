@@ -13,6 +13,8 @@
 #include "opencv2/opencv.hpp"
 #include <opencv2/core/eigen.hpp>
 #include <fstream>
+#include "visual_map/visual_map.h"
+#include "visual_map/visual_map_seri.h"
 namespace DescIndex
 {
     void findIdByName(std::vector<std::string>& names, int& re_id, std::string query_name){
@@ -26,7 +28,7 @@ namespace DescIndex
         return;
     }
     
-    void create_desc_index(std::string resource_dir){
+    void create_desc_index(std::string resource_dir, std::string map_name){
         std::ifstream in_stream(resource_dir+"/words_projmat.dat", std::ios_base::binary);
         int deserialized_version;
         common::Deserialize(&deserialized_version, &in_stream);
@@ -61,39 +63,23 @@ namespace DescIndex
         //std::shared_ptr<loop_closure::kd_tree_index::KDTreeIndex<10>> index_;
         //index_.reset(new loop_closure::kd_tree_index::KDTreeIndex<10>());
         
-        std::string track_addr=resource_dir+"/track.txt";
-        std::vector<std::vector<int>> tracks;
-        CHAMO::read_track_info(track_addr, tracks);
-        
-        std::string desc_addr=resource_dir+"/desc.txt";
-        std::vector<Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>> descs;
-        CHAMO::read_desc_eigen(desc_addr, descs);
-        
-        std::string kp_addr=resource_dir+"/kps.txt";
-        std::vector<Eigen::Vector2f> kp_uvs;
-        std::vector<std::string> kp_framenames;
-        std::vector<int> kp_octoves;
-        CHAMO::read_kp_info(kp_addr, kp_uvs, kp_framenames, kp_octoves);
-        
-        std::string img_time_addr=resource_dir+"/image_time.txt";
-        std::vector<double> img_timess;
-        std::vector<std::string> imgtime_names;
-        CHAMO::read_img_time(img_time_addr, img_timess, imgtime_names);
-        std::cout<<"img_timess: "<<img_timess.size()<<std::endl;
+        vm::VisualMap map;
+        vm::loader_visual_map(map, resource_dir+"/"+map_name);
+        map.ComputeUniqueId();
 
         
         Eigen::VectorXf projected_desc;
         Eigen::VectorXf projected_desc_c;
         int desc_count=0;
-        for(int i=0; i<tracks.size(); i++){
+        for(int i=0; i<map.mappoints.size(); i++){
             int mp_id=i;
-            for(int j=0; j<tracks[i].size(); j++){
-                int kp_id=tracks[i][j];
-                descriptor_projection::ProjectDescriptor(descs[kp_id], projection_matrix_, 10, projected_desc);
-                int re_id;
-                findIdByName(imgtime_names, re_id, kp_framenames[kp_id]);
-                
-                index_->AddDescriptors(projected_desc, re_id, mp_id);
+            for(int j=0; j<map.mappoints[i]->track.size(); j++){
+                std::shared_ptr<vm::Frame> frame_p=map.mappoints[i]->track[j].frame;
+                int kp_ind=map.mappoints[i]->track[j].kp_ind;
+                Eigen::Matrix<unsigned char, Eigen::Dynamic, 1> raw_descriptor;
+                frame_p->getDesc(kp_ind, raw_descriptor);
+                descriptor_projection::ProjectDescriptor(raw_descriptor, projection_matrix_, 10, projected_desc);
+                index_->AddDescriptors(projected_desc, frame_p->id, mp_id);
                 //std::cout<<projected_desc.transpose()<<std::endl;
                 if(desc_count==0){
                     projected_desc_c=projected_desc;

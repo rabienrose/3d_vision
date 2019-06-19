@@ -42,7 +42,7 @@ void imu_callback(const sensor_msgs::ImuConstPtr& imu_msg)
     }
 }
 
-void image_callback(const sensor_msgs::CompressedImageConstPtr& img_msg)
+void image_callback(const sensor_msgs::ImageConstPtr& img_msg)
 {
     cv_bridge::CvImagePtr cv_ptr;
     cv_ptr = cv_bridge::toCvCopy(img_msg, "bgr8");
@@ -72,7 +72,7 @@ void extract_bag(std::string bag_addr_, std::string img_topic, std::string imu_t
     for(;it!=view.end();it++)
     {
         rosbag::MessageInstance m = *it;
-        sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
+        sensor_msgs::ImagePtr simg = m.instantiate<sensor_msgs::Image>();
         if(simg!=NULL)
         {
             image_callback(simg);
@@ -98,7 +98,7 @@ void subscribe_bag(int argc, char* argv[],std::string img_topic, std::string imu
     ros::Publisher  pose_pub;
     
     imu_subscriber_ = nh.subscribe("imu/raw_data", 1000, imu_callback);
-    img_subscriber_ = nh.subscribe("camera/left/image_raw", 10000, image_callback);
+    img_subscriber_ = nh.subscribe("/camera/image_raw", 10000, image_callback);
     
     ros::start();
     Eigen::Vector3d Pos;
@@ -125,7 +125,7 @@ void subscribe_bag(int argc, char* argv[],std::string img_topic, std::string imu
 int main(int argc, char* argv[])
 {
     visualization::RVizVisualizationSink::init();
-    std::string imgtopic = "camera/left/image_raw";
+    std::string imgtopic = "/camera/image_raw";
     std::string imutopic = "imu/raw_data";
     std::string res_addr = argv[1];
 

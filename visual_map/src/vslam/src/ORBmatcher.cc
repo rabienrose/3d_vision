@@ -26,7 +26,7 @@
 #include<opencv2/features2d/features2d.hpp>
 
 #include "FeatureVector.h"
-
+#include<ctime>
 #include<stdint.h>
 
 using namespace std;
@@ -151,6 +151,8 @@ bool ORBmatcher::CheckDistEpipolarLine(const cv::KeyPoint &kp1,const cv::KeyPoin
 
 int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPointMatches)
 {
+    //clock_t start;
+    //start=clock();
     const vector<MapPoint*> vpMapPointsKF = pKF->GetMapPointMatches();
 
     vpMapPointMatches = vector<MapPoint*>(F.N,static_cast<MapPoint*>(NULL));
@@ -255,7 +257,7 @@ int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPoin
             Fit = F.mFeatVec.lower_bound(KFit->first);
         }
     }
-
+    //std::cout<<"bow time: "<<(clock()-start)/(double)CLOCKS_PER_SEC<<std::endl;
 
     if(mbCheckOrientation)
     {

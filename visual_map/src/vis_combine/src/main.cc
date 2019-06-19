@@ -64,97 +64,10 @@ int main(int argc, char* argv[]){
     ros::init(argc, argv, "vis_loc");
     ros::NodeHandle nh;
     visualization::RVizVisualizationSink::init();
-    std::string res_root1=argv[1];
-    std::string res_root2=argv[2];
-    std::string bag_addr=argv[3];
-    std::string img_topic=argv[4];
-    
-    ORB_SLAM2::ORBVocabulary* mpVocabulary;
-    ORB_SLAM2::KeyFrameDatabase* mpKeyFrameDatabase;
-    ORB_SLAM2::Map* mpMap;
-    ORB_SLAM2::ORBextractor* mpORBextractor;
+    std::string res_root=argv[1];
+    std::string map1_name=argv[2];
+    std::string map2_name=argv[3];
 
-    std::vector<Eigen::Vector3d> re_traj;
-    
-    //chamo::LoadORBMap(res_root, mpVocabulary, mpKeyFrameDatabase, mpMap);
-    cv::Mat mK;
-    cv::Mat mDistCoef;
-    chamo::GetORBextractor(res_root1, &mpORBextractor, mK, mDistCoef);
-    std::shared_ptr<loop_closure::inverted_multi_index::InvertedMultiIndex<5>> index_;
-    Eigen::MatrixXf projection_matrix_;
-    chamo::LoadMap(res_root1, index_, projection_matrix_);
-    
-    std::string posi_addr=res_root1+"/mp_posi_opt.txt";
-    std::vector<Eigen::Vector3d> mp_posis;
-    CHAMO::read_mp_posi(posi_addr, mp_posis);
-    std::cout<<"mp_posis: "<<mp_posis.size()<<std::endl;
-    
-    std::vector<Eigen::Matrix4d> poses_alin2;
-    std::vector<std::string> frame_names2;
-    std::string traj_file_addr2 = res_root2+"/frame_pose_opt.txt";
-    CHAMO::read_traj_file(traj_file_addr2, poses_alin2, frame_names2);
-    std::cout<<"frame_pose_opt2: "<<poses_alin2.size()<<std::endl;
-    
-    std::vector<Eigen::Matrix4d> poses_alin1;
-    std::vector<std::string> frame_names1;
-    std::string traj_file_addr1 = res_root1+"/frame_pose_opt.txt";
-    CHAMO::read_traj_file(traj_file_addr1, poses_alin1, frame_names1);
-    std::cout<<"frame_pose_opt1: "<<poses_alin1.size()<<std::endl;
-    std::vector<Eigen::Vector3d> traj_posi1;
-    for(int i=0; i<poses_alin1.size(); i++){
-        traj_posi1.push_back(poses_alin1.block(0,3,3,1));
-    }
-    show_mp_as_cloud(traj_posi1, "traj_posi1");
-    
-    rosbag::Bag bag;
-    bag.open(bag_addr,rosbag::bagmode::Read);
-    std::vector<std::string> topics;
-    topics.push_back(img_topic);
-    rosbag::View view(bag, rosbag::TopicQuery(topics));
-    int img_count=-1;
-    rosbag::View::iterator it= view.begin();
-    ORB_SLAM2::Frame frame;
-    std::vector<Eigen::Vector3d> align_frame_posi2;
-    std::vector<Eigen::Vector3d> frame_posi2;
-    std::vector<int> frame_to_matched_id2;
-    for(;it!=view.end();it++){
-        if(!ros::ok()){
-            break;
-        }
-        rosbag::MessageInstance m =*it;
-        sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
-        if(simg!=NULL){
-            img_count++;
-            if(img_count<430){
-                continue;
-            }
-            cv_bridge::CvImagePtr cv_ptr;
-            try{
-                cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
-                cv::Mat img= cv_ptr->image;
-                cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
-                std::stringstream ss_time;
-                ss_time<<"img_"<<img_count<<".jpg";
-                chamo::GetAFrame(img, frame, mpORBextractor, mpVocabulary, mK, mDistCoef, ss_time.str(), simg->header.stamp.toSec());
-                //Eigen::Matrix4d re_pose = chamo::MatchWithGlobalMap(frame, mpVocabulary, mpKeyFrameDatabase, mpMap);
-                std::vector<int> inliers_mp;
-                std::vector<int> inliers_kp;
-                Eigen::Matrix4d pose;
-                chamo::MatchImg(mp_posis, index_, projection_matrix_, frame, inliers_mp, inliers_kp, pose);
-                if(inliers_kp.size()>0){
-                    align_frame_posi2.push_back(pose.block(0,3,3,1));
-                    frame_posi2.push_back(poses_alin2.block(0,3,3,1));
-                    frame_to_matched_id2.push_back(align_img_posi2.size()-1);
-                }else{
-                    frame_to_matched_id2.push_back(-1);
-                }
-                
-            }catch (cv_bridge::Exception& e){
-                ROS_ERROR("cv_bridge exception: %s", e.what());
-                return 0;
-            }
-        }
-    }
     
     double scale_12;
     Eigen::Matrix4d T12;

@@ -27,5 +27,18 @@ namespace vm{
         return proj;
     }
     
+    Eigen::Matrix<double,3, 3> Frame::getKMat(){
+        Eigen::Matrix<double,3, 3> k_mat=Eigen::Matrix<double,3, 3>::Identity();
+        k_mat(0,0)=fx;
+        k_mat(1,1)=fy;
+        k_mat(0,2)=cx;
+        k_mat(1,2)=cy;
+        return k_mat;
+    }
+    
+    void Frame::getDesc(int ind, Eigen::Matrix<unsigned char, Eigen::Dynamic, 1>& desc_out){
+        desc_out=descriptors.col(ind);
+    }
+    
 }
 

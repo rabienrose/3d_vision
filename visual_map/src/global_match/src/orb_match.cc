@@ -249,43 +249,8 @@ namespace chamo {
         int desc_count;
         CHAMO::read_image_info(image_config_addr, width, height, desc_scale, desc_level, desc_count);
         std::cout<<"image_conf: "<<width<<":"<<height<<std::endl;
-        std::vector<Eigen::Matrix4d> poses_alin;
-        std::vector<std::string> frame_names;
-        std::string traj_file_addr = res_root+"/frame_pose_opt.txt";
-        CHAMO::read_traj_file(traj_file_addr, poses_alin, frame_names);
-        std::cout<<"frame_pose_opt: "<<poses_alin.size()<<std::endl;
         
-        std::string img_time_addr=res_root+"/image_time.txt";
-        std::vector<double> img_timess;
-        std::vector<std::string> imgtime_names;
-        CHAMO::read_img_time(img_time_addr, img_timess, imgtime_names);
-        std::cout<<"img_timess: "<<img_timess.size()<<std::endl;
         
-        std::string gps_alin_addr=res_root+"/gps_alin.txt";
-        std::vector<int> gps_inliers;
-        std::vector<Eigen::Vector3d> gps_alins;
-        CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers);
-        
-        std::string kp_addr=res_root+"/kps.txt";
-        std::vector<Eigen::Vector2f> kp_uvs;
-        std::vector<std::string> kp_framename;
-        std::vector<int> kp_octoves;
-        CHAMO::read_kp_info(kp_addr, kp_uvs, kp_framename, kp_octoves);
-        std::cout<<"kp_uvs: "<<kp_uvs.size()<<std::endl;
-        
-        std::string posi_addr=res_root+"/mp_posi_opt.txt";
-        std::vector<Eigen::Vector3d> mp_posis;
-        CHAMO::read_mp_posi(posi_addr, mp_posis);
-        std::cout<<"mp_posis: "<<mp_posis.size()<<std::endl;
-        
-        std::string track_addr=res_root+"/track.txt";
-        std::vector<std::vector<int>> tracks;
-        CHAMO::read_track_info(track_addr, tracks);
-        std::cout<<"tracks: "<<tracks.size()<<std::endl;
-        
-        std::string desc_addr=res_root+"/desc.txt";
-        std::vector<Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>> descs;
-        CHAMO::read_desc_eigen(desc_addr, descs);
         
         std::vector<float> cam_info;
         cam_info.push_back(cam_inter(0,0));

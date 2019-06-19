@@ -3,7 +3,6 @@
 #include <Eigen/Dense>
 #include <opencv2/core/core.hpp>
 #include <loc_lib/LocalizationAPI.h>
-#include <rovio/RovioFilter.hpp>
 #include <inverted-multi-index/inverted-index.h>
 #include <inverted-multi-index/inverted-multi-index.h>
 #include <inverted-multi-index/kd-tree-index.h>
@@ -48,55 +47,6 @@ public:
     bool QueryPose(const double timestamp, Eigen::Vector3d& Pos, Eigen::Vector3d& Vel, Eigen::Quaterniond& Ori) const;
 private:
     int UpdateByMap(cv::Mat Img, double timestamp, std::vector<cv::Point3f>& inliers_mp, std::vector<cv::Point2f>& inliers_kp);
-    //kMaxNumFeatures, kPyramidLevels, kFeaturePatchSizePx, kNumCameras, kLocalizationMode
-    typedef rovio::RovioFilter<rovio::FilterState<25, 4, 6, 1, 1>> FilterType; 
-    std::shared_ptr<FilterType> mpFilter_;
-    
-    typedef typename FilterType::mtPrediction::mtMeas mtPredictionMeas;
-    mtPredictionMeas predictionMeas_;
-
-    typedef typename std::tuple_element<0, typename FilterType::mtUpdates>::type mtImgUpdate;
-    mtImgUpdate *mpImgUpdate_;
-
-    typedef typename std::tuple_element<1, typename FilterType::mtUpdates>::type mtPoseUpdate;
-    mtPoseUpdate *mpPoseUpdate_;
-
-    typedef typename mtImgUpdate::mtMeas mtImgMeas;
-    mtImgMeas imgUpdateMeas_;
-    typedef typename mtPoseUpdate::mtMeas mtPoseMeas;
-    mtPoseMeas poseUpdateMeas_;
-
-    typedef typename std::tuple_element<2, typename FilterType::mtUpdates>::type mtVelocityUpdate;
-    typedef typename mtVelocityUpdate::mtMeas mtVelocityMeas;
-    mtVelocityMeas velocityUpdateMeas_;
-
-    struct FilterInitializationState {
-        FilterInitializationState() : WrWM_(V3D::Zero()), state_(State::WaitForInitUsingAccel) {}
-
-        enum class State {
-        // Initialize the filter using accelerometer measurement on the next
-        // opportunity.
-        WaitForInitUsingAccel,
-        // Initialize the filter using an external pose on the next opportunity.
-        WaitForInitExternalPose,
-        // The filter is initialized.
-        Initialized
-        } state_;
-
-        // Buffer to hold the initial pose that should be set during initialization
-        // with the state WaitForInitExternalPose.
-        V3D WrWM_;
-        QPD qMW_;
-
-        explicit operator bool() const { return isInitialized(); }
-
-        bool isInitialized() const { return (state_ == State::Initialized); }
-    };
-    
-    bool updateFilter();
-
-    FilterInitializationState init_state_;    
-    
     std::vector<Eigen::Vector3d> mp_posis;
     std::shared_ptr<loop_closure::inverted_multi_index::InvertedMultiIndex<5>> index_; 
     Eigen::MatrixXf projection_matrix_;

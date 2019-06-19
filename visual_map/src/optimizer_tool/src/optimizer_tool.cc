@@ -12,11 +12,14 @@
 #include "g2o/solvers/linear_solver_dense.h"
 #include "g2o/solvers/linear_solver_eigen.h"
 #include "g2o/types/types_six_dof_expmap.h"
+
 #include "imu_tools.h"
 #include "read_write_data_lib/read_write.h"
 #include "opencv2/opencv.hpp"
 #include "test_imu_tool/visual_tool.h"
 #include "optimizer_tool/optimizer_tool.h"
+#include "visual_map/visual_map.h"
+#include "visual_map/visual_map_seri.h"
 namespace g2o {
     class EdgePosePre : public BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>{
     public:
@@ -333,7 +336,6 @@ namespace OptimizerTool
             if(mp_verts[i]!=0){
                 mp_posis_out[i]=mp_verts[i]->estimate();
             }
-            
         }
         poses_out.resize(kf_verts.size());
         for(int i=0; i<kf_verts.size(); i++){
@@ -341,90 +343,57 @@ namespace OptimizerTool
         }
     }
     
-    void optimize_gps_pose(std::string res_root){
+    void optimize_gps_pose(std::string map_addr, std::string map_name){
         std::cout<<"start lidar opti"<<std::endl;
-        std::string cam_addr=res_root+"/camera_config.txt";
-        Eigen::Matrix3d cam_inter;
-        Eigen::Vector4d cam_distort;
-        Eigen::Matrix4d Tbc;
-        CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
-        std::cout<<"cam_inter: "<<cam_inter<<std::endl;
         
+        vm::VisualMap map;
+        vm::loader_visual_map(map, map_addr+"/"+map_name);
+        map.ComputeUniqueId();
         std::vector<Eigen::Matrix4d> poses_alin;
-        std::vector<std::string> frame_names;
-        std::string traj_file_addr = res_root+"/traj_alin.txt";
-        CHAMO::read_traj_file(traj_file_addr, poses_alin, frame_names);
-        std::cout<<"traj_out: "<<poses_alin.size()<<std::endl;
+        for(int i=0; i<map.frames.size(); i++){
+            poses_alin.push_back(map.frames[i]->getPose());
+        }
         
-        show_pose_as_marker(poses_alin, "pose_in");
-        
-        std::string gps_alin_addr=res_root+"/gps_alin.txt";
         std::vector<int> gps_inliers;
-        std::vector<float> gps_accu;
         std::vector<Eigen::Vector3d> gps_alins;
-        CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers, gps_accu);
-        
-        std::string kp_addr=res_root+"/kps.txt";
-        std::vector<Eigen::Vector2f> kp_uvs;
-        std::vector<std::string> kp_framename;
-        std::vector<int> kp_octoves;
-        CHAMO::read_kp_info(kp_addr, kp_uvs, kp_framename, kp_octoves);
-        std::cout<<"kp_uvs: "<<kp_uvs.size()<<std::endl;
-        
-        std::string track_addr=res_root+"/track.txt";
-        std::vector<std::vector<int>> tracks;
-        CHAMO::read_track_info(track_addr, tracks);
-        std::cout<<"tracks: "<<tracks.size()<<std::endl;
+        for(int i=0; i<map.frames.size(); i++){
+            if(map.frames[i]->gps_accu<10){
+                gps_inliers.push_back(1);
+            }else{
+                gps_inliers.push_back(0);
+            }
+            gps_alins.push_back(map.frames[i]->gps_position);
+        }
         
         std::vector<std::vector<orb_slam::MP_INFO>> mp_infos;
-        for(int i=0; i<tracks.size(); i++){
+        for(int i=0; i<map.mappoints.size(); i++){
             std::vector<orb_slam::MP_INFO> track_info;
-            for(int j=0; j<tracks[i].size(); j++){
-                int kp_id=tracks[i][j];
-                int re_id;
-                findFramePoseByName(frame_names, re_id, kp_framename[kp_id]);
-                if(re_id==-1){
-//                     std::cout<<"kp frame id error: "<<kp_framename[kp_id]<<std::endl;
-                }else{
-                    orb_slam::MP_INFO info;
-                    info.u=kp_uvs[kp_id].x();
-                    info.v=kp_uvs[kp_id].y();
-                    info.octove=kp_octoves[kp_id];
-                    info.frame_id=re_id;
-                    track_info.push_back(info);
-                }
+            for(int j=0; j<map.mappoints[i]->track.size(); j++){
+                orb_slam::MP_INFO info;
+                map.mappoints[i]->track[j].getUV(info.u, info.v, info.octove);
+                info.frame_id=map.mappoints[i]->track[j].frame->id;
+                info.mp_id=map.mappoints[i]->id;
+                track_info.push_back(info);
             }
-//             if(track_info.size()>3){
-                for(int j=0; j<track_info.size(); j++){
-                    track_info[j].mp_id=mp_infos.size();
-                }
-                mp_infos.push_back(track_info);
-//             }else{
-//                 std::vector<orb_slam::MP_INFO> track_info1;
-//                 mp_infos.push_back(track_info1);
-//             }
-            
+            mp_infos.push_back(track_info);
         }
+        Eigen::Matrix3d cam_inter;
+        if(map.frames.size()>0){
+            cam_inter=map.frames[0]->getKMat();
+        }else{
+            std::cout<<"[optimize_gps_pose][error]frame is empty"<<std::endl;
+            exit(0);
+        }
+        
         std::vector<Eigen::Matrix4d> poses_out;
         std::vector<Eigen::Vector3d> mp_posis_out;
         optimize_true_pose(poses_alin, gps_alins, gps_inliers, mp_infos, cam_inter, poses_out, mp_posis_out);
-
-        std::string posi_out_addr=res_root+"/mp_posi_opt.txt";
-        std::ofstream f;
-        f.open(posi_out_addr.c_str());
-        for(int i=0; i<mp_posis_out.size(); i++){
-            f<<mp_posis_out[i](0)<<","<<mp_posis_out[i](1)<<","<<mp_posis_out[i](2)<<std::endl;
-        }
-        f.close();
-        std::string pose_out_addr=res_root+"/frame_pose_opt.txt";
-        f.open(pose_out_addr.c_str());
         for(int i=0; i<poses_out.size(); i++){
-            f<<frame_names[i]<<","<<i
-            <<","<<poses_out[i](0,0)<<","<<poses_out[i](0,1)<<","<<poses_out[i](0,2)<<","<<poses_out[i](0,3)
-            <<","<<poses_out[i](1,0)<<","<<poses_out[i](1,1)<<","<<poses_out[i](1,2)<<","<<poses_out[i](1,3)
-            <<","<<poses_out[i](2,0)<<","<<poses_out[i](2,1)<<","<<poses_out[i](2,2)<<","<<poses_out[i](2,3)
-            <<std::endl;
+            map.frames[i]->setPose(poses_out[i]);
         }
-        f.close();
+        for(int i=0; i<mp_posis_out.size(); i++){
+            map.mappoints[i]->position=mp_posis_out[i];
+        }
+        vm::save_visual_map(map, map_addr+"opti_"+map_name);
     }
 }

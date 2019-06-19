@@ -7,7 +7,8 @@
 int main(int argc, char** argv){
     visualization::RVizVisualizationSink::init();
     std::string resource_dir=argv[1];
-    DescIndex::create_desc_index(resource_dir);
+    std::string map_name=argv[2];
+    DescIndex::create_desc_index(resource_dir, map_name);
     
     return 0;
 }

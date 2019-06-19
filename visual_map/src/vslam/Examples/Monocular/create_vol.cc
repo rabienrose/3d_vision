@@ -6,6 +6,7 @@
 #include "BowVector.h"
 #include "FeatureVector.h"
 #include "FORB.h"
+#include "FFREAK.h"
 
 #include "ORBmatcher.h"
 
@@ -15,11 +16,28 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <dirent.h>
 
-bool debug_mode=false;
-
+typedef DBoW2::TemplatedVocabulary<DBoW2::FFREAK::TDescriptor, DBoW2::FFREAK> 
+  FreakVocabulary;
 typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB> 
   OrbVocabulary;
+  
+int getdir (std::string dir, std::vector<std::string> &files)
+{
+    DIR *dp;
+    struct dirent *dirp;
+    if((dp  = opendir(dir.c_str())) == NULL) {
+        std::cout << "Error opening " << dir << std::endl;
+        return 0;
+    }
+
+    while ((dirp = readdir(dp)) != NULL) {
+        files.push_back(std::string(dirp->d_name));
+    }
+    closedir(dp);
+    return 0;
+}
   
 void changeStructure(const cv::Mat &plain, vector<cv::Mat> &out)
 {
@@ -31,56 +49,73 @@ void changeStructure(const cv::Mat &plain, vector<cv::Mat> &out)
     }
 }
 
-void loadFeatures( std::vector<std::string>& path_to_images,std::string descriptor, std::vector<std::vector<cv::Mat>> &features) throw (std::exception){
+int main(int argc,char **argv)
+{
+    std::string out_file=argv[1];
+    std::string desc_type=argv[2];
+    int max_img=atoi(argv[3]);
+    int k=atoi(argv[4]);
+    int L=atoi(argv[5]);
+    std::vector<std::string> img_root;
+    for (int i=6; i<argc; i++){
+        img_root.push_back(argv[i]);
+        std::cout<<argv[i]<<std::endl;
+    }
+    
+    int total_file_count=0;
+    for(int j=0; j<img_root.size(); j++){
+        std::vector<std::string> files;
+        getdir(img_root[j], files);
+        total_file_count=total_file_count+files.size();
+    }
+    int step=total_file_count/max_img;
+    if(step<0){
+        std::cout<<"[create voc][error]step<0"<<std::endl;
+        return 0;
+    }
+    std::vector<std::string> file_list_vec;
+    for(int j=0; j<img_root.size(); j++){
+        std::vector<std::string> files;
+        getdir(img_root[j], files);
+        for(int k=0; k<files.size(); k=k+step){
+            file_list_vec.push_back(img_root[j]+"/"+files[k]);
+        }
+    }
+    
+    std::cout<<"get all image names: "<<file_list_vec.size()<<std::endl;
+    
+    std::vector<std::vector<cv::Mat>> features;
     ORB_SLAM2::ORBextractor mpORBextractor(2000, 1.2, 8, 20, 7);
-    for(size_t i = 0; i < path_to_images.size(); ++i)
+    for(size_t i = 0; i < file_list_vec.size(); ++i)
     {
         cv::Mat descriptors;
         std::vector<cv::KeyPoint> keypoints;
-        //std::cout<<"reading image: "<<path_to_images[i]<<std::endl;
-        cv::Mat image = cv::imread(path_to_images[i], 0);
-        mpORBextractor.ExtractDesc(image, cv::Mat() ,keypoints, descriptors, false);
-        //cv::Ptr<cv::ORB> orb = cv::ORB::create();
-        //orb->detectAndCompute(image, cv::Mat(), keypoints, descriptors);
+        cv::Mat image = cv::imread(file_list_vec[i], 0);
+        if(image.empty()){
+            continue;
+        }
+        bool is_orb=true;
+        if(desc_type!="orb"){
+            is_orb=false;
+        }
+        mpORBextractor.ExtractDesc(image, cv::Mat() ,keypoints, descriptors, is_orb);
         std::vector<cv::Mat> out;
         changeStructure(descriptors, out);
-        std::cout<<"img: "<<i<<std::endl;
         features.push_back(out);
     }
-}
-
-void testVocCreation(std::vector<std::vector<cv::Mat>> &features, std::string out_addr)
-{
-    const int k = 15;
-    const int L = 3;
+    
+    std::cout<<"extract desc finished"<<std::endl;
+    
     const DBoW2::WeightingType weight = DBoW2::TF_IDF;
     const DBoW2::ScoringType score = DBoW2::L1_NORM;
-    OrbVocabulary voc(k, L, weight, score);
-    voc.create(features);
-    voc.save(out_addr+"/small_voc.yml");
-}
-
-std::vector<std::string> get_file_list(std::string img_root){
-    std::vector<std::string> file_list_vec;
-    for(int i=0; i<4000; i++){
-        std::stringstream ss;
-        ss << i;
-        //std::cout<<img_root + "/images/img_"+ss.str() + ".jpg"<<std::endl;
-        file_list_vec.push_back(img_root + "/images/img_"+ss.str() + ".jpg");
-    }
-    
-    return file_list_vec;
-}
-
-int main(int argc,char **argv)
-{
-    std::vector<std::string> file_list_vec = get_file_list(argv[1]);
-    try{
-        std::vector<std::vector<cv::Mat>> features;
-        loadFeatures(file_list_vec, "orb", features);
-        testVocCreation(features, argv[1]);
-    }catch(std::exception &ex){
-        std::cerr<<ex.what()<<std::endl;
+    if(desc_type=="orb"){
+        OrbVocabulary voc(k, L, weight, score);
+        voc.create(features);
+        voc.saveToBinaryFile(out_file);
+    }else{
+        FreakVocabulary voc(k, L, weight, score);
+        voc.create(features);
+        voc.saveToBinaryFile(out_file);
     }
 
     return 0;

@@ -116,7 +116,7 @@ Tracking::Tracking(ORBVocabulary* pVoc, Map *pMap, KeyFrameDatabase* pKFDB, cons
 
     mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
-    mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+    mpIniORBextractor = new ORBextractor(4*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
     cout << endl  << "ORB Extractor Parameters: " << endl;
     cout << "- Number of Features: " << nFeatures << endl;
@@ -367,6 +367,7 @@ void Tracking::Track()
                 mKfImage=mImGray;
                 last_kf=mCurrentFrame.mpReferenceKF;
                 created_new_kf=true;
+                //TrackReferenceKeyFrame();
             }else{
                 created_new_kf=false;
                 
@@ -653,6 +654,11 @@ bool Tracking::TrackReferenceKeyFrame()
                 nmatchesMap++;
         }
     }
+//     static int match_countsss=0;
+//     static int match_timesss=0;
+//     match_timesss++;
+//     match_countsss=match_countsss+nmatchesMap;
+//     std::cout<<"SearchByBoW: "<<match_countsss/match_timesss<<std::endl;
 
     return nmatchesMap>=10;
 }
@@ -1079,7 +1085,6 @@ bool Tracking::Relocalization()
         else
         {
             int nmatches = matcher.SearchByBoW(pKF,mCurrentFrame,vvpMapPointMatches[i]);
-            std::cout<<"SearchByBoW: "<<nmatches<<std::endl;
             if(nmatches<5)
             {
                 vbDiscarded[i] = true;

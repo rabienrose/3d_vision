@@ -4,5 +4,5 @@
 #include <math.h>
 namespace DescIndex
 {
-    void create_desc_index(std::string res_root);
+    void create_desc_index(std::string resource_dir, std::string map_name);
 }

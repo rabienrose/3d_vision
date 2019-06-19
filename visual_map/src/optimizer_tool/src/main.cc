@@ -8,27 +8,8 @@
 
 
 int main(int argc, char* argv[]) {
-    std::string res_root=argv[1];
-    std::cout<<res_root<<std::endl;
+    std::string map_addr=argv[1];
+    std::string map_name=argv[2];
     visualization::RVizVisualizationSink::init();
-    
-    Eigen::Matrix3d Rwi_=Eigen::Matrix3d::Identity();
-
-    //OptimizerTool::optimize_imu(res_root);
-    OptimizerTool::optimize_gps_pose(res_root);
-    //OptimizerTool::optimize_lidar_pose(res_root);  
-    //show_pose_as_marker(pose_vec, "pose_cam");
-    
-    std::string posi_addr=res_root+"/mp_posi_opt.txt";
-    std::vector<Eigen::Vector3d> mp_posis;
-    CHAMO::read_mp_posi(posi_addr, mp_posis);
-    show_mp_as_cloud(mp_posis, Rwi_, "chamo_target");
-    
-    std::string gps_alin_addr=res_root+"/gps_alin.txt";
-    std::vector<int> gps_inliers;
-    std::vector<Eigen::Vector3d> gps_alins;
-    std::vector<float> gps_accu;
-    CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers, gps_accu);
-    show_mp_as_cloud(gps_alins, Rwi_, "/chamo/gps");
-    //ros::spin();
+    OptimizerTool::optimize_gps_pose(map_addr, map_name);
 }
