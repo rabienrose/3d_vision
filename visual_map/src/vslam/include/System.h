@@ -5,6 +5,7 @@
 #include<thread>
 #include "Eigen/Dense"
 #include "ORBVocabulary.h"
+#include "Frame.h"
 namespace ORB_SLAM2
 {
 class Map;
@@ -16,13 +17,15 @@ class KeyFrameDatabase;
 class System
 {
 public:
-    System(const std::string &strVocFile, const std::string &strSettingsFile);
+    System(const std::string &strVocFile, const std::string &strSettingsFile,bool flag=true);
     void saveResult(string map_filename);
     cv::Mat TrackMonocular(const cv::Mat &im, const double &timestamp, std::string file_name="");
     void getPC(std::vector<Eigen::Vector3d>& pcs);
     void getTraj(std::vector<Eigen::Vector3d>& posis, std::vector<Eigen::Quaterniond>& quas);
     void getDebugImg(cv::Mat& img, float& err, int& count, int & mp_count_, int& kf_count_);
-    
+    Frame getCurrentFrame(); 
+    Map*  getMapPointer();
+    Tracking* getTrackPointer();
 private:
     ORBVocabulary* mpVocabulary;
     KeyFrameDatabase* mpKeyFrameDatabase;

@@ -21,6 +21,14 @@
 #include "global_match/global_match.h"
 #include "visual_map/visual_map.h"
 #include "visual_map/visual_map_seri.h"
+
+#include <ctime>
+struct raw_match
+{
+    double timestamp;
+    int gmatchnum;
+    double runtime;
+};
               
 void printFrameInfo(ORB_SLAM2::Frame& frame){
     std::cout<<"kp count: "<<frame.mvKeysUn.size()<<std::endl;
@@ -51,6 +59,23 @@ void show_pose_as_marker(std::vector<Eigen::Vector3d>& posis, std::vector<Eigen:
     }
     visualization::publishVerticesFromPoseVector(poses_vis, visualization::kDefaultMapFrame, "vertices", topic);
 }
+
+void Export_Raw_MatchFile(std::string& path, std::vector<raw_match>& time_matchnum_vec)
+{
+    std::ofstream outfile_raw;
+    outfile_raw.open(path + "/raw_match.txt");
+    std::vector<raw_match>::iterator time_matchnum_itor = time_matchnum_vec.begin();
+    for(;time_matchnum_itor != time_matchnum_vec.end();time_matchnum_itor++)
+    {
+        std::stringstream raw_info;
+        raw_info << std::setprecision(16) << time_matchnum_itor->timestamp << "," ;
+        raw_info << time_matchnum_itor->gmatchnum << ",";
+        raw_info << time_matchnum_itor->runtime << std::endl;
+        outfile_raw << raw_info.str();
+    }
+    
+    outfile_raw.close();
+}
             
 int main(int argc, char* argv[]){
     ros::init(argc, argv, "vis_loc");
@@ -58,14 +83,14 @@ int main(int argc, char* argv[]){
     visualization::RVizVisualizationSink::init();
     std::string res_root=argv[1];
     std::string map_name=argv[2];
-    std::string bag_name=argv[3];
+    std::string bag_addr=argv[3];
     std::string img_topic=argv[4];
     std::string match_method=argv[5];
     
     vm::VisualMap map;
-    vm::loader_visual_map(map, res_root+"/"+map_name);
+    vm::loader_visual_map(map, map_name);
     std::vector<Eigen::Vector3d> mp_posis;
-    map->GetMPPosiList(mp_posis);
+    map.GetMPPosiList(mp_posis);
     
     ORB_SLAM2::ORBVocabulary* mpVocabulary;
     ORB_SLAM2::KeyFrameDatabase* mpKeyFrameDatabase;
@@ -95,6 +120,8 @@ int main(int argc, char* argv[]){
     int img_count=-1;
     rosbag::View::iterator it= view.begin();
     ORB_SLAM2::Frame frame;
+    std::vector<Eigen::Vector3d> re_posis;
+    std::vector<raw_match> time_matchnum_vec;
     for(;it!=view.end();it++){
         if(!ros::ok()){
             break;
@@ -110,6 +137,7 @@ int main(int argc, char* argv[]){
             try{
                 cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
                 cv::Mat img= cv_ptr->image;
+                double timestamp = simg->header.stamp.toSec();
                 cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
                 std::stringstream ss_time;
                 ss_time<<"img_"<<img_count<<".jpg";
@@ -118,16 +146,33 @@ int main(int argc, char* argv[]){
                 std::vector<int> inliers_mp;
                 std::vector<int> inliers_kp;
                 Eigen::Matrix4d pose;
+                clock_t start = clock();
                 if(match_method=="orb"){
-                    chamo::MatchImg(mp_posis, index_, projection_matrix_, frame, inliers_mp, inliers_kp, pose);
-                }else{
                     pose = chamo::MatchWithGlobalMap(frame, mpVocabulary, mpKeyFrameDatabase, mpMap);
+                }else{
+                    chamo::MatchImg(mp_posis, index_, projection_matrix_, frame, inliers_mp, inliers_kp, pose);
                 }
+                double dur = (double)(clock() - start)/CLOCKS_PER_SEC;
+
+                raw_match su = {0};
+                su.runtime = dur;
+                su.timestamp = timestamp;
+                su.gmatchnum = inliers_mp.size();
+                time_matchnum_vec.push_back(su);
+                if(inliers_mp.size()>=20){
+                    re_posis.push_back(pose.block(0,3,3,1));
+                }
+                if(img_count%5==0){
+                    show_mp_as_cloud(re_posis, "global_match_test");
+                }
+                //std::cout<<"match count: "<<inliers_mp.size()<<std::endl;
             }catch (cv_bridge::Exception& e){
                 ROS_ERROR("cv_bridge exception: %s", e.what());
                 return 0;
             }
         }
     }
+    
+    Export_Raw_MatchFile(res_root, time_matchnum_vec);
     return 0;
 }

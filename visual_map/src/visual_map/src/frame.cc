@@ -37,7 +37,18 @@ namespace vm{
     }
     
     void Frame::getDesc(int ind, Eigen::Matrix<unsigned char, Eigen::Dynamic, 1>& desc_out){
+        if(ind>=descriptors.cols()){
+            std::cout<<"[Frame::getDesc][error]ind>=descriptors.cols()"<<std::endl;
+            exit(0);
+        }
         desc_out=descriptors.col(ind);
+    }
+    
+    void Frame::AddKPAndDesc(cv::KeyPoint kp, Eigen::Matrix<unsigned char, Eigen::Dynamic, 1>& desc, std::shared_ptr<MapPoint> mp){
+        descriptors.conservativeResize(desc.rows(), descriptors.cols()+1);
+        descriptors.col(descriptors.cols()-1) = desc;
+        obss.push_back(mp);
+        kps.push_back(kp);
     }
     
 }

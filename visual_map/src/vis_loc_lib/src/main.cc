@@ -15,10 +15,9 @@
 #include "KeyFrame.h"
 #include "Converter.h"
 #include "ros/ros.h"
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
 #include "vis_loc.h"
-
-double pose_time;
-bool init_flag = false;
 
 ORB_SLAM2::ORBVocabulary* mpVocabulary;
 ORB_SLAM2::KeyFrameDatabase* mpKeyFrameDatabase;
@@ -26,8 +25,9 @@ ORB_SLAM2::Map* mpMap;
 ORB_SLAM2::Tracking* mpTracker;
 ORB_SLAM2::LocalMapping* mpLocalMapper;
 int img_count;
-
-std::vector<Eigen::Vector3d> re_traj;
+visual_loc::VisualLocalization VisualLocalization;
+std::vector<Eigen::Vector3d> traj;
+std::vector<Eigen::Vector3d> local_traj;
 
 void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic){
     Eigen::Matrix3Xd points;
@@ -77,31 +77,22 @@ void image_callback(const sensor_msgs::CompressedImageConstPtr& img_msg)
     cv::Mat img = cv_ptr->image;
     double timestamp = img_msg->header.stamp.toSec();
     cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
-    std::stringstream ss;
-    ss<<"img_"<<img_count<<".jpg";
-    cv::Mat Tcw = mpTracker->Loc(img,timestamp, ss.str());
-    if(!Tcw.empty()){
-        cv::Mat Twc= Tcw.inv();
-        Eigen::Vector3d re_posi;
-        re_posi(0)=Twc.at<float>(0,3);
-        re_posi(1)=Twc.at<float>(1,3);
-        re_posi(2)=Twc.at<float>(2,3);
-        re_traj.push_back(re_posi);
-        show_mp_as_cloud(re_traj, "temp_re");
+    cv::Mat Tcw;
+    std::stringstream img_name;
+    img_name<<"img_"<<img_count<<".jpg";
+    Eigen::Vector3d output_posi;
+    string img_str = img_name.str();
+    bool update = VisualLocalization.AddImage(img,img_str,timestamp,output_posi);
+    if(update){
+        Eigen::Vector3d posi = VisualLocalization.GetGlobalPosition(img_str);
+        traj.push_back(posi);
+        local_traj.push_back(output_posi);
+        show_mp_as_cloud(VisualLocalization.global_posis, "traj");
+        // show_mp_as_cloud(local_traj, "local_traj");
+        show_mp_as_cloud(VisualLocalization.local_posis, "local_traj");
     }
     
     img_count++;
-}
-
-void findIdByName(std::vector<std::string>& names, int& re_id, std::string query_name){
-    re_id=-1;
-    for(int i=0; i<names.size(); i++){
-        if(names[i]==query_name){
-            re_id=i;
-            return;
-        }
-    }
-    return;
 }
 
 void visMap(){
@@ -199,177 +190,84 @@ int main(int argc, char* argv[]){
     ros::init(argc, argv, "vis_loc");
     ros::NodeHandle nh;
     visualization::RVizVisualizationSink::init();
-    std::string res_root=argv[1];
-    std::string strVocFile=res_root+"/orbVoc.bin";
-    mpVocabulary = new ORB_SLAM2::ORBVocabulary();
-    bool bVocLoad= mpVocabulary->loadFromBinaryFile(strVocFile);
-    if(bVocLoad==false){
-        std::cout<<"try binary voc failed, use txt format to load."<<std::endl;
-        mpVocabulary->load(strVocFile);
-    }
-    
-    mpKeyFrameDatabase = new ORB_SLAM2::KeyFrameDatabase(*mpVocabulary);
-    mpMap = new ORB_SLAM2::Map();
-    mpTracker = new ORB_SLAM2::Tracking(mpVocabulary, mpMap, mpKeyFrameDatabase, res_root+"/vslam.yaml",0 ,false);
-    mpLocalMapper = new ORB_SLAM2::LocalMapping(mpMap, true);
+    std::string work_root = argv[1];
+    std::string bag_addr  = argv[2];
+    VisualLocalization.SetInit(work_root);
+    VisualLocalization.LoadMapLabMap();
 
-    mpTracker->SetLocalMapper(mpLocalMapper);
-    mpLocalMapper->SetTracker(mpTracker);
-    
-    std::string cam_addr=res_root+"/camera_config.txt";
-    Eigen::Matrix3d cam_inter;
-    Eigen::Vector4d cam_distort;
-    Eigen::Matrix4d Tbc;
-    CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
-    std::cout<<"cam_inter: "<<cam_inter<<std::endl;
-    
-    std::string image_config_addr=res_root+"/image_conf.txt";
-    int width;
-    int height; 
-    float desc_scale;
-    int desc_level; 
-    int desc_count;
-    CHAMO::read_image_info(image_config_addr, width, height, desc_scale, desc_level, desc_count);
-    std::cout<<"image_conf: "<<width<<":"<<height<<std::endl;
-    std::vector<Eigen::Matrix4d> poses_alin;
-    std::vector<std::string> frame_names;
-    std::string traj_file_addr = res_root+"/frame_pose_opt.txt";
-    CHAMO::read_traj_file(traj_file_addr, poses_alin, frame_names);
-    std::cout<<"frame_pose_opt: "<<poses_alin.size()<<std::endl;
-    
-    std::string img_time_addr=res_root+"/image_time.txt";
-    std::vector<double> img_timess;
-    std::vector<std::string> imgtime_names;
-    CHAMO::read_img_time(img_time_addr, img_timess, imgtime_names);
-    std::cout<<"img_timess: "<<img_timess.size()<<std::endl;
-    
-    std::string gps_alin_addr=res_root+"/gps_alin.txt";
-    std::vector<int> gps_inliers;
-    std::vector<Eigen::Vector3d> gps_alins;
-    CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers);
-    
-    std::string kp_addr=res_root+"/kps.txt";
-    std::vector<Eigen::Vector2f> kp_uvs;
-    std::vector<std::string> kp_framename;
-    std::vector<int> kp_octoves;
-    CHAMO::read_kp_info(kp_addr, kp_uvs, kp_framename, kp_octoves);
-    std::cout<<"kp_uvs: "<<kp_uvs.size()<<std::endl;
-    
-    std::string posi_addr=res_root+"/mp_posi_opt.txt";
-    std::vector<Eigen::Vector3d> mp_posis;
-    CHAMO::read_mp_posi(posi_addr, mp_posis);
-    std::cout<<"mp_posis: "<<mp_posis.size()<<std::endl;
-    
-    std::string track_addr=res_root+"/track.txt";
-    std::vector<std::vector<int>> tracks;
-    CHAMO::read_track_info(track_addr, tracks);
-    std::cout<<"tracks: "<<tracks.size()<<std::endl;
-    
-    std::string desc_addr=res_root+"/desc.txt";
-    std::vector<Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>> descs;
-    CHAMO::read_desc_eigen(desc_addr, descs);
-    
-    std::vector<float> cam_info;
-    cam_info.push_back(cam_inter(0,0));
-    cam_info.push_back(cam_inter(1,1));
-    cam_info.push_back(cam_inter(2,0));
-    cam_info.push_back(cam_inter(2,1));
-    cam_info.push_back(width);
-    cam_info.push_back(height);
-    std::vector<ORB_SLAM2::KeyFrame*> kfs;
-    for(int i=0; i<poses_alin.size(); i++){
-        int time_id;
-        findIdByName(imgtime_names, time_id, frame_names[i]);
-        if(time_id==-1){
-            std::cout<<"imgtime_names find error: "<<frame_names[i]<<std::endl;
-            return 0;
-        }
-        ORB_SLAM2::KeyFrame* pKF = new ORB_SLAM2::KeyFrame();
-        std::vector<cv::KeyPoint> keysUn;
-        cv::Mat descriptors;
-        cv::Mat pose_c_w=ORB_SLAM2::Converter::toCvMat(poses_alin[i]).inv();
-        pKF->setData(i, img_timess[time_id], keysUn, cam_info, frame_names[i], desc_level, desc_scale, pose_c_w, 
-                     descriptors, mpMap, mpKeyFrameDatabase, mpVocabulary);
-        mpMap->AddKeyFrame(pKF);
-        kfs.push_back(pKF);
-    }
-    
-    std::map<std::string, int> frame_names_to_ids;
-    
-    for(int i=0; i<frame_names.size(); i++){
-        frame_names_to_ids[frame_names[i]]=i;
-    }
-
-    for(int i=0; i<tracks.size(); i++){
-        int mp_id=i;
-        ORB_SLAM2::MapPoint* pMP=NULL;
-        for (int j=0; j<tracks[i].size(); j++){
-            //std::cout<<j<<":"<<tracks[i].size()<<std::endl;
-            int kp_id=tracks[i][j];
-            int kpframe_id;
-            findIdByName(frame_names, kpframe_id, kp_framename[kp_id]);
-            //kpframe_id=frame_names_to_ids[kp_framename[kp_id]];
-            if(kpframe_id==-1){
-                continue;
-            }
-            
-            if(pMP==NULL){
-                pMP = new ORB_SLAM2::MapPoint(ORB_SLAM2::Converter::toCvMat(mp_posis[mp_id]),kfs[kpframe_id],mpMap);
-            }
-            
-            cv::KeyPoint kp;
-            kp.pt.x=kp_uvs[kp_id](0);
-            kp.pt.y=kp_uvs[kp_id](1);
-            kp.octave=kp_octoves[kp_id];
-            
-            cv::Mat desc(1,descs[kp_id].rows(), CV_8UC1);
-            for(int k=0; k<descs[kp_id].rows(); k++){
-                desc.at<unsigned char>(k)=descs[kp_id](k, 0);
-            }
-            int kp_inframe_id = kfs[kpframe_id]->AddKP(kp, desc);
-            kfs[kpframe_id]->AddMapPoint(pMP,kp_inframe_id);
-            pMP->AddObservation(kfs[kpframe_id],kp_inframe_id);     
-        }
-        mpMap->AddMapPoint(pMP);
-    } 
-    
-    std::vector<ORB_SLAM2::MapPoint*> mps_all=mpMap->GetAllMapPoints();
-    for(int i=0; i<mps_all.size(); i++){
-        mps_all[i]->ComputeDistinctiveDescriptors();
-        mps_all[i]->UpdateNormalAndDepth();
-    }
-    
-    vector<ORB_SLAM2::KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
-    for (vector<ORB_SLAM2::KeyFrame*>::iterator it = vpKFs.begin(); it != vpKFs.end(); ++it){
-        (*it)->finishDataSetting();
-        mpKeyFrameDatabase->add((*it));
-    }
-    for (vector<ORB_SLAM2::KeyFrame*>::iterator it = vpKFs.begin(); it != vpKFs.end(); ++it){
-        (*it)->UpdateConnections();
-    }
-    std::cout<<"map loaded!"<<std::endl;
-    visMap();
-    
-    
     img_count=0;
-        
-    ros::Rate loop_rate(1000);
-    ros::Subscriber img_subscriber_;
-    ros::Publisher  pose_pub;
-    img_subscriber_ = nh.subscribe("img", 1, image_callback);
+
     
-    ros::start();
-    Eigen::Vector3d Pos;
-    Eigen::Vector3d Vel;
-    Eigen::Quaterniond Ori;
-    int counter = 0;
-    while (ros::ok()) 
-    {
-        ros::spinOnce();
-        loop_rate.sleep();
+    rosbag::Bag bag;
+    bag.open(bag_addr,rosbag::bagmode::Read);
+    std::vector<std::string> topics;
+    topics.push_back("img");
+    rosbag::View view(bag, rosbag::TopicQuery(topics));
+    int img_count= 0;
+    int skip = 0;
+    rosbag::View::iterator it= view.begin();
+
+    for(;it!=view.end();it++){
+        if(!ros::ok()){
+            break;
+        }
+        // if(skip++ < 3390) continue;
+        // if(skip++ % 3 != 0) continue;
+        rosbag::MessageInstance m =*it;
+        sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
+        if(simg!=NULL){
+            cv_bridge::CvImagePtr cv_ptr;
+            try{
+                cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
+                cv::Mat img= cv_ptr->image;
+                cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
+                double timestamp = simg->header.stamp.toSec();
+                std::stringstream img_name;
+                img_name<<"img_"<<img_count<<".jpg";
+                LOG(INFO)<<img_name.str();
+                Eigen::Vector3d output_posi;
+                string img_str = img_name.str();
+                bool update = VisualLocalization.AddImage(img,img_str,timestamp,output_posi);
+                if(update){
+                    Eigen::Vector3d posi = VisualLocalization.GetGlobalPosition(img_str);
+                    traj.push_back(posi);
+                    local_traj.push_back(output_posi);
+                    // show_mp_as_cloud(VisualLocalization.global_posis, "global_traj");
+                    show_mp_as_cloud(VisualLocalization.local_posis, "local_traj");
+                    show_mp_as_cloud(traj,"global_traj");
+                    std::vector<Eigen::Quaterniond> global_rot,local_rot;
+                    std::vector<Eigen::Vector3d> global_tran,local_tran;
+                    for(int i = 0; i < VisualLocalization.global_poses.size(); i++)
+                    {
+                        Eigen::Matrix3d rot = VisualLocalization.global_poses[i].block(0,0,3,3);
+                        Eigen::Quaterniond q(rot);
+                        Eigen::Vector3d tran = VisualLocalization.global_poses[i].block(0,3,3,1);
+                        global_rot.push_back(q);
+                        global_tran.push_back(tran);
+                    }
+                    for(int i = 0; i < VisualLocalization.local_poses.size(); i++)
+                    {
+                        Eigen::Matrix3d rot = VisualLocalization.local_poses[i].block(0,0,3,3);
+                        Eigen::Quaterniond q(rot);
+                        Eigen::Vector3d tran = VisualLocalization.local_poses[i].block(0,3,3,1);
+                        local_rot.push_back(q);
+                        local_tran.push_back(tran);
+                    }
+                    show_pose_as_marker(global_tran, global_rot, "global");
+                    show_pose_as_marker(local_tran, local_rot, "local");
+                    show_mp_as_cloud(local_traj,"realtime");
+                    show_mp_as_cloud(VisualLocalization.mp_before, "mp_before");
+                    show_mp_as_cloud(VisualLocalization.mp_after, "mp_after");
+                }
+                
+                img_count++;
+                
+            }catch (cv_bridge::Exception& e){
+                ROS_ERROR("cv_bridge exception: %s", e.what());
+                return 0;
+            }
+        }
     }
-    ros::shutdown();
-    
 
     return 0;
 }

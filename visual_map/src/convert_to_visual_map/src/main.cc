@@ -141,13 +141,24 @@ int main(int argc, char* argv[]) {
             kp.pt.y=kp_uvs[temp_old_kp_id](1);
             kp.octave=kp_octoves[temp_old_kp_id];
             frame_p->kps.push_back(kp);
-            frame_p->descriptors.block(0,j,desc_width, 1)=descs[i].block(0,temp_old_kp_id,desc_width, 1);
+            frame_p->descriptors.block(0,j,desc_width, 1)=descs[temp_old_kp_id];
             frame_p->obss.push_back(nullptr);
+            if(temp_old_kp_id>=old_to_new_kp_map.size()){
+                std::cout<<"[convert_to_visual_mp][error]temp_old_kp_id>=old_to_new_kp_map.size()"<<std::endl;
+                exit(0);
+            }
             old_to_new_kp_map[temp_old_kp_id]=j;
             old_to_new_frame_map[temp_old_kp_id]=frame_p;
         }
         map.frames.push_back(frame_p);
     }
+    int null_count=0;
+    for(int i=0; i<old_to_new_frame_map.size(); i++){
+        if(old_to_new_frame_map[i]==nullptr){
+            null_count++;
+        }
+    }
+    std::cout<<"null kp count: "<<null_count<<std::endl;
     
     for(int i=0; i<mp_posis.size(); i++){
         std::shared_ptr<vm::MapPoint> mappoint_p;
@@ -155,9 +166,23 @@ int main(int argc, char* argv[]) {
         mappoint_p->position=mp_posis[i];
         for(int j=0; j<tracks[i].size(); j++){
             vm::TrackItem track_item;
+            if(tracks[i][j]>=old_to_new_frame_map.size()){
+                std::cout<<"[convert_to_visual_mp][error]tracks[i][j]>=old_to_new_kp_map.size()"<<std::endl;
+                exit(0);
+            }
             track_item.kp_ind = old_to_new_kp_map[tracks[i][j]];
+            
             track_item.frame = old_to_new_frame_map[tracks[i][j]];
+            if(track_item.frame==nullptr){
+                //std::cout<<"[convert_to_visual_mp][error]track_item.frame==nullptr)"<<std::endl;
+                continue;
+            }
             mappoint_p->track.push_back(track_item);
+            
+            if(track_item.kp_ind>=track_item.frame->obss.size()){
+                std::cout<<"[convert_to_visual_mp][error]track_item.kp_ind>=track_item.frame->obss.size()"<<std::endl;
+                exit(0);
+            }
             track_item.frame->obss[track_item.kp_ind]=mappoint_p;
         }
         map.mappoints.push_back(mappoint_p);

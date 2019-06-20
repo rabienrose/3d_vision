@@ -30,7 +30,7 @@ namespace ORB_SLAM2
 
 LocalMapping::LocalMapping(Map *pMap, const float bMonocular):
     mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
-    mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true)
+    mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true),doLoop(true)
 {
 }
 
@@ -43,13 +43,19 @@ void LocalMapping::SetTracker(Tracking *pTracker)
 {
     mpTracker=pTracker;
 }
-
+void LocalMapping::SetdoLoop(bool flag)
+{
+    doLoop = flag;
+}
 void LocalMapping::DoMapping(){
     mbFinished = false;
     // Check if there are keyframes in the queue
     while(CheckNewKeyFrames())
     {
         // BoW conversion and insertion in Map
+        clock_t start,finish;
+        double totaltime;
+
         ProcessNewKeyFrame();
 
         // Check recent MapPoints
@@ -63,9 +69,10 @@ void LocalMapping::DoMapping(){
             // Find more matches in neighbor keyframes and fuse point duplications
             SearchInNeighbors();
         }
-
+        
         mbAbortBA = false;
 
+        start=clock();
         if(!CheckNewKeyFrames() && !stopRequested()){
             // Local BA
             if(mpMap->KeyFramesInMap()>2){
@@ -73,10 +80,15 @@ void LocalMapping::DoMapping(){
             }
             KeyFrameCulling();
         }
-        mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
+        finish=clock();
+        totaltime=(double)(finish-start)/CLOCKS_PER_SEC;
+//         std::cout<<"LocalBundleAdjustment Time: "<<totaltime<<std::endl;
         
+        if(doLoop)
+            mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);        
     }
-    mpLoopCloser->DoLoopDetect();
+    if(doLoop)
+        mpLoopCloser->DoLoopDetect();
 
 }
 
@@ -266,6 +278,8 @@ void LocalMapping::CreateNewMapPoints()
     const float ratioFactor = 1.5f*mpCurrentKeyFrame->mfScaleFactor;
 
     int nnew=0;
+    clock_t start,finish;
+    double totaltime;
 
     // Search matches with epipolar restriction and triangulate
     for(size_t i=0; i<vpNeighKFs.size(); i++)
@@ -302,7 +316,7 @@ void LocalMapping::CreateNewMapPoints()
         // Search matches that fullfil epipolar constraint
         vector<pair<size_t,size_t> > vMatchedIndices;
         matcher.SearchForTriangulation(mpCurrentKeyFrame,pKF2,F12,vMatchedIndices,false);
-
+ 
         cv::Mat Rcw2 = pKF2->GetRotation();
         cv::Mat Rwc2 = Rcw2.t();
         cv::Mat tcw2 = pKF2->GetTranslation();

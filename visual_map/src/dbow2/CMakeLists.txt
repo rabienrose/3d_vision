@@ -8,7 +8,8 @@ add_definitions(--std=c++11 -Wno-unknown-pragmas)
 
 set(SRCS_DBOW2
   DBoW2/BowVector.cpp
-  DBoW2/FORB.cpp      
+  DBoW2/FORB.cpp   
+  DBoW2/FFREAK.cpp  
   DBoW2/FeatureVector.cpp
   DBoW2/ScoringObject.cpp)
 

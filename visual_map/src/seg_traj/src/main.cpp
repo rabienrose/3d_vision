@@ -71,7 +71,7 @@ int main(int argc, char* argv[]){
                 pc_frame_transformed_temp.push_back(posi_gps_homo.block(0,0,3,1));
             }
             //std::cout<<"avg_err: "<<cur_frame_id<<" | "<<pc_gps.size()<<" | "<<avg_err<<std::endl;
-            if(avg_err>0.1 || pc_frame_transformed_temp.size()>max_seg_count || cur_frame_id==map.frames.size()-1){
+            if(avg_err>1 || pc_frame_transformed_temp.size()>max_seg_count || cur_frame_id==map.frames.size()-1){
                 std::cout<<"[seg_traj]start new seg: "<<submaps.size()<<std::endl;
                 int extend_start=last_frame_id-10;
                 if(extend_start<0){

@@ -51,6 +51,7 @@ public:
              KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool bReuse);
 
     cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp, std::string file_name="");
+    cv::Mat GrabImageMonocular(Frame mframe);
     cv::Mat Loc(const cv::Mat &im, const double &timestamp, std::string file_name="");
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
@@ -64,6 +65,9 @@ public:
     // Use this function if you have deactivated local mapping and you only want to localize the camera.
     void InformOnlyTracking(const bool &flag);
 
+    void SetLastFramePose();
+    
+    std::vector<MapPoint*> GetmvpLocalMapPoints();
 
 public:
 
@@ -95,6 +99,7 @@ public:
     std::vector<cv::Point2f> mvbPrevMatched;
     std::vector<cv::Point3f> mvIniP3D;
     Frame mInitialFrame;
+    bool is_orb;
 
     // Lists used to recover the full camera trajectory at the end of the execution.
     // Basically we store the reference keyframe for each frame and its relative transformation

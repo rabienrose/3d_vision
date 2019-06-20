@@ -26,7 +26,7 @@
 #include<opencv2/features2d/features2d.hpp>
 
 #include "FeatureVector.h"
-#include<ctime>
+
 #include<stdint.h>
 
 using namespace std;
@@ -151,8 +151,6 @@ bool ORBmatcher::CheckDistEpipolarLine(const cv::KeyPoint &kp1,const cv::KeyPoin
 
 int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPointMatches)
 {
-    //clock_t start;
-    //start=clock();
     const vector<MapPoint*> vpMapPointsKF = pKF->GetMapPointMatches();
 
     vpMapPointMatches = vector<MapPoint*>(F.N,static_cast<MapPoint*>(NULL));
@@ -257,7 +255,7 @@ int ORBmatcher::SearchByBoW(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPoin
             Fit = F.mFeatVec.lower_bound(KFit->first);
         }
     }
-    //std::cout<<"bow time: "<<(clock()-start)/(double)CLOCKS_PER_SEC<<std::endl;
+
 
     if(mbCheckOrientation)
     {
@@ -682,11 +680,12 @@ int ORBmatcher::SearchForTriangulation(KeyFrame *pKF1, KeyFrame *pKF2, cv::Mat F
     DBoW2::FeatureVector::const_iterator f2it = vFeatVec2.begin();
     DBoW2::FeatureVector::const_iterator f1end = vFeatVec1.end();
     DBoW2::FeatureVector::const_iterator f2end = vFeatVec2.end();
-
+//     std::cout<<"vFeatVec1: "<<vFeatVec1.size()<<std::endl;
     while(f1it!=f1end && f2it!=f2end)
     {
         if(f1it->first == f2it->first)
         {
+//             std::cout<<"f1it->second.size(): "<<f1it->second.size()<<std::endl;
             for(size_t i1=0, iend1=f1it->second.size(); i1<iend1; i1++)
             {
                 const size_t idx1 = f1it->second[i1];

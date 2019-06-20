@@ -30,7 +30,7 @@ namespace ORB_SLAM2
         return tokens;
     }
     
-    System::System(const string &strVocFile, const string &strSettingsFile)
+    System::System(const string &strVocFile, const string &strSettingsFile,bool flag)
     {
         cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
         if(!fsSettings.isOpened())
@@ -38,6 +38,8 @@ namespace ORB_SLAM2
             cerr << "Failed to open settings file at: " << strSettingsFile << endl;
             exit(-1);
         }
+        float is_orb_f=fsSettings["ORBextractor.is_orb"];
+        bool is_orb=(bool)is_orb_f;
         mpVocabulary = new ORBVocabulary();
         bool bVocLoad= mpVocabulary->loadFromBinaryFile(strVocFile);
         if(bVocLoad==false){
@@ -55,6 +57,7 @@ namespace ORB_SLAM2
         mpLocalMapper->SetLoopCloser(mpLoopCloser);
         mpLoopCloser->SetTracker(mpTracker);
         mpLoopCloser->SetLocalMapper(mpLocalMapper);
+        mpLocalMapper->SetdoLoop(flag);
         last_kfcount=0;
     }
     
@@ -64,6 +67,20 @@ namespace ORB_SLAM2
         return Tcw;
     }
     
+    Frame System::getCurrentFrame()
+    {
+        return mpTracker->mCurrentFrame;
+    }
+    
+    Map*  System::getMapPointer()
+    {
+        return mpMap;
+    }
+
+    Tracking* System::getTrackPointer()
+    {
+        return mpTracker;
+    }
     void System::getTraj(std::vector<Eigen::Vector3d>& posis, std::vector<Eigen::Quaterniond>& quas){
         std::vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
         for(int i=0; i<vpKFs.size(); i++)
@@ -73,8 +90,9 @@ namespace ORB_SLAM2
             {
                 continue;
             }
-            cv::Mat Two = vpKFs[0]->GetPoseInverse();
-            cv::Mat Trw = pKF->GetPose()*Two;
+            // cv::Mat Two = vpKFs[0]->GetPoseInverse();
+            // cv::Mat Trw = pKF->GetPose()*Two;
+            cv::Mat Trw = pKF->GetPose();
             cv::Mat Rwc = Trw.rowRange(0,3).colRange(0,3).t();
             cv::Mat twc = -Rwc*Trw.rowRange(0,3).col(3);
             //Eigen::Vector3d posi(twc.at<float>(0),twc.at<float>(2),-twc.at<float>(1));
@@ -108,6 +126,8 @@ namespace ORB_SLAM2
         if(mpTracker->created_new_kf){
             KeyFrame* lastKF = mpTracker->last_kf;
             img=mpTracker->mKfImage;
+            cv::Mat pose = lastKF->GetPose();
+            Eigen::Matrix4d pose_eig= Converter::toMatrix4d(pose);
             cv::Mat img_rgb;
             cv::cvtColor(img, img_rgb, cv::COLOR_GRAY2BGRA);
             std::vector<MapPoint*> mps= lastKF->GetMapPointMatches();
@@ -115,8 +135,6 @@ namespace ORB_SLAM2
             for(int i=0; i<mps.size(); i++){
                 if(mps[i]!=NULL){
                     if(!mps[i]->isBad()){
-                        cv::Mat pose = lastKF->GetPose();
-                        Eigen::Matrix4d pose_eig= Converter::toMatrix4d(pose);
                         Eigen::Vector4d posi_mp;
                         cv::Mat posi_mp_cv = mps[i]->GetWorldPos();
                         posi_mp[0]=posi_mp_cv.at<float>(0);

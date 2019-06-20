@@ -15,5 +15,6 @@ namespace vm{
         void DelMappoint(int id);
         void DelFrame(int id);
         void GetMPPosiList(std::vector<Eigen::Vector3d>& mp_posis);
+        std::shared_ptr<vm::MapPoint> getMPById(int id);
     };
 }

@@ -34,6 +34,8 @@
 
 #include<mutex>
 
+#include<time.h>
+
 namespace ORB_SLAM2
 {
 
@@ -334,7 +336,6 @@ int Optimizer::PoseOptimization(Frame *pFrame)
         vSE3->setEstimate(Converter::toSE3Quat(pFrame->mTcw));
         optimizer.initializeOptimization(0);
         optimizer.optimize(its[it]);
-
         nBad=0;
         for(size_t i=0, iend=vpEdgesMono.size(); i<iend; i++)
         {
@@ -580,8 +581,11 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         if(*pbStopFlag)
             return;
 
-        optimizer.initializeOptimization();
+    optimizer.initializeOptimization();
+//     std::cout<<"start LocalBundleAdjustment----";
     optimizer.optimize(5);
+//     std::cout<<"end optimizer"<<std::endl;
+
     
     bool bDoMore= true;
 
@@ -626,12 +630,13 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     }
 
     // Optimize again without the outliers
-
     optimizer.initializeOptimization(0);
+//     std::cout<<"start BA with inliers----";
     optimizer.optimize(10);
+//     std::cout<<"end"<<std::endl;
 
     }
-
+    
     vector<pair<KeyFrame*,MapPoint*> > vToErase;
     vToErase.reserve(vpEdgesMono.size()+vpEdgesStereo.size());
 

@@ -134,13 +134,14 @@ namespace wayz {
             projected_desc_fix=projected_desc;
             index_->GetNNearestNeighbors(projected_desc_fix, condi_count, out_indices, out_distances);
             //std::cout<<out_indices.transpose()<<std::endl;
-            //std::cout<<out_distances.transpose()<<std::endl;
+            std::cout<<out_distances.transpose()<<std::endl;
             for(int j=0; j<out_indices.size(); j++){
                 
                 if(out_indices[j]!=-1){
                     //
                     int frame_index = index_->get_desc_frameid(out_indices[j]);
                     int track_index = index_->get_desc_trackid(out_indices[j]);
+                    //std::cout<<frame_index<<":"<<track_index<<std::endl;
                     Match match;
                     match.desc_id_tar=out_indices[j];
                     match.frame_id_tar=frame_index;

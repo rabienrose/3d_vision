@@ -23,13 +23,14 @@
 #define ORBVOCABULARY_H
 
 #include"FORB.h"
+#include "FFREAK.h"
 #include"TemplatedVocabulary.h"
 
 namespace ORB_SLAM2
 {
 
-typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB>
-  ORBVocabulary;
+//typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB> ORBVocabulary;
+typedef DBoW2::TemplatedVocabulary<DBoW2::FFREAK::TDescriptor, DBoW2::FFREAK> ORBVocabulary;
 
 } //namespace ORB_SLAM
 

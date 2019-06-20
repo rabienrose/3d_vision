@@ -47,13 +47,13 @@ Tracking::Tracking(ORBVocabulary* pVoc, Map *pMap, KeyFrameDatabase* pKFDB, cons
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpMap(pMap), mnLastRelocFrameId(0)
 {
     // Load camera parameters from settings file
-
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
     float fx = fSettings["Camera.fx"];
     float fy = fSettings["Camera.fy"];
     float cx = fSettings["Camera.cx"];
     float cy = fSettings["Camera.cy"];
-
+    float is_orb_f=fSettings["ORBextractor.is_orb"];
+    is_orb=(bool)is_orb_f;
     cv::Mat K = cv::Mat::eye(3,3,CV_32F);
     K.at<float>(0,0) = fx;
     K.at<float>(1,1) = fy;
@@ -81,8 +81,8 @@ Tracking::Tracking(ORBVocabulary* pVoc, Map *pMap, KeyFrameDatabase* pKFDB, cons
         fps=30;
 
     // Max/Min Frames to insert keyframes and to check relocalisation
-    mMinFrames = 10000;
-    mMaxFrames = 10000;
+    mMinFrames = 15;
+    mMaxFrames = 15;
 
     cout << endl << "Camera Parameters: " << endl;
     cout << "- fx: " << fx << endl;
@@ -145,19 +145,26 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp,
     cv::undistort(im, mImGray, mK, mDistCoef);
     cv::Mat distCoefZero=cv::Mat::zeros(mDistCoef.rows, mDistCoef.cols, mDistCoef.type());
     if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
-        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name);
+        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name, is_orb);
     else
-        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name);
+        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name, is_orb);
     Track();
 
     return mCurrentFrame.mTcw.clone();
 }
 
+cv::Mat Tracking::GrabImageMonocular(Frame mframe)
+{
+    mCurrentFrame = mframe;
+    Track();
+
+    return mCurrentFrame.mTcw.clone();
+}
 cv::Mat Tracking::Loc(const cv::Mat &im, const double &timestamp, std::string file_name)
 {
     cv::undistort(im, mImGray, mK, mDistCoef);
     cv::Mat distCoefZero=cv::Mat::zeros(mDistCoef.rows, mDistCoef.cols, mDistCoef.type());
-    mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name);
+    mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name, is_orb);
     bool bOK=true;
 //     bOK = Relocalization();
 //     std::cout<<"OK0: "<<bOK<<std::endl;
@@ -488,7 +495,7 @@ void Tracking::MonocularInitialization()
             tcw.copyTo(Tcw.rowRange(0,3).col(3));
             mCurrentFrame.SetPose(Tcw);
 
-            CreateInitialMapMonocular();
+            CreateInitialMapMonocular();        
         }
     }
 }
@@ -654,11 +661,6 @@ bool Tracking::TrackReferenceKeyFrame()
                 nmatchesMap++;
         }
     }
-//     static int match_countsss=0;
-//     static int match_timesss=0;
-//     match_timesss++;
-//     match_countsss=match_countsss+nmatchesMap;
-//     std::cout<<"SearchByBoW: "<<match_countsss/match_timesss<<std::endl;
 
     return nmatchesMap>=10;
 }
@@ -778,7 +780,7 @@ bool Tracking::TrackLocalMap()
 
 bool Tracking::NeedNewKeyFrame()
 {
-    if(mnMatchesInliers<100)
+    if(mnMatchesInliers<200)
         return true;
 
     const int nKFs = mpMap->KeyFramesInMap();
@@ -820,6 +822,8 @@ bool Tracking::NeedNewKeyFrame()
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
     const bool c2 = ((mnMatchesInliers<nRefMatches*thRefRatio|| bNeedToInsertClose) && mnMatchesInliers>15);
     
+//     std::cout<<"c1a||c1b||c1c)&&c2: "<<c1a<<"  "<<c1b<<"  "<<c1c<<"  "<<c2<<std::endl;
+    
     if((c1a||c1b||c1c)&&c2){
         return true;
     }
@@ -847,7 +851,13 @@ void Tracking::CreateNewKeyFrame()
 
     mnLastKeyFrameId = mCurrentFrame.mnId;
     mpLastKeyFrame = pKF;
+//     clock_t start,finish;
+//     double totaltime;
+//     start=clock();
     mpLocalMapper->DoMapping();
+//     finish=clock();
+//     totaltime=(double)(finish-start)/CLOCKS_PER_SEC;
+//     std::cout<<"LocalMapping Time: "<<totaltime<<std::endl;
 }
 
 void Tracking::SearchLocalPoints()
@@ -1291,6 +1301,9 @@ void Tracking::InformOnlyTracking(const bool &flag)
     mbOnlyTracking = flag;
 }
 
-
+std::vector<MapPoint*> Tracking::GetmvpLocalMapPoints()
+{
+    return mvpLocalMapPoints;
+}
 
 } //namespace ORB_SLAM

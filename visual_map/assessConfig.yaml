@@ -1,0 +1,6 @@
+%YAML:1.0
+timecycle: 1
+match_num_min: 20
+match_num_max: 40
+match_num_min_scale: 0.8
+match_num_max_scale: 0.5

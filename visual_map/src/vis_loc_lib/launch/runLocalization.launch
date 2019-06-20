@@ -1,0 +1,6 @@
+<!-- -->
+<launch>
+    <node pkg="vis_loc_lib" type="vis_loc_lib_test" name="vis_loc_lib_test" args="$(arg work_dir) $(arg bag_filename)" output="screen" />
+    <node name="rviz" pkg="rviz" type="rviz" required="true" args="-d $(find vis_loc_lib)/rviz-vis_loc.rviz" />
+    <node name="playbag" pkg="rosbag" type="play" args="--clock --rate 0.05 $(arg bag_filename)" required="false"/>
+</launch>

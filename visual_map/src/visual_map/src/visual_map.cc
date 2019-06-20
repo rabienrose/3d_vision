@@ -10,8 +10,18 @@ namespace vm{
         }
     }
     
+    std::shared_ptr<vm::MapPoint> VisualMap::getMPById(int id){
+        for(int i=0; i<mappoints.size(); i++){
+            if(id==mappoints[i]->id){
+                return mappoints[i];
+            }
+        }
+        return nullptr;
+    }
+    
     
     void VisualMap::CreateSubMap(int startframe_id, int endframe_id, VisualMap& submap){
+        std::cout<<"[CreateSubMap]"<<startframe_id<<":"<<endframe_id<<std::endl;
         ComputeUniqueId();
         std::vector<int> old_to_new_id_map;
         for(int i=0; i<frames.size(); i++){
@@ -21,6 +31,9 @@ namespace vm{
             std::shared_ptr<vm::Frame> frame_p;
             frame_p.reset(new vm::Frame);
             *(frame_p)=*(frames[i]);
+            frame_p->descriptors=Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>();
+            frame_p->obss.clear();
+            frame_p->kps.clear();
             //std::cout<<"frames[i]->obss.size(): "<<frames[i]->obss.size()<<std::endl;
             submap.frames.push_back(frame_p);
             old_to_new_id_map[i]=submap.frames.size()-1;
@@ -33,20 +46,28 @@ namespace vm{
                 }
                 int new_frameid=old_to_new_id_map[mappoints[i]->track[j].frame->id];
                 if(new_frameid!=-1){
-                    std::shared_ptr<vm::MapPoint> mappoint_p;
-                    mappoint_p.reset(new vm::MapPoint);
-                    *(mappoint_p)=*(mappoints[i]);
-                    submap.mappoints.push_back(mappoint_p);
+                    std::shared_ptr<vm::MapPoint> mappoint_p= submap.getMPById(mappoints[i]->id);
+                    if(mappoint_p==nullptr){
+                        mappoint_p.reset(new vm::MapPoint);
+                        *(mappoint_p)=*(mappoints[i]);
+                        mappoint_p->track.clear();
+                        submap.mappoints.push_back(mappoint_p);
+                    }
+                    
                     if(new_frameid>=submap.frames.size()){
                         std::cout<<"[CreateSubMap][error]new_frameid: "<<new_frameid<<":"<<submap.frames.size()<<std::endl;
                         exit(0);
                     }
-                    mappoint_p->track[j].frame=submap.frames[new_frameid];
-                    if(mappoints[i]->track[j].kp_ind>=submap.frames[new_frameid]->obss.size()){
-                        std::cout<<"[CreateSubMap][error]mappoints[i]->track[j].kp_ind: "<<submap.frames[new_frameid]->obss.size()<<std::endl;
-                        exit(0);
-                    }
-                    submap.frames[new_frameid]->obss[mappoints[i]->track[j].kp_ind]=mappoint_p;
+                    
+                    cv::KeyPoint kp=mappoints[i]->track[j].frame->kps[mappoints[i]->track[j].kp_ind];
+                    Eigen::Matrix<unsigned char, Eigen::Dynamic, 1> desc;
+                    mappoints[i]->track[j].frame->getDesc(mappoints[i]->track[j].kp_ind, desc);
+                    submap.frames[new_frameid]->AddKPAndDesc(kp, desc, mappoint_p);
+                    
+                    TrackItem temp_track;
+                    temp_track.frame=submap.frames[new_frameid];
+                    temp_track.kp_ind= submap.frames[new_frameid]->obss.size()-1;
+                    mappoint_p->track.push_back(temp_track);                    
                 }
             }
         }

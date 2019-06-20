@@ -18,10 +18,8 @@
 #include <opencv2/imgcodecs.hpp>
 #include <dirent.h>
 
-typedef DBoW2::TemplatedVocabulary<DBoW2::FFREAK::TDescriptor, DBoW2::FFREAK> 
-  FreakVocabulary;
-typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB> 
-  OrbVocabulary;
+typedef DBoW2::TemplatedVocabulary<DBoW2::FFREAK::TDescriptor, DBoW2::FFREAK> FreakVocabulary;
+typedef DBoW2::TemplatedVocabulary<DBoW2::FORB::TDescriptor, DBoW2::FORB> OrbVocabulary;
   
 int getdir (std::string dir, std::vector<std::string> &files)
 {

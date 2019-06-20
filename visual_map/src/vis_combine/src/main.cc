@@ -17,8 +17,8 @@
 #include "ros/ros.h"
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
-#include "vis_combine.h"
-#include "global_match.h"
+//#include "vis_combine.h"
+//#include "global_match.h"
               
 void printFrameInfo(ORB_SLAM2::Frame& frame){
     std::cout<<"kp count: "<<frame.mvKeysUn.size()<<std::endl;
@@ -61,24 +61,24 @@ void transformPoseUseSim3(Eigen::Matrix4d& sim3, double scale,  Eigen::Matrix4d&
 }
             
 int main(int argc, char* argv[]){
-    ros::init(argc, argv, "vis_loc");
-    ros::NodeHandle nh;
-    visualization::RVizVisualizationSink::init();
-    std::string res_root=argv[1];
-    std::string map1_name=argv[2];
-    std::string map2_name=argv[3];
-
-    
-    double scale_12;
-    Eigen::Matrix4d T12;
-    std::vector<Eigen::Matrix4d> transformed_traj2;
-    orb_slam::ComputeSim3(align_frame_posi2, frame_posi2 , T12, scale_12);
-    transformPoseUseSim3(T12, scale_12,  poses_alin2,  transformed_traj2);
-    std::vector<Eigen::Vector3d> transformed_traj_posi2;
-    for(int i=0; i<transformed_traj2.size(); i++){
-        transformed_traj_posi2.push_back(transformed_traj2.block(0,3,3,1));
-    }
-    show_mp_as_cloud(transformed_traj_posi2, "transformed_traj_posi2");
+//     ros::init(argc, argv, "vis_loc");
+//     ros::NodeHandle nh;
+//     visualization::RVizVisualizationSink::init();
+//     std::string res_root=argv[1];
+//     std::string map1_name=argv[2];
+//     std::string map2_name=argv[3];
+// 
+//     
+//     double scale_12;
+//     Eigen::Matrix4d T12;
+//     std::vector<Eigen::Matrix4d> transformed_traj2;
+//     orb_slam::ComputeSim3(align_frame_posi2, frame_posi2 , T12, scale_12);
+//     transformPoseUseSim3(T12, scale_12,  poses_alin2,  transformed_traj2);
+//     std::vector<Eigen::Vector3d> transformed_traj_posi2;
+//     for(int i=0; i<transformed_traj2.size(); i++){
+//         transformed_traj_posi2.push_back(transformed_traj2.block(0,3,3,1));
+//     }
+//     show_mp_as_cloud(transformed_traj_posi2, "transformed_traj_posi2");
     
 
     return 0;

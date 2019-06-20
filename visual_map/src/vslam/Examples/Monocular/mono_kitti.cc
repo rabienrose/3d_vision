@@ -50,6 +50,9 @@ int main(int argc, char **argv)
     std::string bag_str=argv[3];
     std::string out_str=argv[4];
     std::string img_topic=argv[5];
+    int min_frame=atoi(argv[6]);
+    int max_frame=atoi(argv[7]);
+    int step=atoi(argv[8]);
     rosbag::Bag bag;
     bag.open(bag_str,rosbag::bagmode::Read);
     std::vector<std::string> topics;
@@ -64,12 +67,15 @@ int main(int argc, char **argv)
         if(simg!=NULL){
             cv_bridge::CvImagePtr cv_ptr;
             img_count++;
-            if(img_count%1!=0){
+            if(img_count%step!=0){
                 continue;
             }
-//             if(img_count >3000){
-//                 break;
-//             }
+            if(img_count <min_frame){
+                continue;
+            }
+            if(img_count >max_frame){
+                break;
+            }
             try{
                 
                 std::stringstream ss;

@@ -78,6 +78,7 @@ namespace DescIndex
                 int kp_ind=map.mappoints[i]->track[j].kp_ind;
                 Eigen::Matrix<unsigned char, Eigen::Dynamic, 1> raw_descriptor;
                 frame_p->getDesc(kp_ind, raw_descriptor);
+                //std::cout<<raw_descriptor.tranpose()<<std::endl;
                 descriptor_projection::ProjectDescriptor(raw_descriptor, projection_matrix_, 10, projected_desc);
                 index_->AddDescriptors(projected_desc, frame_p->id, mp_id);
                 //std::cout<<projected_desc.transpose()<<std::endl;

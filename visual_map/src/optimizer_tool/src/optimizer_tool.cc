@@ -394,6 +394,6 @@ namespace OptimizerTool
         for(int i=0; i<mp_posis_out.size(); i++){
             map.mappoints[i]->position=mp_posis_out[i];
         }
-        vm::save_visual_map(map, map_addr+"opti_"+map_name);
+        vm::save_visual_map(map, map_addr+"/opti_"+map_name);
     }
 }

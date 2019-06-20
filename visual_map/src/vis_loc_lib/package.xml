@@ -25,4 +25,9 @@
   <depend>nav_msgs</depend>
   <depend>vslam</depend>
   <depend>g2o_catkin</depend>
+  <depend>global_match</depend>
+  <depend>orb_slam_lib</depend>
+  <depend>dbow2</depend>
+  <depend>Sophus</depend>
+  <depend>visual_map</depend>
 </package>

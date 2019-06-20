@@ -15,7 +15,7 @@
 #include "KeyFrame.h"
 #include "Converter.h"
 #include "ros/ros.h"
-#include "vis_combine.h"
+#include "global_match/orb_match.h"
 
 namespace chamo {
     
@@ -183,7 +183,7 @@ namespace chamo {
         cv::Mat mImGray;
         cv::undistort(img, mImGray, mK, mDistCoef);
         cv::Mat distCoefZero=cv::Mat::zeros(mDistCoef.rows, mDistCoef.cols, mDistCoef.type());
-        frame = ORB_SLAM2::Frame(mImGray, timestamp, mpORBextractor, mpVocabulary, mK, distCoefZero, 0, 0, file_name);
+        frame = ORB_SLAM2::Frame(mImGray, timestamp, mpORBextractor, mpVocabulary, mK, distCoefZero, 0, 0, file_name, false);
         //cv::imshow("sdfsd", mImGray);
         //cv::waitKey(1);
         //printFrameInfo(frame);
@@ -222,116 +222,116 @@ namespace chamo {
                                  ORB_SLAM2::KeyFrameDatabase*& mpKeyFrameDatabase, 
                                  ORB_SLAM2::Map*& mpMap
                    ){
-        std::string strVocFile=res_root+"/orbVoc.bin";
-        mpVocabulary = new ORB_SLAM2::ORBVocabulary();
-        bool bVocLoad= mpVocabulary->loadFromBinaryFile(strVocFile);
-        if(bVocLoad==false){
-            std::cout<<"try binary voc failed, use txt format to load."<<std::endl;
-            mpVocabulary->load(strVocFile);
-        }
-        
-        mpKeyFrameDatabase = new ORB_SLAM2::KeyFrameDatabase(*mpVocabulary);
-        
-        mpMap = new ORB_SLAM2::Map();
-        
-        std::string cam_addr=res_root+"/camera_config.txt";
-        Eigen::Matrix3d cam_inter;
-        Eigen::Vector4d cam_distort;
-        Eigen::Matrix4d Tbc;
-        CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
-        std::cout<<"cam_inter: "<<cam_inter<<std::endl;
-        
-        std::string image_config_addr=res_root+"/image_conf.txt";
-        int width;
-        int height; 
-        float desc_scale;
-        int desc_level; 
-        int desc_count;
-        CHAMO::read_image_info(image_config_addr, width, height, desc_scale, desc_level, desc_count);
-        std::cout<<"image_conf: "<<width<<":"<<height<<std::endl;
-        
-        
-        
-        std::vector<float> cam_info;
-        cam_info.push_back(cam_inter(0,0));
-        cam_info.push_back(cam_inter(1,1));
-        cam_info.push_back(cam_inter(2,0));
-        cam_info.push_back(cam_inter(2,1));
-        cam_info.push_back(width);
-        cam_info.push_back(height);
-        std::vector<ORB_SLAM2::KeyFrame*> kfs;
-        for(int i=0; i<poses_alin.size(); i++){
-            int time_id;
-            findIdByName(imgtime_names, time_id, frame_names[i]);
-            if(time_id==-1){
-                std::cout<<"imgtime_names find error: "<<frame_names[i]<<std::endl;
-                return;
-            }
-            ORB_SLAM2::KeyFrame* pKF = new ORB_SLAM2::KeyFrame();
-            std::vector<cv::KeyPoint> keysUn;
-            cv::Mat descriptors;
-            cv::Mat pose_c_w=ORB_SLAM2::Converter::toCvMat(poses_alin[i]).inv();
-            pKF->setData(i, img_timess[time_id], keysUn, cam_info, frame_names[i], desc_level, desc_scale, pose_c_w, 
-                        descriptors, mpMap, mpKeyFrameDatabase, mpVocabulary);
-            mpMap->AddKeyFrame(pKF);
-            kfs.push_back(pKF);
-        }
-        
-        std::map<std::string, int> frame_names_to_ids;
-        
-        for(int i=0; i<frame_names.size(); i++){
-            frame_names_to_ids[frame_names[i]]=i;
-        }
-
-        for(int i=0; i<tracks.size(); i++){
-            int mp_id=i;
-            ORB_SLAM2::MapPoint* pMP=NULL;
-            for (int j=0; j<tracks[i].size(); j++){
-                //std::cout<<j<<":"<<tracks[i].size()<<std::endl;
-                int kp_id=tracks[i][j];
-                int kpframe_id;
-                findIdByName(frame_names, kpframe_id, kp_framename[kp_id]);
-                //kpframe_id=frame_names_to_ids[kp_framename[kp_id]];
-                if(kpframe_id==-1){
-                    continue;
-                }
-                
-                if(pMP==NULL){
-                    pMP = new ORB_SLAM2::MapPoint(ORB_SLAM2::Converter::toCvMat(mp_posis[mp_id]),kfs[kpframe_id],mpMap);
-                }
-                
-                cv::KeyPoint kp;
-                kp.pt.x=kp_uvs[kp_id](0);
-                kp.pt.y=kp_uvs[kp_id](1);
-                kp.octave=kp_octoves[kp_id];
-                
-                cv::Mat desc(1,descs[kp_id].rows(), CV_8UC1);
-                for(int k=0; k<descs[kp_id].rows(); k++){
-                    desc.at<unsigned char>(k)=descs[kp_id](k, 0);
-                }
-                int kp_inframe_id = kfs[kpframe_id]->AddKP(kp, desc);
-                kfs[kpframe_id]->AddMapPoint(pMP,kp_inframe_id);
-                pMP->AddObservation(kfs[kpframe_id],kp_inframe_id);     
-            }
-            mpMap->AddMapPoint(pMP);
-        } 
-        
-        std::vector<ORB_SLAM2::MapPoint*> mps_all=mpMap->GetAllMapPoints();
-        for(int i=0; i<mps_all.size(); i++){
-            mps_all[i]->ComputeDistinctiveDescriptors();
-            mps_all[i]->UpdateNormalAndDepth();
-        }
-        
-        vector<ORB_SLAM2::KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
-        for (vector<ORB_SLAM2::KeyFrame*>::iterator it = vpKFs.begin(); it != vpKFs.end(); ++it){
-            (*it)->finishDataSetting();
-            mpKeyFrameDatabase->add((*it));
-        }
-        for (vector<ORB_SLAM2::KeyFrame*>::iterator it = vpKFs.begin(); it != vpKFs.end(); ++it){
-            (*it)->UpdateConnections();
-        }
-        std::cout<<"map loaded!"<<std::endl;
-        visMap(mpMap);
-    }
+//         std::string strVocFile=res_root+"/orbVoc.bin";
+//         mpVocabulary = new ORB_SLAM2::ORBVocabulary();
+//         bool bVocLoad= mpVocabulary->loadFromBinaryFile(strVocFile);
+//         if(bVocLoad==false){
+//             std::cout<<"try binary voc failed, use txt format to load."<<std::endl;
+//             mpVocabulary->load(strVocFile);
+//         }
+//         
+//         mpKeyFrameDatabase = new ORB_SLAM2::KeyFrameDatabase(*mpVocabulary);
+//         
+//         mpMap = new ORB_SLAM2::Map();
+//         
+//         std::string cam_addr=res_root+"/camera_config.txt";
+//         Eigen::Matrix3d cam_inter;
+//         Eigen::Vector4d cam_distort;
+//         Eigen::Matrix4d Tbc;
+//         CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
+//         std::cout<<"cam_inter: "<<cam_inter<<std::endl;
+//         
+//         std::string image_config_addr=res_root+"/image_conf.txt";
+//         int width;
+//         int height; 
+//         float desc_scale;
+//         int desc_level; 
+//         int desc_count;
+//         CHAMO::read_image_info(image_config_addr, width, height, desc_scale, desc_level, desc_count);
+//         std::cout<<"image_conf: "<<width<<":"<<height<<std::endl;
+//         
+//         
+//         
+//         std::vector<float> cam_info;
+//         cam_info.push_back(cam_inter(0,0));
+//         cam_info.push_back(cam_inter(1,1));
+//         cam_info.push_back(cam_inter(2,0));
+//         cam_info.push_back(cam_inter(2,1));
+//         cam_info.push_back(width);
+//         cam_info.push_back(height);
+//         std::vector<ORB_SLAM2::KeyFrame*> kfs;
+//         for(int i=0; i<poses_alin.size(); i++){
+//             int time_id;
+//             findIdByName(imgtime_names, time_id, frame_names[i]);
+//             if(time_id==-1){
+//                 std::cout<<"imgtime_names find error: "<<frame_names[i]<<std::endl;
+//                 return;
+//             }
+//             ORB_SLAM2::KeyFrame* pKF = new ORB_SLAM2::KeyFrame();
+//             std::vector<cv::KeyPoint> keysUn;
+//             cv::Mat descriptors;
+//             cv::Mat pose_c_w=ORB_SLAM2::Converter::toCvMat(poses_alin[i]).inv();
+//             pKF->setData(i, img_timess[time_id], keysUn, cam_info, frame_names[i], desc_level, desc_scale, pose_c_w, 
+//                         descriptors, mpMap, mpKeyFrameDatabase, mpVocabulary);
+//             mpMap->AddKeyFrame(pKF);
+//             kfs.push_back(pKF);
+//         }
+//         
+//         std::map<std::string, int> frame_names_to_ids;
+//         
+//         for(int i=0; i<frame_names.size(); i++){
+//             frame_names_to_ids[frame_names[i]]=i;
+//         }
+// 
+//         for(int i=0; i<tracks.size(); i++){
+//             int mp_id=i;
+//             ORB_SLAM2::MapPoint* pMP=NULL;
+//             for (int j=0; j<tracks[i].size(); j++){
+//                 //std::cout<<j<<":"<<tracks[i].size()<<std::endl;
+//                 int kp_id=tracks[i][j];
+//                 int kpframe_id;
+//                 findIdByName(frame_names, kpframe_id, kp_framename[kp_id]);
+//                 //kpframe_id=frame_names_to_ids[kp_framename[kp_id]];
+//                 if(kpframe_id==-1){
+//                     continue;
+//                 }
+//                 
+//                 if(pMP==NULL){
+//                     pMP = new ORB_SLAM2::MapPoint(ORB_SLAM2::Converter::toCvMat(mp_posis[mp_id]),kfs[kpframe_id],mpMap);
+//                 }
+//                 
+//                 cv::KeyPoint kp;
+//                 kp.pt.x=kp_uvs[kp_id](0);
+//                 kp.pt.y=kp_uvs[kp_id](1);
+//                 kp.octave=kp_octoves[kp_id];
+//                 
+//                 cv::Mat desc(1,descs[kp_id].rows(), CV_8UC1);
+//                 for(int k=0; k<descs[kp_id].rows(); k++){
+//                     desc.at<unsigned char>(k)=descs[kp_id](k, 0);
+//                 }
+//                 int kp_inframe_id = kfs[kpframe_id]->AddKP(kp, desc);
+//                 kfs[kpframe_id]->AddMapPoint(pMP,kp_inframe_id);
+//                 pMP->AddObservation(kfs[kpframe_id],kp_inframe_id);     
+//             }
+//             mpMap->AddMapPoint(pMP);
+//         } 
+//         
+//         std::vector<ORB_SLAM2::MapPoint*> mps_all=mpMap->GetAllMapPoints();
+//         for(int i=0; i<mps_all.size(); i++){
+//             mps_all[i]->ComputeDistinctiveDescriptors();
+//             mps_all[i]->UpdateNormalAndDepth();
+//         }
+//         
+//         vector<ORB_SLAM2::KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+//         for (vector<ORB_SLAM2::KeyFrame*>::iterator it = vpKFs.begin(); it != vpKFs.end(); ++it){
+//             (*it)->finishDataSetting();
+//             mpKeyFrameDatabase->add((*it));
+//         }
+//         for (vector<ORB_SLAM2::KeyFrame*>::iterator it = vpKFs.begin(); it != vpKFs.end(); ++it){
+//             (*it)->UpdateConnections();
+//         }
+//         std::cout<<"map loaded!"<<std::endl;
+//         visMap(mpMap);
+     }
     
 }

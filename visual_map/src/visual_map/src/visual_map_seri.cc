@@ -36,6 +36,7 @@ namespace vm{
             frame_time_to_index[frame_p->time_stamp]=map_proto.frames_size()-1;
             std::vector<cv::KeyPoint>& keypoints1=frame_p->kps;
             Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& descriptors1 = frame_p->descriptors;
+
             for (int i=0; i<keypoints1.size(); i++){
                 proto::KeyPoint* kp = frame_proto->add_kps();
                 kp->set_u(keypoints1[i].pt.x);
@@ -88,7 +89,6 @@ namespace vm{
                 if(frame_p->obss[j]!=nullptr){
                     if(mappoint_to_index.count(frame_p->obss[j].get())!=0){
                         if(frame_proto->kps_size()<=j){
-                            std::cout<<"[save_visual_map]max obss count: "<<frame_p->obss.size()<<std::endl;
                             std::cout<<"[save_visual_map][error]kp count less that index!!!"<<frame_proto->kps_size()<<":"<<j<<std::endl;
                             exit(0);
                         }
@@ -158,10 +158,12 @@ namespace vm{
                     for (int k=0; k<desc_width; k++){
                         frame_p->descriptors(k,j)=keypoint_proto.desc_byte()[k];
                     }
+                    
                     frame_p->obss.push_back(nullptr);
                 }
             }
             map.frames.push_back(frame_p);
+            
         }
         
         for(int i=0; i<map_proto.mappoints_size(); i++){

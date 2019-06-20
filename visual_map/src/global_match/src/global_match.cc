@@ -1,4 +1,4 @@
-#include <global_match.h>
+#include <global_match/global_match.h>
 #ifndef __APPLE__
 #include "visualization/color-palette.h"
 #include "visualization/color.h"
@@ -46,33 +46,7 @@ namespace std {
 
 
 namespace chamo {
-#ifndef __APPLE__
-    
-    void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic){
-        Eigen::Matrix3Xd points;
-        points.resize(3,mp_posis.size());
-        for(int i=0; i<mp_posis.size(); i++){
-            points.block<3,1>(0,i)=mp_posis[i];
-        }    
-        publish3DPointsAsPointCloud(points, visualization::kCommonRed, 1.0, visualization::kDefaultMapFrame,topic);
-    }
-    
-    void show_pose_as_marker(std::vector<Eigen::Vector3d>& posis, std::vector<Eigen::Quaterniond>& rots, std::string topic){
-        visualization::PoseVector poses_vis;
-        for(int i=0; i<posis.size(); i=i+1){
-            visualization::Pose pose;
-            pose.G_p_B = posis[i];
-            pose.G_q_B = rots[i];
 
-            pose.id =poses_vis.size();
-            pose.scale = 0.2;
-            pose.line_width = 0.02;
-            pose.alpha = 1;
-            poses_vis.push_back(pose);
-        }
-        visualization::publishVerticesFromPoseVector(poses_vis, visualization::kDefaultMapFrame, "vertices", topic);
-    }
-#endif
     
     void convert_mat_eigen(Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& matrix, cv::Mat mat){
         //Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> m_temp;
@@ -125,18 +99,12 @@ namespace chamo {
         }
         index_->deserialize(proto_inverted_multi_index);
     }
-    
-    void printFrameInfo(ORB_SLAM2::Frame& frame){
-        std::cout<<"kp count: "<<frame.mvKeysUn.size()<<std::endl;
-        std::cout<<"desc size (w:h) "<<frame.mDescriptors.cols<<":"<<frame.mDescriptors.rows<<std::endl;
-    }
 
     
     void MatchImg(std::vector<Eigen::Vector3d>& mp_posis, std::shared_ptr<loop_closure::inverted_multi_index::InvertedMultiIndex<5>>& index_,
         Eigen::MatrixXf& projection_matrix_, ORB_SLAM2::Frame& frame, std::vector<int>& inliers_mp, std::vector<int>& inliers_kp,
         Eigen::Matrix4d& pose
     ){
-        //printFrameInfo(frame);
         cv::Mat desc_list=frame.mDescriptors;
         std::vector<cv::KeyPoint>& kps_list=frame.mvKeysUn;
             
@@ -163,9 +131,12 @@ namespace chamo {
             for(int j=0; j<out_indices.size(); j++){
                 
                 if(out_indices[j]!=-1){
-                    //
+                    if(out_distances[j]>3){
+                        continue;
+                    }
                     int frame_index = index_->get_desc_frameid(out_indices[j]);
                     int track_index = index_->get_desc_trackid(out_indices[j]);
+                    //std::cout<<frame_index<<":"<<track_index<<std::endl;
                     Match match;
                     match.desc_id_tar=out_indices[j];
                     match.frame_id_tar=frame_index;
