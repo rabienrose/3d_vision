@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <glog/logging.h>
 
 namespace CHAMO
 {
@@ -39,6 +40,10 @@ namespace CHAMO
         cam_distort(3)=atof(splited[7].c_str());
         Tbc=Eigen::Matrix4d::Identity();
         std::getline(infile_camera, line);
+        if(line.size()<=0){
+            LOG(INFO) << "Not use camera to imu transformation!";
+            return;
+        }
         splited = split(line, ",");
         Tbc(0,0)=atof(splited[0].c_str());
         Tbc(0,1)=atof(splited[1].c_str());

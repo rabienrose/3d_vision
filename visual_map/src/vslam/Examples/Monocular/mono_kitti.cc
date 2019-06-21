@@ -15,8 +15,17 @@
 #include "visualization/color-palette.h"
 #include "visualization/color.h"
 #include "visualization/common-rviz-visualization.h"
+#include <glog/logging.h>
+#include <gflags/gflags.h>
 
 using namespace std;
+
+DEFINE_string(bag_addr, "", "Bag contain the image data.");
+DEFINE_string(output_addr, "", "Place to save the output file.");
+DEFINE_string(image_topic, "img", "Topic of image in bag.");
+DEFINE_int32(min_frame, 100000, "First frame to be processed.");
+DEFINE_int32(max_frame, 0, "Last frame to be processed.");
+DEFINE_int32(step_frame, 1, "The number of frames to be skiped.");
 
 void show_pose_as_marker(std::vector<Eigen::Quaterniond>& rots, std::vector<Eigen::Vector3d>& posis, std::string topic){
     visualization::PoseVector poses_vis;
@@ -45,14 +54,19 @@ void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic)
 
 int main(int argc, char **argv)
 {
+    google::InitGoogleLogging(argv[0]);
+    google::InstallFailureSignalHandler()
+    google::ParseCommandLineFlags(&argc, &argv, true);
+    FLAGS_alsologtostderr = true;
+    FLAGS_colorlogtostderr = true;
     visualization::RVizVisualizationSink::init();
-    ORB_SLAM2::System sys(argv[1],argv[2]);
-    std::string bag_str=argv[3];
-    std::string out_str=argv[4];
-    std::string img_topic=argv[5];
-    int min_frame=atoi(argv[6]);
-    int max_frame=atoi(argv[7]);
-    int step=atoi(argv[8]);
+    ORB_SLAM2::System sys;
+    std::string bag_str=FLAGS_bag_addr;
+    std::string out_str=FLAGS_output_addr;
+    std::string img_topic=FLAGS_image_topic;
+    int min_frame=FLAGS_min_frame;
+    int max_frame=FLAGS_max_frame;
+    int step=FLAGS_step_frame;
     rosbag::Bag bag;
     bag.open(bag_str,rosbag::bagmode::Read);
     std::vector<std::string> topics;
@@ -98,7 +112,7 @@ int main(int argc, char **argv)
                 sys.getDebugImg(img_display, reproject_err_t, match_count_t, mp_count_t, kf_count_t);
                 if(!img_display.empty()){
                     cv::imshow("chamo", img_display);
-                    show_pose_as_marker(quas, posis, "temp_pose_loc");
+                    show_pose_as_marker(quas, posis, "vslam_output_result");
                     cv::waitKey(1);
                 }                
             }catch (cv_bridge::Exception& e){

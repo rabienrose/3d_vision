@@ -282,13 +282,13 @@ namespace chamo {
             cam_distort_zero.at<float>(2)=0;
             cam_distort_zero.at<float>(3)=0;
             cv::Mat cam_inter_cv = frame.mK;
-            std::cout<<"point3ds: "<<point3ds.size()<<std::endl;
+            //std::cout<<"point3ds: "<<point3ds.size()<<std::endl;
             cv::solvePnPRansac(point3ds, point2ds, cam_inter_cv, cam_distort_zero, rvec, tvec, false, 1000, 2.0f, 0.99, inliers, cv::SOLVEPNP_EPNP);
             
             if(inliers.rows<20){
                 return;
             }
-            std::cout<<"inliers.rows: "<<inliers.rows<<std::endl;
+            //std::cout<<"inliers.rows: "<<inliers.rows<<std::endl;
             for(int i=0; i<inliers.rows; i++){
                 //std::cout<<inliers.at<int>(i)<<std::endl;
                 inliers_kp.push_back(ransac_to_kpid[inliers.at<int>(i)]);

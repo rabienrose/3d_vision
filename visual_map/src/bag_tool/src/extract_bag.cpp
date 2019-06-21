@@ -94,7 +94,7 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
                 ss<<out_dir+"/images/img_"<<img_count<<".jpg";
                 std::stringstream ss_name;
                 ss_name<<"img_"<<img_count<<".jpg";
-                //cv::imwrite(ss.str(), cv_ptr->image);
+                cv::imwrite(ss.str(), cv_ptr->image);
                 std::stringstream ss_time;
                 ss_time<<"img_"<<img_count<<".jpg"<<","<<simg->header.stamp<<std::endl;
                 outfile_img_time<<ss_time.str();

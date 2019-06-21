@@ -10,5 +10,5 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>eigen_catkin</depend>
   <depend>visualization</depend>
-
+  <depend>glog_catkin</depend>
 </package>

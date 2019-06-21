@@ -31,99 +31,57 @@
 
 #include"Optimizer.h"
 #include"PnPsolver.h"
-
+#include "read_write_data_lib/read_write.h"
 #include<iostream>
-
+#include <gflags/gflags.h>
 #include<mutex>
 
+DEFINE_bool(use_orb, false, "Choose use orb or freak descriptor. Set to true if use orb.");
+DEFINE_string(camera_config, "", "Config file of camera calibiration.");
+DEFINE_int32(max_step_KF, 15, "The max number of frame between two KeyFrames.");
+DEFINE_int32(feature_count, 2000, "Number of feature to extract.");
+DEFINE_double(feature_scale_factor, 1.2, "Scale factor between levels.");
+DEFINE_int32(feature_level, 8, "Pyramid levels");
+DEFINE_int32(min_match_count, 200, "Min limit of matched features to add a KF.");
 
 using namespace std;
 
 namespace ORB_SLAM2
 {
 
-Tracking::Tracking(ORBVocabulary* pVoc, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool bReuse):
+Tracking::Tracking(ORBVocabulary* pVoc, Map *pMap, KeyFrameDatabase* pKFDB, const int sensor, bool bReuse):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpMap(pMap), mnLastRelocFrameId(0)
 {
-    // Load camera parameters from settings file
-    cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
-    float fx = fSettings["Camera.fx"];
-    float fy = fSettings["Camera.fy"];
-    float cx = fSettings["Camera.cx"];
-    float cy = fSettings["Camera.cy"];
-    float is_orb_f=fSettings["ORBextractor.is_orb"];
-    is_orb=(bool)is_orb_f;
+    Eigen::Matrix3d cam_inter;
+    Eigen::Vector4d cam_distort;
+    Eigen::Matrix4d Tbc;
+    CHAMO::read_cam_info(FLAGS_camera_config, cam_inter, cam_distort, Tbc);   
     cv::Mat K = cv::Mat::eye(3,3,CV_32F);
-    K.at<float>(0,0) = fx;
-    K.at<float>(1,1) = fy;
-    K.at<float>(0,2) = cx;
-    K.at<float>(1,2) = cy;
+    K.at<float>(0,0) = cam_inter(0,0);
+    K.at<float>(1,1) = cam_inter(1,1);
+    K.at<float>(0,2) = cam_inter(0,2);
+    K.at<float>(1,2) = cam_inter(1,2);
     K.copyTo(mK);
-
     cv::Mat DistCoef(4,1,CV_32F);
-    DistCoef.at<float>(0) = fSettings["Camera.k1"];
-    DistCoef.at<float>(1) = fSettings["Camera.k2"];
-    DistCoef.at<float>(2) = fSettings["Camera.p1"];
-    DistCoef.at<float>(3) = fSettings["Camera.p2"];
-    const float k3 = fSettings["Camera.k3"];
-    if(k3!=0)
-    {
-        DistCoef.resize(5);
-        DistCoef.at<float>(4) = k3;
-    }
+    DistCoef.at<float>(0) = cam_distort(0);
+    DistCoef.at<float>(1) = cam_distort(1);
+    DistCoef.at<float>(2) = cam_distort(2);
+    DistCoef.at<float>(3) = cam_distort(3);
     DistCoef.copyTo(mDistCoef);
-
-    mbf = fSettings["Camera.bf"];
-
-    float fps = fSettings["Camera.fps"];
-    if(fps==0)
-        fps=30;
-
-    // Max/Min Frames to insert keyframes and to check relocalisation
-    mMinFrames = 15;
-    mMaxFrames = 15;
-
-    cout << endl << "Camera Parameters: " << endl;
-    cout << "- fx: " << fx << endl;
-    cout << "- fy: " << fy << endl;
-    cout << "- cx: " << cx << endl;
-    cout << "- cy: " << cy << endl;
-    cout << "- k1: " << DistCoef.at<float>(0) << endl;
-    cout << "- k2: " << DistCoef.at<float>(1) << endl;
-    if(DistCoef.rows==5)
-        cout << "- k3: " << DistCoef.at<float>(4) << endl;
-    cout << "- p1: " << DistCoef.at<float>(2) << endl;
-    cout << "- p2: " << DistCoef.at<float>(3) << endl;
-    cout << "- fps: " << fps << endl;
-
-
-    int nRGB = fSettings["Camera.RGB"];
-    mbRGB = nRGB;
-
-    if(mbRGB)
-        cout << "- color order: RGB (ignored if grayscale)" << endl;
-    else
-        cout << "- color order: BGR (ignored if grayscale)" << endl;
-
-    // Load ORB parameters
-
-    int nFeatures = fSettings["ORBextractor.nFeatures"];
-    float fScaleFactor = fSettings["ORBextractor.scaleFactor"];
-    int nLevels = fSettings["ORBextractor.nLevels"];
-    int fIniThFAST = fSettings["ORBextractor.iniThFAST"];
-    int fMinThFAST = fSettings["ORBextractor.minThFAST"];
+    mbf = 0;
+    mMinFrames = FLAGS_max_step_KF;
+    mMaxFrames = FLAGS_max_step_KF;
+    mbRGB = 1;
+    int nFeatures = FLAGS_feature_count;
+    float fScaleFactor = FLAGS_feature_scale_factor;
+    int nLevels = FLAGS_feature_level;
+    int fIniThFAST = 20;
+    int fMinThFAST = 7;
 
     mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
-    mpIniORBextractor = new ORBextractor(4*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
-
-    cout << endl  << "ORB Extractor Parameters: " << endl;
-    cout << "- Number of Features: " << nFeatures << endl;
-    cout << "- Scale Levels: " << nLevels << endl;
-    cout << "- Scale Factor: " << fScaleFactor << endl;
-    cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
-    cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
+    mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
     reloc_fail_count=0;
     created_new_kf=false;
@@ -145,9 +103,9 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp,
     cv::undistort(im, mImGray, mK, mDistCoef);
     cv::Mat distCoefZero=cv::Mat::zeros(mDistCoef.rows, mDistCoef.cols, mDistCoef.type());
     if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
-        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name, is_orb);
+        mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name, FLAGS_use_orb);
     else
-        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name, is_orb);
+        mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name, FLAGS_use_orb);
     Track();
 
     return mCurrentFrame.mTcw.clone();
@@ -164,7 +122,7 @@ cv::Mat Tracking::Loc(const cv::Mat &im, const double &timestamp, std::string fi
 {
     cv::undistort(im, mImGray, mK, mDistCoef);
     cv::Mat distCoefZero=cv::Mat::zeros(mDistCoef.rows, mDistCoef.cols, mDistCoef.type());
-    mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name, is_orb);
+    mCurrentFrame = Frame(mImGray,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name, FLAGS_use_orb);
     bool bOK=true;
 //     bOK = Relocalization();
 //     std::cout<<"OK0: "<<bOK<<std::endl;
@@ -780,62 +738,13 @@ bool Tracking::TrackLocalMap()
 
 bool Tracking::NeedNewKeyFrame()
 {
-    if(mnMatchesInliers<200)
-        return true;
-
-    const int nKFs = mpMap->KeyFramesInMap();
-
-    // Do not insert keyframes if not enough frames have passed from last relocalisation
-    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && nKFs>mMaxFrames){        
-        return false;
-    }
-        
-
-    // Tracked MapPoints in the reference keyframe
-    int nMinObs = 3;
-    if(nKFs<=2)
-        nMinObs=2;
-    int nRefMatches = mpReferenceKF->TrackedMapPoints(nMinObs);
-
-    // Local Mapping accept keyframes?
-    bool bLocalMappingIdle = mpLocalMapper->AcceptKeyFrames();
-
-    // Check how many "close" points are being tracked and how many could be potentially created.
-    int nNonTrackedClose = 0;
-    int nTrackedClose= 0;
-
-    bool bNeedToInsertClose = (nTrackedClose<100) && (nNonTrackedClose>70);
-
-    // Thresholds
-    float thRefRatio = 0.75f;
-    if(nKFs<2)
-        thRefRatio = 0.4f;
-
-    thRefRatio = 0.9f;
-
-    // Condition 1a: More than "MaxFrames" have passed from last keyframe insertion
-    const bool c1a = mCurrentFrame.mnId>=mnLastKeyFrameId+mMaxFrames;
-    // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle
-    const bool c1b = (mCurrentFrame.mnId>=mnLastKeyFrameId+mMinFrames && bLocalMappingIdle);
-    //Condition 1c: tracking is weak
-    const bool c1c =  false && (mnMatchesInliers<nRefMatches*0.25 || bNeedToInsertClose) ;
-    // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
-    const bool c2 = ((mnMatchesInliers<nRefMatches*thRefRatio|| bNeedToInsertClose) && mnMatchesInliers>15);
-    
-//     std::cout<<"c1a||c1b||c1c)&&c2: "<<c1a<<"  "<<c1b<<"  "<<c1c<<"  "<<c2<<std::endl;
-    
-    if((c1a||c1b||c1c)&&c2){
+    if(mnMatchesInliers<FLAGS_min_match_count){
         return true;
     }
-    else{
-        //if(mnLastKeyFrameId<10){
-            return false;
-        //}
-        
+    if(mCurrentFrame.mnId>=mnLastKeyFrameId+mMaxFrames){
+        return true;
     }
-        
-    
-    
+    return false;
 }
 
 void Tracking::CreateNewKeyFrame()

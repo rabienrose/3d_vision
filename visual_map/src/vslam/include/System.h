@@ -17,7 +17,7 @@ class KeyFrameDatabase;
 class System
 {
 public:
-    System(const std::string &strVocFile, const std::string &strSettingsFile,bool flag=true);
+    System(bool do_loop_detect_flag=true);
     void saveResult(string map_filename);
     cv::Mat TrackMonocular(const cv::Mat &im, const double &timestamp, std::string file_name="");
     void getPC(std::vector<Eigen::Vector3d>& pcs);

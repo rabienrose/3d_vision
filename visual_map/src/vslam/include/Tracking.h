@@ -48,7 +48,7 @@ class Tracking
 
 public:
     Tracking(ORBVocabulary* pVoc, Map* pMap,
-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, bool bReuse);
+             KeyFrameDatabase* pKFDB, const int sensor, bool bReuse);
 
     cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp, std::string file_name="");
     cv::Mat GrabImageMonocular(Frame mframe);
@@ -99,7 +99,6 @@ public:
     std::vector<cv::Point2f> mvbPrevMatched;
     std::vector<cv::Point3f> mvIniP3D;
     Frame mInitialFrame;
-    bool is_orb;
 
     // Lists used to recover the full camera trajectory at the end of the execution.
     // Basically we store the reference keyframe for each frame and its relative transformation

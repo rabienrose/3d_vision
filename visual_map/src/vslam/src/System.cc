@@ -10,7 +10,10 @@
 #include "LocalMapping.h"
 #include "LoopClosing.h"
 #include "KeyFrameDatabase.h"
+#include <gflags/gflags.h>
+#include <glog/logging.h>
 
+DEFINE_string(voc_addr, "", "Vocabulary file address.");
 
 namespace ORB_SLAM2
 {
@@ -30,25 +33,18 @@ namespace ORB_SLAM2
         return tokens;
     }
     
-    System::System(const string &strVocFile, const string &strSettingsFile,bool flag)
+    System::System(bool do_loop_detect_flag)
     {
-        cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
-        if(!fsSettings.isOpened())
-        {
-            cerr << "Failed to open settings file at: " << strSettingsFile << endl;
-            exit(-1);
-        }
-        float is_orb_f=fsSettings["ORBextractor.is_orb"];
-        bool is_orb=(bool)is_orb_f;
         mpVocabulary = new ORBVocabulary();
-        bool bVocLoad= mpVocabulary->loadFromBinaryFile(strVocFile);
+        LOG(INFO) <<"FLAGS_voc_addr: "<<FLAGS_voc_addr;
+        bool bVocLoad= mpVocabulary->loadFromBinaryFile(FLAGS_voc_addr);
         if(bVocLoad==false){
             std::cout<<"try binary voc failed, use txt format to load."<<std::endl;
-            mpVocabulary->load(strVocFile);
+            mpVocabulary->load(FLAGS_voc_addr);
         }
         mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
         mpMap = new Map();
-        mpTracker = new Tracking(mpVocabulary, mpMap, mpKeyFrameDatabase, strSettingsFile,0 ,false);
+        mpTracker = new Tracking(mpVocabulary, mpMap, mpKeyFrameDatabase,0 ,false);
         mpLocalMapper = new LocalMapping(mpMap, true);
         mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabulary, false);
         mpTracker->SetLocalMapper(mpLocalMapper);
@@ -57,7 +53,7 @@ namespace ORB_SLAM2
         mpLocalMapper->SetLoopCloser(mpLoopCloser);
         mpLoopCloser->SetTracker(mpTracker);
         mpLoopCloser->SetLocalMapper(mpLocalMapper);
-        mpLocalMapper->SetdoLoop(flag);
+        mpLocalMapper->SetdoLoop(do_loop_detect_flag);
         last_kfcount=0;
     }
     
