@@ -25,4 +25,5 @@
   <depend>vslam</depend>
   <depend>g2o_catkin</depend>
   <depend>global_match</depend>
+  <depend>visual_map</depend>
 </package>

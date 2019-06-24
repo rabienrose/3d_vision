@@ -55,10 +55,8 @@ void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic)
 int main(int argc, char **argv)
 {
     google::InitGoogleLogging(argv[0]);
-    google::InstallFailureSignalHandler()
+    google::InstallFailureSignalHandler();
     google::ParseCommandLineFlags(&argc, &argv, true);
-    FLAGS_alsologtostderr = true;
-    FLAGS_colorlogtostderr = true;
     visualization::RVizVisualizationSink::init();
     ORB_SLAM2::System sys;
     std::string bag_str=FLAGS_bag_addr;

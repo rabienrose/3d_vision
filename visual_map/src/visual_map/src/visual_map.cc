@@ -1,4 +1,5 @@
 #include "visual_map/visual_map.h"
+#include <glog/logging.h>
 
 namespace vm{
     void VisualMap::ComputeUniqueId(){
@@ -99,5 +100,67 @@ namespace vm{
         for(int i=0; i<mappoints.size(); i++){
             mp_posis[i]=mappoints[i]->position;
         }
+    }
+    
+    void VisualMap::CheckConsistence(){
+        for(int i=0; i<mappoints.size(); i++){
+            int del_id=-1;
+            do{
+                del_id=-1;
+                for(int j=0; j<mappoints[i]->track.size(); j++){
+                    std::shared_ptr<vm::Frame> frame_p = mappoints[i]->track[j].frame;
+                    int del_id=-1;
+                    if(frame_p==nullptr){
+                        del_id=j;
+                        LOG(INFO)<<"frame_p==nullptr";
+                        break;
+                    }
+                    std::shared_ptr<vm::MapPoint> mp = frame_p->obss[mappoints[i]->track[j].kp_ind];
+                    if(mp==nullptr){
+                        LOG(INFO)<<"mp==nullptr";
+                        del_id=j;
+                        break;
+                    }else{
+                        if(mp->id!=mappoints[i]->id){
+                            LOG(INFO)<<"mp->id!=mappoints[i]->id: "<<mp->id<<" : "<<mappoints[i]->id;
+                            //LOG(INFO)<<"frame_id: "<<frame_p->id;
+                            //LOG(INFO)<<"mappoints[i]->track[j].kp_ind: "<<mappoints[i]->track[j].kp_ind;
+                            del_id=j;
+                            break;
+                        }
+                    }
+                }
+                if(del_id!=-1){
+                    mappoints[i]->track[del_id].frame->obss[mappoints[i]->track[del_id].kp_ind]=nullptr;
+                    mappoints[i]->track.erase(mappoints[i]->track.begin()+del_id); 
+                }
+            }while(del_id!=-1);            
+        }
+        
+        for(int i=0; i<frames.size(); i++){
+            for(int j=0; j<frames[i]->obss.size(); j++){
+                if(frames[i]->obss[j]!=nullptr){
+                    std::shared_ptr<vm::MapPoint> mp=frames[i]->obss[j];
+                    bool find_one=false;
+                    for(int k=0; k<mp->track.size(); k++){
+                        if(mp->track[k].frame->id==frames[i]->id && mp->track[k].kp_ind==j){
+                            find_one=true;
+                        }
+                    }
+                    if(find_one==false){
+                        LOG(INFO)<<"find_one==false";
+                        frames[i]->obss[j]==nullptr;
+                    }
+                }
+            }
+        }
+    }
+    
+    void VisualMap::CheckLowQuaMappoint(){
+        
+    }
+    
+    void VisualMap::CheckLowQuaFrame(){
+        
     }
 }
