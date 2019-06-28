@@ -10,10 +10,10 @@ message Pose {
     required double qx=5;
     required double qy=6;
     required double qz=7;
-    required int32 gps_x=8;
-    required int32 gps_y=9;
-    required int32 gps_z=10;
-    required float gps_accu=11;
+    optional float gps_x=8;
+    optional float gps_y=9;
+    optional float gps_z=10;
+    optional float gps_accu=11;
 }
 
 message KeyPoint {

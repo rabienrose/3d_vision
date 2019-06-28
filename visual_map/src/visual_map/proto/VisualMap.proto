@@ -4,8 +4,26 @@ package proto;
 import "Frame.proto";
 import "MapPoint.proto";
 
+message Sim3 {
+    required double x=1;
+    required double y=2;
+    required double z=3;
+    required double qw=4;
+    required double qx=5;
+    required double qy=6;
+    required double qz=7;
+    required double scale=8;
+}
+
+
 message VisualMap {
     repeated Frame frames=1;
     repeated MapPoint mappoints=2;
+    required double anchor_x=3;
+    required double anchor_y=4;
+    required double anchor_z=5;
+    repeated int32 pose_graph_v1=6;
+    repeated int32 pose_graph_v2=7;
+    repeated Sim3 pose_graph_e=8;
 }
 

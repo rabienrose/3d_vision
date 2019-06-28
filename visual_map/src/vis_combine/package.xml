@@ -26,4 +26,6 @@
   <depend>g2o_catkin</depend>
   <depend>global_match</depend>
   <depend>visual_map</depend>
+  <depend>gps_vis_odom</depend>
+  <depend>vis_loc_lib</depend>
 </package>

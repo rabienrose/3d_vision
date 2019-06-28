@@ -37,7 +37,6 @@ public:
 
     Eigen::Vector3d GetLocalPosition();
 
-private:
     bool AlignLocalMap(Eigen::Matrix4d& frame_pose,
                        std::vector<ORB_SLAM2::KeyFrame*>& vpKFs,
                        std::vector<ORB_SLAM2::KeyFrame*>& covisible_kf,

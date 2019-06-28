@@ -20,7 +20,7 @@ bool VisualLocalization::SetInit(const std::string& work_dir)
     workspace = work_dir;
     std::string strSettingsFile = workspace + "/vslam.yaml";
     std::string strVocFile = workspace + "/FreakAll.bin";
-    mpsys = new ORB_SLAM2::System(strVocFile, strSettingsFile, false);
+    mpsys = new ORB_SLAM2::System(false);
     align_init = false;
     track_init = false;
     former_match = false;
@@ -35,7 +35,7 @@ bool VisualLocalization::ResetInit()
     delete mpsys;
     std::string strSettingsFile = workspace + "/vslam.yaml";
     std::string strVocFile = workspace + "/FreakAll.bin";
-    mpsys = new ORB_SLAM2::System(strVocFile, strSettingsFile, false);
+    mpsys = new ORB_SLAM2::System(false);
     align_init = false;
     track_init = false;
     former_match = false;
@@ -535,7 +535,7 @@ bool VisualLocalization::ComputeSim3Ransac(std::vector<Eigen::Vector3d>& P1,
                                            std::vector<Eigen::Vector3d>& P2,
                                            Eigen::Matrix4d& T12,
                                            double& scale_12)
-{
+{ 
     std::vector<size_t> all_indices;
     int match_size = P1.size();
     all_indices.reserve(match_size);
@@ -573,14 +573,13 @@ bool VisualLocalization::ComputeSim3Ransac(std::vector<Eigen::Vector3d>& P1,
         available_indices = all_indices;
 
         std::vector<Eigen::Vector3d> P3D1, P3D2;
-        P3D1.reserve(6);
-        P3D2.reserve(6);
+        P3D1.reserve(3);
+        P3D2.reserve(3);
         // Get min set of points
-        for (short i = 0; i < 6; ++i) {
+        for (short i = 0; i < 3; ++i) {
             int randi = DUtils::Random::RandomInt(0, available_indices.size() - 1);
 
             int idx = available_indices[randi];
-
             P3D1.push_back(P1[idx]);
             P3D2.push_back(P2[idx]);
 
@@ -589,11 +588,12 @@ bool VisualLocalization::ComputeSim3Ransac(std::vector<Eigen::Vector3d>& P1,
         }
 
         orb_slam::ComputeSim3(P3D1, P3D2, T12, scale_12);
+        //LOG(INFO)<< "scale_12:"<<scale_12;  
 
         std::vector<bool> b_inliners = std::vector<bool>(match_size,false);
         int ninliers = CheckInliers(P1, P2, T12, scale_12, b_inliners);
 
-        // LOG(INFO)<< ransac_min_inliers<<"  "<<ninliers;  
+        //LOG(INFO)<< ransac_min_inliers<<"  "<<ninliers;  
         if (ninliers > ransac_min_inliers) {
             std::vector<Eigen::Vector3d> P3D1_inlier, P3D2_inlier;
             P3D1_inlier.reserve(match_size);

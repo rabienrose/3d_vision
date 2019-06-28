@@ -29,5 +29,6 @@
   <depend>orb_slam_lib</depend>
   <depend>dbow2</depend>
   <depend>Sophus</depend>
-  <depend>visual_map</depend>
+  <depend>visual_map</depend> 
+  
 </package>

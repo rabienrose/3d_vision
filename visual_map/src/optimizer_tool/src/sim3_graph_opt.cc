@@ -13,6 +13,8 @@
 #include "read_write_data_lib/read_write.h"
 #include "opencv2/opencv.hpp"
 #include "test_imu_tool/visual_tool.h"
+#include "visual_map/visual_map.h"
+#include "visual_map/visual_map_seri.h"
 
 namespace g2o {
     class EdgePosePre : public BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>{
@@ -35,7 +37,7 @@ namespace g2o {
         }
     };
     
-    class EdgePosiPre : public BaseUnaryEdge<3, Eigen::Vector3d, VertexSE3Expmap>{
+    class EdgePosiPre : public BaseUnaryEdge<3, Eigen::Vector3d, VertexSim3Expmap>{
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
         EdgePosiPre(){};
@@ -45,7 +47,7 @@ namespace g2o {
         bool write(std::ostream& os) const{return true;};
 
         void computeError()  {
-        const g2o::VertexSE3Expmap* v1 = static_cast<const VertexSE3Expmap*>(_vertices[0]);
+        const g2o::VertexSim3Expmap* v1 = static_cast<const VertexSim3Expmap*>(_vertices[0]);
         _error= v1->estimate().inverse().translation()-_measurement;
         }
     };
@@ -55,8 +57,10 @@ namespace g2o {
 namespace OptimizerTool
 {
 
-    void optimize_sim3_graph( std::vector<Eigen::Vector3d>& gps_alin, std::vector<int>& gps_inlers,
-        std::vector<Eigen::Matrix4d>& poses_out, std::vector<Eigen::Matrix4d>& poses_in, std::vector<std::pair<int, int>> edge_ids
+    void optimize_sim3_graph( std::vector<Eigen::Vector3d>& gps_alin,
+        std::vector<Eigen::Matrix4d>& poses_out, std::vector<Eigen::Matrix4d>& poses_in,
+        std::vector<Eigen::Matrix4d>& T_1_to_2_list, std::vector<double>& scale_1_to_2_list, 
+        std::vector<int>& graph_v1_list, std::vector<int>& graph_v2_list
     ){
         g2o::SparseOptimizer optimizer;
         optimizer.setVerbose(false);
@@ -80,7 +84,12 @@ namespace OptimizerTool
             Eigen::Matrix<double,3,1> tcw = pose_inv.block(0,3,3,1);
             g2o::Sim3 Siw(Rcw,tcw,1.0);
             VSim3->setEstimate(Siw);
-            VSim3->setFixed(false);
+            if(i==0){
+                VSim3->setFixed(true);
+            }else{
+                VSim3->setFixed(false);
+            }
+            
             VSim3->setId(i);
             VSim3->setMarginalized(false);
             VSim3->_fix_scale = false;
@@ -92,30 +101,27 @@ namespace OptimizerTool
         std::cout<<"add sim3 vertices"<<std::endl;
         
         std::vector<g2o::EdgePosiPre*> gps_edges;
-        for(int i=0; i<poses_in.size(); i++){
-            if(gps_inlers[i]==1){
-                g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
-                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(v_sim3_list[i]));
-                e->setMeasurement(gps_alin[i]);
-                e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*1);
-                optimizer.addEdge(e);
-                gps_edges.push_back(e);
-            }
-        }
-        std::cout<<"add gps edge"<<std::endl;
+//         for(int i=0; i<poses_in.size(); i++){
+//             g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
+//             //std::cout<<v_sim3_list[i]->estimate().inverse().translation().transpose()<<std::endl;
+//             e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(v_sim3_list[i]));
+//             e->setMeasurement(gps_alin[i]);
+//             e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*0.001);
+//             optimizer.addEdge(e);
+//             gps_edges.push_back(e);
+//         }
+//         std::cout<<"add gps edge"<<std::endl;
         
         
         std::vector<g2o::EdgeSim3*> sim3_edge_list;
-        for(int i=0; i<edge_ids.size(); i++){
-            g2o::Sim3 Siw = sim3_list[edge_ids[i].first];
-            g2o::Sim3 Swi = Siw.inverse();
-            
-            g2o::Sim3 Sjw = sim3_list[edge_ids[i].second];
-            g2o::Sim3 Sji = Sjw * Swi;
-
+        for(int i=0; i<T_1_to_2_list.size(); i++){
+            g2o::Sim3 Sji(T_1_to_2_list[i].block(0,0,3,3),T_1_to_2_list[i].block(0,3,3,1),scale_1_to_2_list[i]);
             g2o::EdgeSim3* e = new g2o::EdgeSim3();
-            e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(v_sim3_list[edge_ids[i].second]));
-            e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(v_sim3_list[edge_ids[i].first]));
+            //std::cout<<"asdfasdf"<<std::endl;
+            //std::cout<<"v1: "<<v_sim3_list[graph_v1_list[i]]->estimate().inverse().translation().transpose()<<std::endl;
+            //std::cout<<"obs: "<<(v_sim3_list[graph_v2_list[i]]->estimate().inverse().rotation().toRotationMatrix()*Sji.translation()+v_sim3_list[graph_v2_list[i]]->estimate().inverse().translation()).transpose()<<std::endl;
+            e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(v_sim3_list[graph_v1_list[i]]));
+            e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(v_sim3_list[graph_v2_list[i]]));
             e->setMeasurement(Sji);
             Eigen::Matrix<double,7,7> matLambda = Eigen::Matrix<double,7,7>::Identity();
             e->information() = matLambda;
@@ -145,7 +151,7 @@ namespace OptimizerTool
         std::cout<<"sim3 edge err before: "<<avg_error<<std::endl;
         
         optimizer.initializeOptimization();
-        optimizer.optimize(20);
+        optimizer.optimize(10);
         
         avg_error=0;
         for(int i=0; i<gps_edges.size(); i++){
@@ -164,10 +170,49 @@ namespace OptimizerTool
             
         }
         std::cout<<"sim3 edge err after: "<<avg_error<<std::endl;
-        
+        poses_out.resize(sim3_list.size());
+        for(int i=0; i<sim3_list.size(); i++){
+            g2o::Sim3 CorrectedSiw =  v_sim3_list[i]->estimate();
+            Eigen::Matrix3d eigR = CorrectedSiw.rotation().toRotationMatrix();
+            Eigen::Vector3d eigt = CorrectedSiw.translation();
+            double s = CorrectedSiw.scale();
+            //std::cout<<s<<std::endl;
+            eigt *=(1./s); //[R t/s;0 1]
+            Eigen::Matrix4d Tiw=Eigen::Matrix4d::Identity();
+            Tiw.block(0,0,3,3)=eigR;
+            Tiw.block(0,3,3,1)=eigt;
+            poses_out[i]=Tiw.inverse();
+        }
     }
 
-    void optimize_sim3_graph(std::string res_root){
-        
+    void optimize_sim3_graph(std::string map_addr, std::string map_name){
+        vm::VisualMap map;
+        vm::loader_visual_map(map, map_addr+"/"+map_name);
+        map.ComputeUniqueId();
+        std::vector<Eigen::Vector3d> gps_alin;
+        std::vector<Eigen::Matrix4d> poses_out;
+        std::vector<Eigen::Matrix4d> poses_in;
+        std::vector<Eigen::Matrix4d> T_2_1_list;
+        std::vector<double> scale_1_to_2_list;
+        std::vector<int> graph_v1_list;
+        std::vector<int> graph_v2_list;
+        for(int i=0; i<map.frames.size(); i++){
+            gps_alin.push_back(map.frames[i]->gps_position);
+            poses_in.push_back(map.frames[i]->getPose());
+        }
+        scale_1_to_2_list=map.pose_graph_e_scale;
+        for(int i=0; i<map.pose_graph_e_rot.size(); i++){
+            Eigen::Matrix4d T_temp=Eigen::Matrix4d::Identity();
+            T_temp.block(0,0,3,3)=map.pose_graph_e_rot[i];
+            T_temp.block(0,3,3,1)=map.pose_graph_e_posi[i];
+            T_2_1_list.push_back(T_temp);
+            graph_v1_list.push_back(map.pose_graph_v1[i]->id);
+            graph_v2_list.push_back(map.pose_graph_v2[i]->id);
+        }
+        optimize_sim3_graph(gps_alin, poses_out, poses_in, T_2_1_list, scale_1_to_2_list, graph_v1_list, graph_v2_list);
+        for(int i=0; i<map.frames.size(); i++){
+            map.frames[i]->setPose(poses_out[i]);
+        }
+        vm::save_visual_map(map, map_addr+"/graph_"+map_name);
     }
 }

@@ -116,12 +116,12 @@ namespace g2o {
     virtual double initialEstimatePossible(const OptimizableGraph::VertexSet& , OptimizableGraph::Vertex* ) { return 1.;}
     virtual void initialEstimate(const OptimizableGraph::VertexSet& from, OptimizableGraph::Vertex* /*to*/)
     {
-      VertexSim3Expmap* v1 = static_cast<VertexSim3Expmap*>(_vertices[0]);
-      VertexSim3Expmap* v2 = static_cast<VertexSim3Expmap*>(_vertices[1]);
-      if (from.count(v1) > 0)
-  v2->setEstimate(measurement()*v1->estimate());
-      else
-  v1->setEstimate(measurement().inverse()*v2->estimate());
+//       VertexSim3Expmap* v1 = static_cast<VertexSim3Expmap*>(_vertices[0]);
+//       VertexSim3Expmap* v2 = static_cast<VertexSim3Expmap*>(_vertices[1]);
+//       if (from.count(v1) > 0)
+//   v2->setEstimate(measurement()*v1->estimate());
+//       else
+//   v1->setEstimate(measurement().inverse()*v2->estimate());
     }
   };
 

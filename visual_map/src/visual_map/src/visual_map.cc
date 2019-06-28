@@ -24,6 +24,9 @@ namespace vm{
     void VisualMap::CreateSubMap(int startframe_id, int endframe_id, VisualMap& submap){
         std::cout<<"[CreateSubMap]"<<startframe_id<<":"<<endframe_id<<std::endl;
         ComputeUniqueId();
+        submap=*(this);
+        submap.frames.clear();
+        submap.mappoints.clear();
         std::vector<int> old_to_new_id_map;
         for(int i=0; i<frames.size(); i++){
             old_to_new_id_map.push_back(-1);

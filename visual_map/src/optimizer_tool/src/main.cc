@@ -10,6 +10,12 @@
 int main(int argc, char* argv[]) {
     std::string map_addr=argv[1];
     std::string map_name=argv[2];
+    std::string opti_type=argv[3];
     visualization::RVizVisualizationSink::init();
-    OptimizerTool::optimize_gps_pose(map_addr, map_name);
+    if(opti_type=="BA"){
+        OptimizerTool::optimize_gps_pose(map_addr, map_name);
+    }else{
+        OptimizerTool::optimize_sim3_graph(map_addr, map_name);
+    }
+    
 }

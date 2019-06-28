@@ -6,6 +6,24 @@ namespace vm{
     void save_visual_map(VisualMap& map, std::string file_addr){
         proto::VisualMap map_proto;
         std::map<double, int> frame_time_to_index;
+        map_proto.set_anchor_x(map.gps_anchor.x());
+        map_proto.set_anchor_y(map.gps_anchor.y());
+        map_proto.set_anchor_z(map.gps_anchor.z());
+        for(int i=0; i<map.pose_graph_e_posi.size(); i++){
+            proto::Sim3* sim3_e = map_proto.add_pose_graph_e();
+            sim3_e->set_x(map.pose_graph_e_posi[i].x());
+            sim3_e->set_y(map.pose_graph_e_posi[i].y());
+            sim3_e->set_z(map.pose_graph_e_posi[i].z());
+            Eigen::Quaterniond rot_qua(map.pose_graph_e_rot[i]);
+            sim3_e->set_qx(rot_qua.x());
+            sim3_e->set_qy(rot_qua.y());
+            sim3_e->set_qz(rot_qua.z());
+            sim3_e->set_qw(rot_qua.w());
+            sim3_e->set_scale(map.pose_graph_e_scale[i]);
+            map_proto.add_pose_graph_v1(map.pose_graph_v1[i]->id);
+            map_proto.add_pose_graph_v2(map.pose_graph_v2[i]->id);
+        }
+        
         for(int i=0; i<map.frames.size(); i++){
             std::shared_ptr<Frame> frame_p=map.frames[i];
             proto::Frame* frame_proto = map_proto.add_frames();
@@ -116,7 +134,9 @@ namespace vm{
             std::cerr << "Failed to parse map data." << std::endl;
             return ;
         }
-        
+        map.gps_anchor(0)=map_proto.anchor_x();
+        map.gps_anchor(1)=map_proto.anchor_y();
+        map.gps_anchor(2)=map_proto.anchor_z();
         for(int i=0; i<map_proto.frames_size(); i++){
             const proto::Frame& frame_proto = map_proto.frames(i);
             std::shared_ptr<vm::Frame> frame_p;
@@ -195,5 +215,25 @@ namespace vm{
                 }
             }
         }
+        
+        for(int i=0; i<map_proto.pose_graph_e_size(); i++){
+            const proto::Sim3& sim3_proto = map_proto.pose_graph_e(i);
+            Eigen::Vector3d posi;
+            posi.x()=sim3_proto.x();
+            posi.y()=sim3_proto.y();
+            posi.z()=sim3_proto.z();
+            Eigen::Quaterniond rot_qua;
+            rot_qua.x()=sim3_proto.qx();
+            rot_qua.y()=sim3_proto.qy();
+            rot_qua.z()=sim3_proto.qz();
+            rot_qua.w()=sim3_proto.qw();
+            Eigen::Matrix3d rot(rot_qua);
+            map.pose_graph_e_posi.push_back(posi);
+            map.pose_graph_e_rot.push_back(rot);
+            map.pose_graph_e_scale.push_back(sim3_proto.scale());
+            map.pose_graph_v1.push_back(map.frames[map_proto.pose_graph_v1(i)]);
+            map.pose_graph_v2.push_back(map.frames[map_proto.pose_graph_v2(i)]);
+        }
+        
     }
 }   

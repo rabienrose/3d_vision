@@ -24,6 +24,9 @@
 #include "visual_map/visual_map_seri.h"
 #include "global_match/orb_match.h"
 #include "global_match/global_match.h"
+#include "orb_slam_lib/sim3_match.h"
+#include "CoorConv.h"
+#include "vis_loc.h"
 
 DEFINE_string(map1_addr, "", "First map to merge.");
 DEFINE_string(map2_addr, "", "Second map to merge.");
@@ -89,6 +92,157 @@ void convertToFrame(std::shared_ptr<vm::Frame> frame_vm, ORB_SLAM2::Frame& frame
     frame.mK.at<float>(0,2)=frame_vm->cx;
     frame.mK.at<float>(1,2)=frame_vm->cy;
 }
+
+struct KP_INFO{
+    std::shared_ptr<vm::Frame> frame;
+    int kp_ind;
+    std::vector<std::shared_ptr<vm::MapPoint>> mps;
+};
+
+void doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm::VisualMap& target_map, std::string target_desc_file,
+    std::vector<Eigen::Matrix4d>& T_tar_sour_list, std::vector<double>& scale_tar_sour_list, 
+    std::vector<std::shared_ptr<vm::Frame>>& graph_tar_list, std::vector<std::shared_ptr<vm::Frame>>& graph_sour_list
+){
+    visual_loc::VisualLocalization visloc_t;
+    std::shared_ptr<loop_closure::inverted_multi_index::InvertedMultiIndex<5>> index;
+    Eigen::MatrixXf projection_matrix_;
+    chamo::LoadMap(target_desc_file, index, projection_matrix_);
+    std::vector<Eigen::Vector3d> mp_posis;
+    target_map.GetMPPosiList(mp_posis);
+    for(int i=0; i<source_map.frames.size(); i++){
+        ORB_SLAM2::Frame frame;
+        convertToFrame(source_map.frames[i], frame);
+        std::vector<int> inliers_mp;
+        std::vector<int> inliers_kp;
+        Eigen::Matrix4d pose;
+        chamo::MatchImg(mp_posis, index, projection_matrix_, frame, inliers_mp, inliers_kp, pose);
+        //LOG(INFO)<<"====================";
+        //LOG(INFO)<<"pose: "<<pose.block(0,3,3,1).transpose();
+        std::vector<Eigen::Vector3d> local_pc;
+        std::vector<Eigen::Vector3d> global_pc;
+        for(int j=0; j<inliers_kp.size(); j++){
+            if(source_map.frames[i]->obss[inliers_kp[j]]!=nullptr){
+                local_pc.push_back(source_map.frames[i]->obss[inliers_kp[j]]->position);
+                global_pc.push_back(mp_posis[inliers_mp[j]]);
+            }
+        }
+        if(local_pc.size()>30){
+            //LOG(INFO)<<"local_pc.size(): "<<local_pc.size();
+            Eigen::Matrix4d T_tar_sour;
+            double scale_tar_sour; 
+            bool succ= visloc_t.ComputeSim3Ransac(global_pc, local_pc, T_tar_sour, scale_tar_sour);
+            if(succ){
+                //orb_slam::ComputeSim3(global_pc, local_pc , T_tar_sour, scale_tar_sour);
+                //LOG(INFO)<<"scale_tar_sour: "<<scale_tar_sour;
+                std::map<std::shared_ptr<vm::Frame>, int> frame_list;
+                for(int j=0; j<inliers_mp.size(); j++){
+                    std::shared_ptr<vm::MapPoint> temp_tar_mp = target_map.mappoints[inliers_mp[j]];
+                    for(int k=0; k<temp_tar_mp->track.size(); k++){
+                        if(frame_list.count(temp_tar_mp->track[k].frame)==0){
+                            frame_list[temp_tar_mp->track[k].frame]=1;
+                        }else{
+                            frame_list[temp_tar_mp->track[k].frame]=frame_list[temp_tar_mp->track[k].frame]+1;
+                        }
+                    }
+                }
+                
+                std::vector<std::shared_ptr<vm::Frame> > connected_frames;
+                std::map<std::shared_ptr<vm::Frame>, int>::iterator it;
+                for ( it = frame_list.begin(); it != frame_list.end(); it++ ){
+                    if(it->second>30){
+                        connected_frames.push_back(it->first);
+                    }
+                }
+                //LOG(INFO)<<"connected_frames: "<<connected_frames.size();
+                for(int j=0; j<connected_frames.size(); j++){
+                    graph_tar_list.push_back(connected_frames[j]);
+                    graph_sour_list.push_back(source_map.frames[i]);
+                    scale_tar_sour_list.push_back(scale_tar_sour);
+                    Eigen::Matrix4d T_tarworld_sourworld = T_tar_sour;
+                    Eigen::Matrix4d T_tarworld_tar = connected_frames[j]->getPose();
+                    Eigen::Matrix4d T_sourworld_sour = source_map.frames[i]->getPose();
+                    Eigen::Matrix4d T_tar_tarworld = T_tarworld_tar.inverse();
+                    T_tar_sour_list.push_back(T_tar_tarworld*T_tarworld_sourworld*T_sourworld_sour);
+                }
+//                 Eigen::Matrix4d T_sourworld_sour = source_map.frames[i]->getPose();
+//                 Eigen::Vector4d posi_homo;
+//                 posi_homo.block(0,0,3,1)=T_sourworld_sour.block(0,3,3,1);
+//                 posi_homo(3)=1;
+//                 Eigen::Vector4d sim_posi = T_tar_sour*posi_homo;
+                //LOG(INFO)<<"sim_posi: "<<sim_posi.block(0,0,3,1).transpose();
+            }
+            
+        }
+        
+        for(int j=0; j<inliers_kp.size(); j++){
+            CHECK_GT(source_map.frames[i]->obss.size(), inliers_kp[j]);
+            std::shared_ptr<vm::MapPoint> mp1=source_map.frames[i]->obss[inliers_kp[j]];
+            if(mp1!=nullptr){
+                CHECK_GT(target_map.mappoints.size(), inliers_mp[j]);
+                std::shared_ptr<vm::MapPoint> mp2=target_map.mappoints[inliers_mp[j]];
+                CHECK_NOTNULL(mp2);
+                int find_one_id=-1;
+                for(int k=0; k<kp_info_list.size(); k++){
+                    if(kp_info_list[k].frame==source_map.frames[i] && kp_info_list[k].kp_ind == inliers_kp[j]){
+                        find_one_id=k;
+                        break;
+                    }
+                }
+                if(find_one_id==-1){
+                    KP_INFO kp_info;
+                    kp_info.frame=source_map.frames[i];
+                    kp_info.kp_ind=inliers_kp[j];
+                    kp_info.mps.push_back(mp1);
+                    kp_info.mps.push_back(mp2);
+                    kp_info_list.push_back(kp_info);
+                }else{
+                    //LOG(INFO)<<"use existed kp_info: "<<kp_info_list[find_one_id].frame->id;
+                    kp_info_list[find_one_id].mps.push_back(mp2);
+                }
+            }
+        }
+    }
+}
+
+void simpleMerge(vm::VisualMap& base_map, vm::VisualMap& to_merge_map){
+    for(int i=0; i<to_merge_map.frames.size(); i++){
+        base_map.frames.push_back(to_merge_map.frames[i]);
+    }
+    for(int i=0; i<to_merge_map.mappoints.size(); i++){
+        base_map.mappoints.push_back(to_merge_map.mappoints[i]);
+    }
+}
+
+int findInKPList(std::vector<KP_INFO>& kp_info_list, vm::TrackItem track){
+    for(int i=0; i<kp_info_list.size(); i++){
+        if(kp_info_list[i].frame==track.frame && kp_info_list[i].kp_ind == track.kp_ind){
+            return i;
+        }
+    }
+    return -1;
+}
+
+void MergeMP(std::shared_ptr<vm::MapPoint> base_mp, std::shared_ptr<vm::MapPoint> to_merge_mp){
+    //must make sure to_merge_mp is not merge by other mp.
+    
+    if(base_mp->id==to_merge_mp->id){
+        return;
+    }
+    for(int k=0; k<to_merge_mp->track.size(); k++){
+        bool find_one=false;
+        for(int n=0; n<base_mp->track.size(); n++){
+            if(base_mp->track[n].frame==to_merge_mp->track[k].frame && base_mp->track[n].kp_ind==to_merge_mp->track[k].kp_ind){
+                find_one=true;
+            }
+        }
+        if(find_one==true){
+            continue;
+        }
+        base_mp->track.push_back(to_merge_mp->track[k]);
+        CHECK_GT(to_merge_mp->track[k].frame->obss.size(), to_merge_mp->track[k].kp_ind);
+        to_merge_mp->track[k].frame->obss[to_merge_mp->track[k].kp_ind]=base_mp;
+    }
+}
             
 int main(int argc, char* argv[]){
     google::InitGoogleLogging(argv[0]);
@@ -100,122 +254,111 @@ int main(int argc, char* argv[]){
     
     vm::VisualMap map1;
     vm::loader_visual_map(map1, FLAGS_map1_addr);
+    map1.ComputeUniqueId();
     vm::VisualMap map2;
     vm::loader_visual_map(map2, FLAGS_map2_addr);
-    
-    std::vector<Eigen::Vector3d> mp_posis1;
-    map1.GetMPPosiList(mp_posis1);
-    std::vector<Eigen::Vector3d> mp_posis2;
-    map2.GetMPPosiList(mp_posis2);
-    map1.ComputeUniqueId();
     map2.ComputeUniqueId();
-    map1.CheckConsistence();
-    map2.CheckConsistence();
+    std::vector<Eigen::Matrix4d> T_tar_sour_list;
+    std::vector<double> scale_tar_sour_list;
+    std::vector<KP_INFO> kp_info_list;
+    std::vector<std::shared_ptr<vm::Frame>> graph_tar_list;
+    std::vector<std::shared_ptr<vm::Frame>> graph_sour_list;
+    doAMatch(kp_info_list, map1, map2, FLAGS_desc2_addr, T_tar_sour_list, scale_tar_sour_list, graph_tar_list, graph_sour_list);
+    LOG(INFO)<<"kp_info_list: "<<kp_info_list.size();
+    doAMatch(kp_info_list, map2, map1, FLAGS_desc1_addr, T_tar_sour_list, scale_tar_sour_list, graph_tar_list, graph_sour_list);
+    LOG(INFO)<<"kp_info_list: "<<kp_info_list.size();
     
-    std::shared_ptr<loop_closure::inverted_multi_index::InvertedMultiIndex<5>> index_1;
-    std::shared_ptr<loop_closure::inverted_multi_index::InvertedMultiIndex<5>> index_2;
-    Eigen::MatrixXf projection_matrix_;
-    chamo::LoadMap(FLAGS_desc1_addr, index_1, projection_matrix_);
-    chamo::LoadMap(FLAGS_desc2_addr, index_2, projection_matrix_);
+    GpsConverter gps_conv1(map1.gps_anchor(0), map1.gps_anchor(1), false);
+    GpsConverter gps_conv2(map2.gps_anchor(0), map2.gps_anchor(1), false);
     
-    for(int i=0; i<map1.frames.size(); i++){
-        ORB_SLAM2::Frame frame;
-        convertToFrame(map1.frames[i], frame);
-        std::vector<int> inliers_mp;
-        std::vector<int> inliers_kp;
-        Eigen::Matrix4d pose;
-        chamo::MatchImg(mp_posis2, index_2, projection_matrix_, frame, inliers_mp, inliers_kp, pose);
-        LOG(INFO)<<inliers_kp.size();
-        for(int j=0; j<inliers_kp.size(); j++){
-            CHECK_GT(map1.frames[i]->obss.size(), inliers_kp[j]);
-            std::shared_ptr<vm::MapPoint> mp1=map1.frames[i]->obss[inliers_kp[j]];
-            if(mp1!= nullptr){
-                CHECK_GT(map2.mappoints.size(), inliers_mp[j]);
-                std::shared_ptr<vm::MapPoint> mp2=map2.mappoints[inliers_mp[j]];
-                CHECK_NOTNULL(mp2);
-                if(mp2->id==-1){
-                    continue;
-                }
-                if(mp2->id==mp1->id){
-                    continue;
-                }
-                for(int k=0; k<mp2->track.size(); k++){
-                    mp1->track.push_back(mp2->track[k]);
-                    CHECK_GT(mp2->track[k].frame->obss.size(), mp2->track[k].kp_ind);
-                    mp2->track[k].frame->obss[mp2->track[k].kp_ind]=mp1;
-                    mp2->id=-1;
+    for(int i=0; i<map2.frames.size(); i++){
+        WGS84Corr latlon;
+        gps_conv2.MapXYToLatLon(map2.frames[i]->position.x(), map2.frames[i]->position.y(), latlon);
+        UTMCoor xy;
+        gps_conv1.MapLatLonToXY(latlon.lat, latlon.log, xy);
+        map2.frames[i]->position.x()=xy.x;
+        map2.frames[i]->position.y()=xy.y;
+    }
+    
+    for(int i=0; i<map2.frames.size(); i++){
+        WGS84Corr latlon;
+        gps_conv2.MapXYToLatLon(map2.frames[i]->gps_position.x(), map2.frames[i]->gps_position.y(), latlon);
+        UTMCoor xy;
+        gps_conv1.MapLatLonToXY(latlon.lat, latlon.log, xy);
+        map2.frames[i]->gps_position.x()=xy.x;
+        map2.frames[i]->gps_position.y()=xy.y;
+    }
+    
+    for(int i=0; i<map2.mappoints.size(); i++){
+        WGS84Corr latlon;
+        gps_conv2.MapXYToLatLon(map2.mappoints[i]->position.x(), map2.mappoints[i]->position.y(), latlon);
+        UTMCoor xy;
+        gps_conv1.MapLatLonToXY(latlon.lat, latlon.log, xy);
+        map2.mappoints[i]->position.x()=xy.x;
+        map2.mappoints[i]->position.y()=xy.y;
+    }
+    
+    for(int i=0; i<map1.frames.size()-1; i++){
+        T_tar_sour_list.push_back(map1.frames[i+1]->getPose().inverse()*map1.frames[i]->getPose());
+        scale_tar_sour_list.push_back(1);
+        //std::cout<<(map1.frames[i+1]->getPose().block(0,0,3,3)*T_tar_sour_list.back().block(0,3,3,1)+map1.frames[i+1]->getPose().block(0,3,3,1)).transpose()<<std::endl;
+        //std::cout<<map1.frames[i]->getPose().block(0,3,3,1).transpose()<<std::endl;
+        //std::cout<<"sdfasd"<<std::endl;
+        graph_sour_list.push_back(map1.frames[i]);
+        graph_tar_list.push_back(map1.frames[i+1]);
+    }
+    
+    for(int i=0; i<map2.frames.size()-1; i++){
+        T_tar_sour_list.push_back(map2.frames[i+1]->getPose().inverse()*map2.frames[i]->getPose());
+        scale_tar_sour_list.push_back(1);
+        graph_sour_list.push_back(map2.frames[i]);
+        graph_tar_list.push_back(map2.frames[i+1]);
+        
+    }
+    
+    simpleMerge(map1, map2);
+    map1.pose_graph_v1=graph_sour_list;
+    map1.pose_graph_v2=graph_tar_list;
+    map1.pose_graph_e_scale=scale_tar_sour_list;
+    for(int i=0; i<T_tar_sour_list.size(); i++){
+        Eigen::Matrix3d rot=T_tar_sour_list[i].block(0,0,3,3)/scale_tar_sour_list[i];
+        map1.pose_graph_e_posi.push_back(T_tar_sour_list[i].block(0,3,3,1));
+        map1.pose_graph_e_rot.push_back(rot);
+    }
+    map1.ComputeUniqueId();
+    std::vector<int> merged_mps;
+    for(int i=0; i<map1.mappoints.size(); i++){
+        merged_mps.push_back(-1);
+    }
+    
+    for(int i=0; i<map1.mappoints.size(); i++){
+        if(merged_mps[i]==0){
+            continue;
+        }
+        int track_size=map1.mappoints[i]->track.size();
+        for(int j=0; j<track_size; j++){
+            int temp_ip_id=findInKPList(kp_info_list, map1.mappoints[i]->track[j]);
+            //LOG(INFO)<<"temp_ip_id:"<<temp_ip_id;
+            //LOG(INFO)<<"map1.mappoints[i]->track[j]:"<<map1.mappoints[i]->track[j].kp_ind;
+            if(temp_ip_id!=-1){ 
+                for(int k=0; k<kp_info_list[temp_ip_id].mps.size(); k++){
+                    if(merged_mps[kp_info_list[temp_ip_id].mps[k]->id]==0){
+                        continue;
+                    }
+                    MergeMP(map1.mappoints[i], kp_info_list[temp_ip_id].mps[k]);
+                    merged_mps[kp_info_list[temp_ip_id].mps[k]->id]=0;
+                    merged_mps[i]=-1;
                 }
             }
         }
     }
     
-    //to-do due to duplicate mp issue, inverse match is not possible now
-//     LOG(INFO)<<"finish match from map1 to map2";
-//     //map1.CheckConsistence();
-//     LOG(INFO)<<"start match from map2 to map1";
-//     
-//     for(int i=0; i<map2.frames.size(); i++){
-//         ORB_SLAM2::Frame frame;
-//         convertToFrame(map2.frames[i], frame);
-//         std::vector<int> inliers_mp;
-//         std::vector<int> inliers_kp;
-//         Eigen::Matrix4d pose;
-//         chamo::MatchImg(mp_posis1, index_1, projection_matrix_, frame, inliers_mp, inliers_kp, pose);
-//         LOG(INFO)<<inliers_kp.size();
-//         for(int j=0; j<inliers_kp.size(); j++){
-//             CHECK_GT(map2.frames[i]->obss.size(), inliers_kp[j]);
-//             std::shared_ptr<vm::MapPoint> mp2=map2.frames[i]->obss[inliers_kp[j]];
-//             //LOG(INFO)<<"mp2->id: "<<mp2->id;
-//             if(mp2!= nullptr){
-//                 CHECK_GT(map1.mappoints.size(), inliers_mp[j]);
-//                 std::shared_ptr<vm::MapPoint> mp1=map1.mappoints[inliers_mp[j]];
-//                 CHECK_NOTNULL(mp1);
-//                 if(mp2->id==-1){
-//                     continue;
-//                 }
-//                 if(mp2->id==mp1->id){
-//                     continue;
-//                 }
-//                 for(int k=0; k<mp2->track.size(); k++){
-//                     bool find_one=false;
-//                     for(int n=0; n<mp1->track.size(); n++){
-//                         if(mp1->track[n].frame->id==mp2->track[k].frame->id && mp1->track[n].kp_ind==mp2->track[k].kp_ind){
-//                             find_one=true;
-//                         }
-//                     }
-//                     if(find_one==true){
-//                         //LOG(INFO)<<"Find dup one!!";
-//                         continue;
-//                     }
-//                     mp1->track.push_back(mp2->track[k]);
-//                     CHECK_GT(mp2->track[k].frame->obss.size(), mp2->track[k].kp_ind);
-//                     mp2->track[k].frame->obss[mp2->track[k].kp_ind]=mp1;
-//                     LOG(INFO)<<"mp2->id: "<<mp2->id;
-//                     mp2->id=-1;
-//                     LOG(INFO)<<"mp2->track[k].frame->id: "<<mp2->track[k].frame->id;
-//                     LOG(INFO)<<"mp2->track[k].frame->obss[mp2->track[k].kp_ind]->id: "<<mp2->track[k].frame->obss[mp2->track[k].kp_ind]->id;
-//                     LOG(INFO)<<"mp2->track[k].kp_ind: "<<mp2->track[k].kp_ind;
-//                     LOG(INFO)<<"mp1->id: "<<mp1->id;
-//                     
-//                     map1.CheckConsistence();
-//                 }
-//                 
-//             }
-//         }
-//     }
-    
-    for(int i=0; i<map2.frames.size(); i++){
-        map2.frames[i]->position(0)=map2.frames[i]->position(0)+100;
-        map2.frames[i]->position(1)=map2.frames[i]->position(1)+100;
-        map1.frames.push_back(map2.frames[i]);
-    }
-    for(int i=0; i<map2.mappoints.size(); i++){
-        if(map2.mappoints[i]->id!=-1){
-            map2.mappoints[i]->position(0)=map2.mappoints[i]->position(0)+100;
-            map2.mappoints[i]->position(1)=map2.mappoints[i]->position(1)+100;
-            map1.mappoints.push_back(map2.mappoints[i]);
+    for(int i=map1.mappoints.size()-1; i>=0; i--){
+        if(merged_mps[i]==0){
+            map1.mappoints.erase(map1.mappoints.begin()+i);
         }
     }
+    map1.ComputeUniqueId();
     map1.CheckConsistence();
     vm::save_visual_map(map1, FLAGS_output_addr);
 

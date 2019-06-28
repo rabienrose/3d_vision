@@ -40,14 +40,34 @@ int main(int argc, char* argv[]){
     vm::loader_visual_map(map, res_root);
     std::vector<Eigen::Vector3d> traj_posi;
     std::vector<Eigen::Vector3d> mp_posi;
+    std::vector<Eigen::Vector3d> gps_posi;
     for(int i=0; i<map.frames.size(); i++){
         traj_posi.push_back(map.frames[i]->position);
+    }
+    for(int i=0; i<map.frames.size(); i++){
+        gps_posi.push_back(map.frames[i]->gps_position);
     }
     for(int i=0; i<map.mappoints.size(); i++){
         mp_posi.push_back(map.mappoints[i]->position);
     }
+    visualization::LineSegmentVector matches;
+    std::cout<<"map.pose_graph_e_posi.size():"<<map.pose_graph_e_posi.size()<<std::endl;
+    for(int i=0; i<map.pose_graph_e_posi.size(); i++){
+        visualization::LineSegment line_segment;
+        line_segment.from = map.pose_graph_v1[i]->position;
+        line_segment.scale = 0.03;
+        line_segment.alpha = 1;
+
+        line_segment.color.red = 0;
+        line_segment.color.green = 255;
+        line_segment.color.blue = 0;
+        line_segment.to = map.pose_graph_v2[i]->position;
+        matches.push_back(line_segment);
+    }
+    visualization::publishLines(matches, 0, visualization::kDefaultMapFrame,visualization::kDefaultNamespace, "vm_covisibility");
     show_mp_as_cloud(traj_posi, "vm_frame_posi");
     show_mp_as_cloud(mp_posi, "vm_mp_posi");
+    show_mp_as_cloud(gps_posi, "vm_gps_posi");
     ros::Rate loop_rate(10);
     for(int i=0; i<map.frames.size(); i++){
         visualization::LineSegmentVector matches;
@@ -90,6 +110,8 @@ int main(int argc, char* argv[]){
             break;
         }
     }
+    
+    
     
     
     ros::spin();

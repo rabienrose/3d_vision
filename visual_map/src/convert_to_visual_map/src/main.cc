@@ -77,6 +77,14 @@ int main(int argc, char* argv[]) {
         exit(0);
     }
     
+    std::string gps_orth_addr=res_root+"/gps_orth.txt";
+    std::vector<Eigen::Vector3d> gps_orths;
+    std::vector<double> gps_times;
+    std::vector<int> gps_covs;
+    Eigen::Vector3d anchor_gps;
+    CHAMO::read_gps_orth(gps_orth_addr, gps_orths, gps_times, gps_covs, anchor_gps);
+    std::cout<<"gps_times: "<<gps_times.size()<<std::endl;
+    
     std::string cam_addr=res_root+"/camera_config.txt";
     Eigen::Matrix3d cam_inter;
     Eigen::Vector4d cam_distort;
@@ -187,6 +195,8 @@ int main(int argc, char* argv[]) {
         }
         map.mappoints.push_back(mappoint_p);
     }
+    
+    map.gps_anchor = anchor_gps;
     
     std::cout<<"load map finished!"<<std::endl;
     

@@ -207,16 +207,16 @@ namespace OptimizerTool
         
         //add gps edge, leave vertice without gps empty 
         std::vector<g2o::EdgePosiPre*> lidar_edges;
-        for(int i=0; i<poses_alin.size(); i++){
-            if(gps_inlers[i]==1){
-                g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
-                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(kf_verts[i]));
-                e->setMeasurement(gps_alin[i]);
-                e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*1);
-                optimizer.addEdge(e);
-                lidar_edges.push_back(e);
-            }
-        }
+//         for(int i=0; i<poses_alin.size(); i++){
+//             if(gps_inlers[i]==1){
+//                 g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
+//                 e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(kf_verts[i]));
+//                 e->setMeasurement(gps_alin[i]);
+//                 e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*1);
+//                 optimizer.addEdge(e);
+//                 lidar_edges.push_back(e);
+//             }
+//         }
         std::cout<<"add lidar edge"<<std::endl;
         
         const float thHuber2D = sqrt(5.99);
