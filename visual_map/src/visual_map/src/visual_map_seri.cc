@@ -112,8 +112,9 @@ namespace vm{
                 putToFile(keypoints1[j].pt.y, output);
                 if(frame_p->obss[j]!=nullptr){
                     if(mappoint_to_index.count(frame_p->obss[j].get())==0){
-                        std::cout<<"[error]mappoint_to_index.count(frame_p->obss[j].get())==0"<<std::endl;
-                        exit(0);
+                        putToFile(-1, output);
+                        std::cout<<"[error]mappoint_to_index.count(frame_p->obss[j].get())==0  "<<frame_p->obss[j]->id<<std::endl;
+                        //exit(0);
                     }else{
                         putToFile(mappoint_to_index[frame_p->obss[j].get()], output);
                     }
@@ -126,7 +127,15 @@ namespace vm{
             int desc_count=frame_p->descriptors.cols();
             putToFile(desc_width, output);
             putToFile(desc_count, output);
-            output.write( (const char*)frame_p->descriptors.data(), sizeof( desc_count*desc_width ) );
+            for(int j=0; j<desc_count; j++){
+                for(int k=0; k<desc_width; k++){
+                    output.write( (const char*)&frame_p->descriptors(k, j), 1 );
+                }
+            }
+//             for(int j=0; j<desc_width; j++){
+//                 std::cout<<(int)frame_p->descriptors(j, desc_count-1)<<",";
+//             }
+//             std::cout<<std::endl;
         }
         std::cout<<"kp count: "<<kp_count<<std::endl;
         
@@ -220,7 +229,18 @@ namespace vm{
             int desc_width=getFromFileI(input);
             int desc_count=getFromFileI(input);
             frame_p->descriptors.resize(desc_width, desc_count);
-            input.read( (char*)frame_p->descriptors.data(), sizeof( desc_width*desc_count ) );
+            for(int j=0; j<desc_count; j++){
+                for(int k=0; k<desc_width; k++){
+                    char temp_c;
+                    input.read(&temp_c, 1 );
+                    frame_p->descriptors(k, j)=temp_c;
+                }
+            }
+//             for(int j=0; j<desc_width; j++){
+//                 std::cout<<(int)frame_p->descriptors(j, desc_count-1)<<",";
+//             }
+//             std::cout<<std::endl;
+            
             map.frames.push_back(frame_p);
         }
         std::cout<<"kp count: "<<kp_count<<std::endl;

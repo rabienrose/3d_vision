@@ -83,7 +83,9 @@ void convertToFrame(std::shared_ptr<vm::Frame> frame_vm, ORB_SLAM2::Frame& frame
     for(int i=0; i<desc_count; i++){
         for(int j=0; j<desc_width; j++){
             frame.mDescriptors.at<unsigned char>(i, j)=frame_vm->descriptors(j, i);
+            //std::cout<<(int)frame.mDescriptors.at<unsigned char>(i, j)<<",";
         }
+        //std::cout<<std::endl;
     }
     frame.mDistCoef=cv::Mat::zeros(1,4,CV_32FC1);
     frame.mK=cv::Mat::eye(3,3,CV_32FC1);
@@ -119,8 +121,6 @@ void doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm:
         std::vector<int> inliers_kp;
         Eigen::Matrix4d pose;
         chamo::MatchImg(mp_posis, index, projection_matrix_, frame, inliers_mp, inliers_kp, pose);
-        //LOG(INFO)<<"====================";
-        //LOG(INFO)<<"pose: "<<pose.block(0,3,3,1).transpose();
         std::vector<Eigen::Vector3d> local_pc;
         std::vector<Eigen::Vector3d> global_pc;
         std::vector<shared_ptr<vm::MapPoint>> pc_match_sour_temp;
@@ -175,6 +175,9 @@ void doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm:
                 int max_count=0;
                 std::shared_ptr<vm::Frame> max_frame=nullptr;
                 for ( it = frame_list.begin(); it != frame_list.end(); it++ ){
+//                     if(it->second>60){
+//                         connected_frames.push_back(it->first);
+//                     }
                     if(it->second>max_count){
                         max_count=it->second;
                         max_frame=it->first;
@@ -250,6 +253,12 @@ void simpleMerge(vm::VisualMap& base_map, vm::VisualMap& to_merge_map){
     for(int i=0; i<to_merge_map.mappoints.size(); i++){
         base_map.mappoints.push_back(to_merge_map.mappoints[i]);
     }
+    base_map.pose_graph_v1.insert(base_map.pose_graph_v1.begin(),to_merge_map.pose_graph_v1.begin(),to_merge_map.pose_graph_v1.end());
+    base_map.pose_graph_v2.insert(base_map.pose_graph_v2.begin(),to_merge_map.pose_graph_v2.begin(),to_merge_map.pose_graph_v2.end());
+    base_map.pose_graph_e_posi.insert(base_map.pose_graph_e_posi.begin(),to_merge_map.pose_graph_e_posi.begin(),to_merge_map.pose_graph_e_posi.end());
+    base_map.pose_graph_e_rot.insert(base_map.pose_graph_e_rot.begin(),to_merge_map.pose_graph_e_rot.begin(),to_merge_map.pose_graph_e_rot.end());
+    base_map.pose_graph_e_scale.insert(base_map.pose_graph_e_scale.begin(),to_merge_map.pose_graph_e_scale.begin(),to_merge_map.pose_graph_e_scale.end());
+    base_map.pose_graph_weight.insert(base_map.pose_graph_weight.begin(),to_merge_map.pose_graph_weight.begin(),to_merge_map.pose_graph_weight.end());
 }
 
 int findInKPList(std::vector<KP_INFO>& kp_info_list, vm::TrackItem track){
@@ -262,10 +271,6 @@ int findInKPList(std::vector<KP_INFO>& kp_info_list, vm::TrackItem track){
 }
 
 void MergeMP(std::shared_ptr<vm::MapPoint> base_mp, std::shared_ptr<vm::MapPoint> to_merge_mp){
-    
-    if(base_mp->id==to_merge_mp->id){
-        return;
-    }
     for(int k=0; k<to_merge_mp->track.size(); k++){
         CHECK_GT(to_merge_mp->track[k].frame->obss.size(), to_merge_mp->track[k].kp_ind);
         to_merge_mp->track[k].frame->obss[to_merge_mp->track[k].kp_ind]=base_mp;
@@ -297,24 +302,26 @@ int main(int argc, char* argv[]){
     double scale_2_1;
     doAMatch(kp_info_list, map1, map2, FLAGS_desc2_addr, T_tar_sour_list, scale_tar_sour_list, graph_tar_list, graph_sour_list, sim3_2_1, scale_2_1);
     LOG(INFO)<<"kp_info_list: "<<kp_info_list.size();
+    LOG(INFO)<<"scale_2_1: "<<scale_2_1;
     Eigen::Matrix4d sim3_1_2;
     double scale_1_2;
     doAMatch(kp_info_list, map2, map1, FLAGS_desc1_addr, T_tar_sour_list, scale_tar_sour_list, graph_tar_list, graph_sour_list, sim3_1_2, scale_1_2);
     LOG(INFO)<<"kp_info_list: "<<kp_info_list.size();
+    LOG(INFO)<<"scale_1_2: "<<scale_1_2;
     
-    for(int i=0; i<map2.frames.size(); i++){
-        Eigen::Matrix4d pose_transformed_temp;
-        Eigen::Matrix4d temp_pose=map2.frames[i]->getPose();
-        transformPoseUseSim3(sim3_1_2, scale_1_2, temp_pose, pose_transformed_temp);
-        map2.frames[i]->setPose(pose_transformed_temp);
-    }
-    for(int j=0; j<map2.mappoints.size(); j++){
-        Eigen::Vector4d posi_homo;
-        posi_homo.block(0,0,3,1)=map2.mappoints[j]->position;
-        posi_homo(3)=1;
-        Eigen::Vector4d posi_gps_homo = sim3_1_2*posi_homo;
-        map2.mappoints[j]->position=posi_gps_homo.block(0,0,3,1);                       
-    }
+//     for(int i=0; i<map2.frames.size(); i++){
+//         Eigen::Matrix4d pose_transformed_temp;
+//         Eigen::Matrix4d temp_pose=map2.frames[i]->getPose();
+//         transformPoseUseSim3(sim3_1_2, scale_1_2, temp_pose, pose_transformed_temp);
+//         map2.frames[i]->setPose(pose_transformed_temp);
+//     }
+//     for(int j=0; j<map2.mappoints.size(); j++){
+//         Eigen::Vector4d posi_homo;
+//         posi_homo.block(0,0,3,1)=map2.mappoints[j]->position;
+//         posi_homo(3)=1;
+//         Eigen::Vector4d posi_gps_homo = sim3_1_2*posi_homo;
+//         map2.mappoints[j]->position=posi_gps_homo.block(0,0,3,1);                       
+//     }
     
     GpsConverter gps_conv1(map1.gps_anchor(0), map1.gps_anchor(1), false);
     GpsConverter gps_conv2(map2.gps_anchor(0), map2.gps_anchor(1), false);
@@ -346,39 +353,37 @@ int main(int argc, char* argv[]){
         map2.mappoints[i]->position.y()=xy.y;
     }
     
-    for(int i=0; i<map1.frames.size()-1; i++){
-        T_tar_sour_list.push_back(map1.frames[i+1]->getPose().inverse()*map1.frames[i]->getPose());
-        scale_tar_sour_list.push_back(1);
-        //std::cout<<(map1.frames[i+1]->getPose().block(0,0,3,3)*T_tar_sour_list.back().block(0,3,3,1)+map1.frames[i+1]->getPose().block(0,3,3,1)).transpose()<<std::endl;
-        //std::cout<<map1.frames[i]->getPose().block(0,3,3,1).transpose()<<std::endl;
-        //std::cout<<"sdfasd"<<std::endl;
-        graph_sour_list.push_back(map1.frames[i]);
-        graph_tar_list.push_back(map1.frames[i+1]);
-    }
-    
-    for(int i=0; i<map2.frames.size()-1; i++){
-        T_tar_sour_list.push_back(map2.frames[i+1]->getPose().inverse()*map2.frames[i]->getPose());
-        scale_tar_sour_list.push_back(1);
-        graph_sour_list.push_back(map2.frames[i]);
-        graph_tar_list.push_back(map2.frames[i+1]);
-        
-    }
-    
+//     for(int i=0; i<map1.frames.size()-1; i++){
+//         T_tar_sour_list.push_back(map1.frames[i+1]->getPose().inverse()*map1.frames[i]->getPose());
+//         scale_tar_sour_list.push_back(1);
+//         //std::cout<<(map1.frames[i+1]->getPose().block(0,0,3,3)*T_tar_sour_list.back().block(0,3,3,1)+map1.frames[i+1]->getPose().block(0,3,3,1)).transpose()<<std::endl;
+//         //std::cout<<map1.frames[i]->getPose().block(0,3,3,1).transpose()<<std::endl;
+//         //std::cout<<"sdfasd"<<std::endl;
+//         graph_sour_list.push_back(map1.frames[i]);
+//         graph_tar_list.push_back(map1.frames[i+1]);
+//     }
+//     
+//     for(int i=0; i<map2.frames.size()-1; i++){
+//         T_tar_sour_list.push_back(map2.frames[i+1]->getPose().inverse()*map2.frames[i]->getPose());
+//         scale_tar_sour_list.push_back(1);
+//         graph_sour_list.push_back(map2.frames[i]);
+//         graph_tar_list.push_back(map2.frames[i+1]);
+//         
+//     }
     simpleMerge(map1, map2);
-    map1.pose_graph_v1=graph_sour_list;
-    map1.pose_graph_v2=graph_tar_list;
-    map1.pose_graph_e_scale=scale_tar_sour_list;
     for(int i=0; i<T_tar_sour_list.size(); i++){
         Eigen::Matrix3d rot=T_tar_sour_list[i].block(0,0,3,3)/scale_tar_sour_list[i];
-        map1.pose_graph_e_posi.push_back(T_tar_sour_list[i].block(0,3,3,1));
-        map1.pose_graph_e_rot.push_back(rot);
+        Eigen::Vector3d posi=T_tar_sour_list[i].block(0,3,3,1);
+        map1.AddConnection(graph_sour_list[i], graph_tar_list[i], posi,rot, scale_tar_sour_list[i], 100);
     }
     map1.ComputeUniqueId();
+    map1.CheckConsistence();
     std::vector<int> merged_mps;
+    
     for(int i=0; i<map1.mappoints.size(); i++){
         merged_mps.push_back(-1);
     }
-    
+    int merged_mp_count=0;
     for(int i=0; i<map1.mappoints.size(); i++){
         if(merged_mps[i]!=-1){
             continue;
@@ -390,17 +395,21 @@ int main(int argc, char* argv[]){
             //LOG(INFO)<<"map1.mappoints[i]->track[j]:"<<map1.mappoints[i]->track[j].kp_ind;
             if(temp_ip_id!=-1){ 
                 for(int k=0; k<kp_info_list[temp_ip_id].mps.size(); k++){
-                    if(merged_mps[kp_info_list[temp_ip_id].mps[k]->id]==0){
+                    if(merged_mps[kp_info_list[temp_ip_id].mps[k]->id]!=-1){
+                        continue;
+                    }
+                    if(map1.mappoints[i]->id==kp_info_list[temp_ip_id].mps[k]->id){
                         continue;
                     }
                     MergeMP(map1.mappoints[i], kp_info_list[temp_ip_id].mps[k]);
                     merged_mps[kp_info_list[temp_ip_id].mps[k]->id]=0;
+                    merged_mp_count++;
                     merged_mps[i]=1;
                 }
             }
         }
     }
-    
+    LOG(INFO)<<"merged mp count: "<<merged_mp_count;
     for(int i=map1.mappoints.size()-1; i>=0; i--){
         if(merged_mps[i]==0){
             map1.mappoints.erase(map1.mappoints.begin()+i);

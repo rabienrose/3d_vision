@@ -11,7 +11,7 @@ ${ORB_SLAM_ADDR} \
     --camera_config=${OUT_ADDR}/camera_config.txt \
     --image_topic=img \
     --min_frame=0 \
-    --max_frame=1000000 \
+    --max_frame=60 \
     --step_frame=1 \
     --use_orb=false \
     --feature_count=2000 \

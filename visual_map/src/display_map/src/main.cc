@@ -53,7 +53,6 @@ int main(int argc, char* argv[]){
         mp_posi.push_back(map.mappoints[i]->position);
     }
     visualization::LineSegmentVector matches;
-    std::cout<<"map.pose_graph_e_posi.size():"<<map.pose_graph_e_posi.size()<<std::endl;
     for(int i=0; i<map.pose_graph_e_posi.size(); i++){
         visualization::LineSegment line_segment;
         line_segment.from = map.pose_graph_v1[i]->position;

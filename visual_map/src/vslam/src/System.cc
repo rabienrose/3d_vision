@@ -301,8 +301,9 @@ namespace ORB_SLAM2
                 int w = pKF->GetWeight(pKFn);
                 map.pose_graph_weight.push_back(w);
                 map.pose_graph_e_scale.push_back(1);
-                map.pose_graph_e_posi.push_back(Eigen::Vector3d::Zero());
-                map.pose_graph_e_rot.push_back(Eigen::Matrix3d::Identity());
+                Eigen::Matrix4d r_pose = p2_frame->getPose().inverse()*p_frame->getPose();
+                map.pose_graph_e_posi.push_back(r_pose.block(0,3,3,1));
+                map.pose_graph_e_rot.push_back(r_pose.block(0,0,3,3));
             }
         }
         map.CalPoseEdgeVal();

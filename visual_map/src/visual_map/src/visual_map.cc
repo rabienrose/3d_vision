@@ -20,6 +20,16 @@ namespace vm{
         return nullptr;
     }
     
+    void VisualMap::AddConnection(std::shared_ptr<Frame> v1, std::shared_ptr<Frame> v2, Eigen::Vector3d& posi, Eigen::Matrix3d& rot,
+        double scale, double weight){
+        pose_graph_v1.push_back(v1);
+        pose_graph_v2.push_back(v2);
+        pose_graph_weight.push_back(weight);
+        pose_graph_e_scale.push_back(scale);
+        pose_graph_e_posi.push_back(posi);
+        pose_graph_e_rot.push_back(rot);
+    }
+    
     
     void VisualMap::CreateSubMap(int startframe_id, int endframe_id, VisualMap& submap){
         std::cout<<"[CreateSubMap]"<<startframe_id<<":"<<endframe_id<<std::endl;
