@@ -113,7 +113,7 @@ public:
 
     static std::mutex mGlobalMutex;
 
-protected:    
+public: 
 
      // Position in absolute coordinates
      cv::Mat mWorldPos;

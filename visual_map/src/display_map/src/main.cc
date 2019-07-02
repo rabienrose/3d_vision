@@ -31,8 +31,10 @@ void show_pose_as_marker(std::vector<Eigen::Vector3d>& posis, std::vector<Eigen:
 }
           
 int main(int argc, char* argv[]){
-    ros::init(argc, argv, "vis_map");
-    ros::NodeHandle nh;
+    
+    google::InitGoogleLogging(argv[0]);
+    google::InstallFailureSignalHandler();
+    google::ParseCommandLineFlags(&argc, &argv, true);
     visualization::RVizVisualizationSink::init();
     std::string res_root=argv[1];
 
@@ -110,10 +112,6 @@ int main(int argc, char* argv[]){
             break;
         }
     }
-    
-    
-    
-    
     ros::spin();
 
     return 0;

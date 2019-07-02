@@ -6,7 +6,13 @@
 #include "orb_slam_lib/sim3_match.h"
 #include "visual_map/visual_map.h"
 #include "visual_map/visual_map_seri.h"
+#include <glog/logging.h>
+#include <gflags/gflags.h>
 
+DEFINE_double(err_thres, 0.1, "if the sim3 match err is large than this, the trajectory will be cut");
+DEFINE_int32(max_seg_frame_count, 100000, "max count of frame in a segment");
+DEFINE_string(map_addr, "", "Folder of the map file, also the place to save the new map file.");
+DEFINE_string(map_name, "", "File name of map file.");
 
 void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic){
     Eigen::Matrix3Xd points;
@@ -28,18 +34,18 @@ void transformPoseUseSim3(Eigen::Matrix4d& sim3, double scale,  Eigen::Matrix4d&
 }
 
 int main(int argc, char* argv[]){
-    ros::init(argc, argv, "loc");
-    ros::NodeHandle nh;
+    google::InitGoogleLogging(argv[0]);
+    google::InstallFailureSignalHandler();
+    google::ParseCommandLineFlags(&argc, &argv, true);
     visualization::RVizVisualizationSink::init();
-    std::string res_root=argv[1];
     
     vm::VisualMap map;
-    vm::loader_visual_map(map, res_root+"/chamo.map");
+    vm::loader_visual_map(map, FLAGS_map_addr+"/"+FLAGS_map_name);
 
     std::cout<<"start segmentation"<<std::endl;
     int cur_frame_id=100;
     int last_frame_id=0;
-    int max_seg_count=30000;
+    int max_seg_count=FLAGS_max_seg_frame_count;
     std::vector<vm::VisualMap> submaps;
     while(ros::ok()){
         std::vector<Eigen::Vector3d> pc_frame;
@@ -71,7 +77,7 @@ int main(int argc, char* argv[]){
                 pc_frame_transformed_temp.push_back(posi_gps_homo.block(0,0,3,1));
             }
             //std::cout<<"avg_err: "<<cur_frame_id<<" | "<<pc_gps.size()<<" | "<<avg_err<<std::endl;
-            if(avg_err>1 || pc_frame_transformed_temp.size()>max_seg_count || cur_frame_id==map.frames.size()-1){
+            if(avg_err>FLAGS_err_thres || pc_frame_transformed_temp.size()>max_seg_count || cur_frame_id==map.frames.size()-1){
                 std::cout<<"[seg_traj]start new seg: "<<submaps.size()<<std::endl;
                 int extend_start=last_frame_id-10;
                 if(extend_start<0){
@@ -112,8 +118,8 @@ int main(int argc, char* argv[]){
     
     for(int i=0; i<submaps.size(); i++){
         std::stringstream ss;
-        ss<<"/chamo_"<<1000+i<<".map";
-        vm::save_visual_map(submaps[i], res_root+ss.str());
+        ss<<"/"<<1000+i<<"_"<<FLAGS_map_name;
+        vm::save_visual_map(submaps[i], FLAGS_map_addr+ss.str());
     }
     return 0;
 }

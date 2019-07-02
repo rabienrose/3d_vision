@@ -35,6 +35,7 @@ namespace vm{
         
         void getDesc(int ind, Eigen::Matrix<unsigned char, Eigen::Dynamic, 1>& desc_out);
         void AddKPAndDesc(cv::KeyPoint kp, Eigen::Matrix<unsigned char, Eigen::Dynamic, 1>& desc, std::shared_ptr<MapPoint> mp);
+        void LoadDesc(std::string desc_file);
         
     };
 }

@@ -12,6 +12,8 @@
 #include "KeyFrameDatabase.h"
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include "visual_map/visual_map.h"
+#include "visual_map/visual_map_seri.h"
 
 DEFINE_string(voc_addr, "", "Vocabulary file address.");
 
@@ -176,6 +178,139 @@ namespace ORB_SLAM2
         return re;
     }
     
+    void System::saveToVisualMap(string map_filename){
+        vm::VisualMap map;
+        vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+        sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
+        cv::Mat Two = vpKFs[0]->GetPoseInverse();
+        for(int i=0; i<vpKFs.size(); i++)
+        {
+            ORB_SLAM2::KeyFrame* pKF = vpKFs[i];
+
+            if(pKF->isBad())
+            {
+                continue;
+            }
+
+            cv::Mat Trw = pKF->GetPose()*Two;
+            cv::Mat Rwc = Trw.rowRange(0,3).colRange(0,3).t();
+            cv::Mat twc = -Rwc*Trw.rowRange(0,3).col(3);
+            Eigen::Vector3d posi(twc.at<float>(0),twc.at<float>(1),twc.at<float>(2));
+            Eigen::Quaterniond rot(ORB_SLAM2::Converter::toMatrix3d(Rwc));
+            //LOG(INFO)<<pKF->file_name_;
+            std::vector<std::string> splited = split(pKF->file_name_, "/");
+            std::string filename= splited.back();
+            std::shared_ptr<vm::Frame> frame_p;
+            frame_p.reset(new vm::Frame);
+            frame_p->fx=pKF->fx;
+            frame_p->fy=pKF->fy;
+            frame_p->cx=pKF->cx;
+            frame_p->cy=pKF->cy;
+            frame_p->k1=0;
+            frame_p->k2=0;
+            frame_p->p1=0;
+            frame_p->p2=0;
+            frame_p->frame_file_name=filename;
+            frame_p->position=posi;
+            frame_p->direction=rot;
+            frame_p->kps= pKF->mvKeysUn;
+            int desc_width=pKF->mDescriptors.cols;
+            int desc_count=pKF->mDescriptors.rows;
+            //LOG(INFO)<<pKF->mDescriptors.cols;
+            //LOG(INFO)<<pKF->mDescriptors.rows;
+            frame_p->descriptors.resize(desc_width, desc_count);
+            for(int j=0; j<desc_width; j++){
+                for(int k=0; k<desc_count; k++){
+                    frame_p->descriptors(j, k)=pKF->mDescriptors.at<unsigned char>(k, j);
+                } 
+            }
+            for(int j=0; j<pKF->mvKeysUn.size(); j++){
+                frame_p->obss.push_back(nullptr);
+            }
+            frame_p->id=pKF->mnId;
+            map.frames.push_back(frame_p);
+        }
+        
+        vector<MapPoint*> vpMPs = mpMap->GetAllMapPoints();
+        for(int i=0; i<vpMPs.size(); i++){
+            MapPoint* mp = vpMPs[i];
+            if (mp->isBad()){
+                continue;
+            }
+            std::shared_ptr<vm::MapPoint> mappoint_p;
+            mappoint_p.reset(new vm::MapPoint);
+            cv::Mat mp_posi_cv=vpMPs[i]->GetWorldPos();
+            Eigen::Vector3d posi(mp_posi_cv.at<float>(0),mp_posi_cv.at<float>(1),mp_posi_cv.at<float>(2));
+            mappoint_p->position=posi;
+            mappoint_p->id=vpMPs[i]->mnId;
+            map.mappoints.push_back(mappoint_p);
+        }
+        for(int i=0; i<vpKFs.size(); i++){
+            ORB_SLAM2::KeyFrame* pKF = vpKFs[i];
+            if(pKF->isBad()){
+                continue;
+            }
+            if(pKF->mnId!=map.frames[i]->id){
+                std::cout<<"[error]pKF->mnId!=frame_p->id"<<std::endl;
+                exit(0);
+            }
+            for(int j=0; j<pKF->mvpMapPoints.size(); j++){
+                if(pKF->mvpMapPoints[j]!=NULL){
+                    for(int k=0; k<map.mappoints.size(); k++){
+                        if(map.mappoints[k]->id==pKF->mvpMapPoints[j]->mnId){
+                            map.frames[i]->obss[j]=map.mappoints[k];
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        for(size_t i=0; i<vpKFs.size(); i++){
+            KeyFrame* pKF = vpKFs[i];
+            if(pKF->isBad()){
+                continue;
+            }
+            std::shared_ptr<vm::Frame> p_frame=nullptr;
+            for(int k=0; k<map.frames.size(); k++){
+                if(map.frames[k]->id==pKF->mnId){
+                    p_frame= map.frames[k];
+                    break;
+                }
+            }
+            CHECK_NOTNULL(p_frame);
+            pKF->UpdateConnections();
+            pKF->UpdateBestCovisibles();
+            //set<KeyFrame*> vpConnectedKFs= pKF->GetConnectedKeyFrames();
+            const vector<KeyFrame*> vpConnectedKFs = pKF->GetCovisiblesByWeight(100);
+            //LOG(INFO)<<vpConnectedKFs.size();
+            for(vector<KeyFrame*>::const_iterator vit=vpConnectedKFs.begin(); vit!=vpConnectedKFs.end(); vit++){
+                KeyFrame* pKFn = *vit;
+                if(pKFn->isBad()){
+                    continue;
+                }
+                std::shared_ptr<vm::Frame> p2_frame;
+                for(int n=0; n<map.frames.size(); n++){
+                    if(map.frames[n]->id==pKFn->mnId){
+                        p2_frame= map.frames[n];
+                        break;
+                    }
+                }
+                CHECK_NOTNULL(p2_frame);
+                map.pose_graph_v1.push_back(p_frame);
+                map.pose_graph_v2.push_back(p2_frame);
+                int w = pKF->GetWeight(pKFn);
+                map.pose_graph_weight.push_back(w);
+                map.pose_graph_e_scale.push_back(1);
+                map.pose_graph_e_posi.push_back(Eigen::Vector3d::Zero());
+                map.pose_graph_e_rot.push_back(Eigen::Matrix3d::Identity());
+            }
+        }
+        map.CalPoseEdgeVal();
+        map.AssignKpToMp();
+        LOG(INFO)<<map_filename+"/chamo.map";
+        vm::save_visual_map(map, map_filename+"/chamo.map");
+    }
+    
     void System::saveResult(string map_filename){
         string track_file=map_filename+"/track.txt";
         string desc_file=map_filename+"/desc.txt";
@@ -196,7 +331,7 @@ namespace ORB_SLAM2
         {
             ORB_SLAM2::KeyFrame* pKF = vpKFs[i];
 
-            while(pKF->isBad())
+            if(pKF->isBad())
             {
                 continue;
             }

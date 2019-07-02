@@ -23,6 +23,7 @@ public:
     void getPC(std::vector<Eigen::Vector3d>& pcs);
     void getTraj(std::vector<Eigen::Vector3d>& posis, std::vector<Eigen::Quaterniond>& quas);
     void getDebugImg(cv::Mat& img, float& err, int& count, int & mp_count_, int& kf_count_);
+    void saveToVisualMap(string map_filename);
     Frame getCurrentFrame(); 
     Map*  getMapPointer();
     Tracking* getTrackPointer();

@@ -101,7 +101,8 @@ struct KP_INFO{
 
 void doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm::VisualMap& target_map, std::string target_desc_file,
     std::vector<Eigen::Matrix4d>& T_tar_sour_list, std::vector<double>& scale_tar_sour_list, 
-    std::vector<std::shared_ptr<vm::Frame>>& graph_tar_list, std::vector<std::shared_ptr<vm::Frame>>& graph_sour_list
+    std::vector<std::shared_ptr<vm::Frame>>& graph_tar_list, std::vector<std::shared_ptr<vm::Frame>>& graph_sour_list,
+    Eigen::Matrix4d& sim3_tar_sour, double& scale_tar_sour
 ){
     visual_loc::VisualLocalization visloc_t;
     std::shared_ptr<loop_closure::inverted_multi_index::InvertedMultiIndex<5>> index;
@@ -109,6 +110,8 @@ void doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm:
     chamo::LoadMap(target_desc_file, index, projection_matrix_);
     std::vector<Eigen::Vector3d> mp_posis;
     target_map.GetMPPosiList(mp_posis);
+    std::vector<shared_ptr<vm::MapPoint>> pc_match_sour;
+    std::vector<shared_ptr<vm::MapPoint>> pc_match_tar;
     for(int i=0; i<source_map.frames.size(); i++){
         ORB_SLAM2::Frame frame;
         convertToFrame(source_map.frames[i], frame);
@@ -120,13 +123,34 @@ void doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm:
         //LOG(INFO)<<"pose: "<<pose.block(0,3,3,1).transpose();
         std::vector<Eigen::Vector3d> local_pc;
         std::vector<Eigen::Vector3d> global_pc;
+        std::vector<shared_ptr<vm::MapPoint>> pc_match_sour_temp;
+        std::vector<shared_ptr<vm::MapPoint>> pc_match_tar_temp;
         for(int j=0; j<inliers_kp.size(); j++){
             if(source_map.frames[i]->obss[inliers_kp[j]]!=nullptr){
                 local_pc.push_back(source_map.frames[i]->obss[inliers_kp[j]]->position);
                 global_pc.push_back(mp_posis[inliers_mp[j]]);
+                pc_match_sour_temp.push_back(source_map.frames[i]->obss[inliers_kp[j]]);
+                pc_match_tar_temp.push_back(target_map.mappoints[inliers_mp[j]]);
             }
         }
+        
         if(local_pc.size()>30){
+            for(int j=0; j<pc_match_sour_temp.size(); j++){
+                bool find_one=false;
+                for(int k=0; k<pc_match_sour.size();k++){
+                    if(pc_match_sour_temp[j]==pc_match_sour[k]){
+                        if(pc_match_tar_temp[j]==pc_match_tar[k]){
+                            find_one=true;
+                            break;
+                        }
+                    }
+                }
+                if(find_one==false){
+                    pc_match_sour.push_back(pc_match_sour_temp[j]);
+                    pc_match_tar.push_back(pc_match_tar_temp[j]);
+                }
+            }
+            
             //LOG(INFO)<<"local_pc.size(): "<<local_pc.size();
             Eigen::Matrix4d T_tar_sour;
             double scale_tar_sour; 
@@ -148,10 +172,16 @@ void doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm:
                 
                 std::vector<std::shared_ptr<vm::Frame> > connected_frames;
                 std::map<std::shared_ptr<vm::Frame>, int>::iterator it;
+                int max_count=0;
+                std::shared_ptr<vm::Frame> max_frame=nullptr;
                 for ( it = frame_list.begin(); it != frame_list.end(); it++ ){
-                    if(it->second>30){
-                        connected_frames.push_back(it->first);
+                    if(it->second>max_count){
+                        max_count=it->second;
+                        max_frame=it->first;
                     }
+                }
+                if(max_frame!= nullptr && max_count>60){
+                    connected_frames.push_back(max_frame);
                 }
                 //LOG(INFO)<<"connected_frames: "<<connected_frames.size();
                 for(int j=0; j<connected_frames.size(); j++){
@@ -202,6 +232,15 @@ void doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm:
             }
         }
     }
+    
+    std::vector<Eigen::Vector3d> posi_sour_temp;
+    std::vector<Eigen::Vector3d> posi_tar_temp;
+    
+    for(int i=0; i< pc_match_sour.size(); i++){
+        posi_sour_temp.push_back(pc_match_sour[i]->position);
+        posi_tar_temp.push_back(pc_match_tar[i]->position);
+    }
+    bool succ= visloc_t.ComputeSim3Ransac(posi_tar_temp, posi_sour_temp, sim3_tar_sour, scale_tar_sour);
 }
 
 void simpleMerge(vm::VisualMap& base_map, vm::VisualMap& to_merge_map){
@@ -223,26 +262,17 @@ int findInKPList(std::vector<KP_INFO>& kp_info_list, vm::TrackItem track){
 }
 
 void MergeMP(std::shared_ptr<vm::MapPoint> base_mp, std::shared_ptr<vm::MapPoint> to_merge_mp){
-    //must make sure to_merge_mp is not merge by other mp.
     
     if(base_mp->id==to_merge_mp->id){
         return;
     }
     for(int k=0; k<to_merge_mp->track.size(); k++){
-        bool find_one=false;
-        for(int n=0; n<base_mp->track.size(); n++){
-            if(base_mp->track[n].frame==to_merge_mp->track[k].frame && base_mp->track[n].kp_ind==to_merge_mp->track[k].kp_ind){
-                find_one=true;
-            }
-        }
-        if(find_one==true){
-            continue;
-        }
-        base_mp->track.push_back(to_merge_mp->track[k]);
         CHECK_GT(to_merge_mp->track[k].frame->obss.size(), to_merge_mp->track[k].kp_ind);
         to_merge_mp->track[k].frame->obss[to_merge_mp->track[k].kp_ind]=base_mp;
     }
+    
 }
+
             
 int main(int argc, char* argv[]){
     google::InitGoogleLogging(argv[0]);
@@ -263,10 +293,28 @@ int main(int argc, char* argv[]){
     std::vector<KP_INFO> kp_info_list;
     std::vector<std::shared_ptr<vm::Frame>> graph_tar_list;
     std::vector<std::shared_ptr<vm::Frame>> graph_sour_list;
-    doAMatch(kp_info_list, map1, map2, FLAGS_desc2_addr, T_tar_sour_list, scale_tar_sour_list, graph_tar_list, graph_sour_list);
+    Eigen::Matrix4d sim3_2_1;
+    double scale_2_1;
+    doAMatch(kp_info_list, map1, map2, FLAGS_desc2_addr, T_tar_sour_list, scale_tar_sour_list, graph_tar_list, graph_sour_list, sim3_2_1, scale_2_1);
     LOG(INFO)<<"kp_info_list: "<<kp_info_list.size();
-    doAMatch(kp_info_list, map2, map1, FLAGS_desc1_addr, T_tar_sour_list, scale_tar_sour_list, graph_tar_list, graph_sour_list);
+    Eigen::Matrix4d sim3_1_2;
+    double scale_1_2;
+    doAMatch(kp_info_list, map2, map1, FLAGS_desc1_addr, T_tar_sour_list, scale_tar_sour_list, graph_tar_list, graph_sour_list, sim3_1_2, scale_1_2);
     LOG(INFO)<<"kp_info_list: "<<kp_info_list.size();
+    
+    for(int i=0; i<map2.frames.size(); i++){
+        Eigen::Matrix4d pose_transformed_temp;
+        Eigen::Matrix4d temp_pose=map2.frames[i]->getPose();
+        transformPoseUseSim3(sim3_1_2, scale_1_2, temp_pose, pose_transformed_temp);
+        map2.frames[i]->setPose(pose_transformed_temp);
+    }
+    for(int j=0; j<map2.mappoints.size(); j++){
+        Eigen::Vector4d posi_homo;
+        posi_homo.block(0,0,3,1)=map2.mappoints[j]->position;
+        posi_homo(3)=1;
+        Eigen::Vector4d posi_gps_homo = sim3_1_2*posi_homo;
+        map2.mappoints[j]->position=posi_gps_homo.block(0,0,3,1);                       
+    }
     
     GpsConverter gps_conv1(map1.gps_anchor(0), map1.gps_anchor(1), false);
     GpsConverter gps_conv2(map2.gps_anchor(0), map2.gps_anchor(1), false);
@@ -332,7 +380,7 @@ int main(int argc, char* argv[]){
     }
     
     for(int i=0; i<map1.mappoints.size(); i++){
-        if(merged_mps[i]==0){
+        if(merged_mps[i]!=-1){
             continue;
         }
         int track_size=map1.mappoints[i]->track.size();
@@ -347,7 +395,7 @@ int main(int argc, char* argv[]){
                     }
                     MergeMP(map1.mappoints[i], kp_info_list[temp_ip_id].mps[k]);
                     merged_mps[kp_info_list[temp_ip_id].mps[k]->id]=0;
-                    merged_mps[i]=-1;
+                    merged_mps[i]=1;
                 }
             }
         }
@@ -359,6 +407,7 @@ int main(int argc, char* argv[]){
         }
     }
     map1.ComputeUniqueId();
+    map1.AssignKpToMp();
     map1.CheckConsistence();
     vm::save_visual_map(map1, FLAGS_output_addr);
 

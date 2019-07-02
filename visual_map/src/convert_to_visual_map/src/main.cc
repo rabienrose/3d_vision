@@ -1,15 +1,19 @@
 #include <string>
 #include <fstream>
 #include <memory>
-
 #include <opencv2/opencv.hpp>
 #include <Eigen/Core>
-
 #include "visual_map/visual_map.h"
 #include <math.h>
 #include "visual_map/visual_map_seri.h"
-
 #include "read_write_data_lib/read_write.h"
+#include <glog/logging.h>
+#include <gflags/gflags.h>
+
+DEFINE_string(res_root, "", "Folder contain the resource.");
+DEFINE_string(map_name, "", "File name of map file.");
+
+DEFINE_string(func_type, "visualmap", "txt or visualmap.");
 
 void findFramePoseByName(std::vector<std::string>& names, int& re_id, std::string query_name){
     re_id=-1;
@@ -30,9 +34,7 @@ void findAllKP(std::string frame_name, std::vector<std::string>& kp_framename, s
     }
 }
 
-int main(int argc, char* argv[]) {
-    std::string res_root=argv[1];
-    
+void ConvertFromTxt(std::string res_root) {
     std::string img_time_addr=res_root+"/image_time.txt";
     std::vector<double> img_timess;
     std::vector<std::string> img_names;
@@ -201,6 +203,50 @@ int main(int argc, char* argv[]) {
     std::cout<<"load map finished!"<<std::endl;
     
     vm::save_visual_map(map, res_root+"/chamo.map");
+}
 
+void ConvertFromVisualMap(std::string res_root, std::string map_name){
+    std::string img_time_addr=res_root+"/image_time.txt";
+    std::vector<double> img_timess;
+    std::vector<std::string> img_names;
+    CHAMO::read_img_time(img_time_addr, img_timess, img_names);
+    std::cout<<"img_timess: "<<img_timess.size()<<std::endl;
+    
+    std::string gps_alin_addr=res_root+"/gps_alin.txt";
+    std::vector<int> gps_inliers;
+    std::vector<float> gps_accus;
+    std::vector<Eigen::Vector3d> gps_alins;
+    CHAMO::read_gps_alin(gps_alin_addr, gps_alins, gps_inliers, gps_accus);
+    std::cout<<"gps_alins: "<<gps_alins.size()<<std::endl;
+    if(gps_alins.size()!=img_names.size()){
+        std::cout<<"gps count not equal frame count!!!"<<std::endl;
+        exit(0);
+    }
+    
+    vm::VisualMap map;
+    vm::loader_visual_map(map, res_root+"/"+map_name);
+    
+    for(int i=0;i<map.frames.size(); i++){
+        int time_id=-1;
+        findFramePoseByName(img_names, time_id, map.frames[i]->frame_file_name);
+        CHECK_NE(time_id, -1);
+        map.frames[i]->time_stamp=img_timess[time_id];
+        map.frames[i]->gps_position=gps_alins[time_id];
+        map.frames[i]->gps_accu=gps_accus[time_id];
+    }
+    vm::save_visual_map(map, res_root+"/chamo.map");
+}
+
+int main(int argc, char* argv[]) {
+    google::InitGoogleLogging(argv[0]);
+    google::InstallFailureSignalHandler();
+    google::ParseCommandLineFlags(&argc, &argv, true);
+    std::string res_root=FLAGS_res_root;
+    std::string map_name=FLAGS_map_name;
+    if(FLAGS_func_type=="visualmap"){
+        ConvertFromVisualMap(res_root, map_name);
+    }else{
+        ConvertFromTxt(res_root);
+    }
     return 0;
 }

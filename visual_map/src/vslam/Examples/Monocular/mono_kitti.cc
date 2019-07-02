@@ -73,6 +73,7 @@ int main(int argc, char **argv)
     rosbag::View view(bag, rosbag::TopicQuery(topics));
     int img_count=-1;
     rosbag::View::iterator it= view.begin();
+    LOG(INFO)<<"max frame:"<<max_frame;
     for(;it!=view.end();it++){
         rosbag::MessageInstance m =*it;
         sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
@@ -88,6 +89,7 @@ int main(int argc, char **argv)
             if(img_count >max_frame){
                 break;
             }
+            //LOG(INFO)<<img_count;
             try{
                 
                 std::stringstream ss;
@@ -119,6 +121,6 @@ int main(int argc, char **argv)
             }
         }
     }
-    sys.saveResult(out_str);
+    sys.saveToVisualMap(out_str);
     return 0;
 }

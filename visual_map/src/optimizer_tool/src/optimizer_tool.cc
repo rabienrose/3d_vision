@@ -20,6 +20,12 @@
 #include "optimizer_tool/optimizer_tool.h"
 #include "visual_map/visual_map.h"
 #include "visual_map/visual_map_seri.h"
+#include <glog/logging.h>
+#include <gflags/gflags.h>
+
+DEFINE_int32(opti_count, 100, "How many of the iteration of optimization");
+DEFINE_double(gps_weight, 0.0001, "The weight of GPS impact in optimization");
+
 namespace g2o {
     class EdgePosePre : public BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>{
     public:
@@ -207,16 +213,16 @@ namespace OptimizerTool
         
         //add gps edge, leave vertice without gps empty 
         std::vector<g2o::EdgePosiPre*> lidar_edges;
-//         for(int i=0; i<poses_alin.size(); i++){
-//             if(gps_inlers[i]==1){
-//                 g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
-//                 e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(kf_verts[i]));
-//                 e->setMeasurement(gps_alin[i]);
-//                 e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*1);
-//                 optimizer.addEdge(e);
-//                 lidar_edges.push_back(e);
-//             }
-//         }
+        for(int i=0; i<poses_alin.size(); i++){
+            if(gps_inlers[i]==1){
+                g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
+                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(kf_verts[i]));
+                e->setMeasurement(gps_alin[i]);
+                e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*FLAGS_gps_weight);
+                optimizer.addEdge(e);
+                lidar_edges.push_back(e);
+            }
+        }
         std::cout<<"add lidar edge"<<std::endl;
         
         const float thHuber2D = sqrt(5.99);
@@ -314,7 +320,7 @@ namespace OptimizerTool
         time = clock();
         optimizer.initializeOptimization();
         for(int i=0; i<1; i++){
-            optimizer.optimize(100);
+            optimizer.optimize(FLAGS_opti_count);
             time = clock() - time;
             //std::cout<<"cam after: "<<vCam->estimate().transpose()<<std::endl;
             std::cout<<"opt time: "<<((float)time)/CLOCKS_PER_SEC<<std::endl;

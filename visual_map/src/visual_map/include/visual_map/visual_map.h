@@ -16,6 +16,7 @@ namespace vm{
         std::vector<Eigen::Vector3d> pose_graph_e_posi;
         std::vector<Eigen::Matrix3d> pose_graph_e_rot;
         std::vector<double> pose_graph_e_scale;
+        std::vector<double> pose_graph_weight;
 
         void CreateSubMap(int startframe_id, int endframe_id, VisualMap& submap);
         void ComputeUniqueId();
@@ -26,5 +27,7 @@ namespace vm{
         void CheckConsistence();
         void CheckLowQuaMappoint();
         void CheckLowQuaFrame();
+        void AssignKpToMp();
+        void CalPoseEdgeVal();
     };
 }

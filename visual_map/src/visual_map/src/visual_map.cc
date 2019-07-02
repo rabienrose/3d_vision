@@ -35,10 +35,9 @@ namespace vm{
             std::shared_ptr<vm::Frame> frame_p;
             frame_p.reset(new vm::Frame);
             *(frame_p)=*(frames[i]);
-            frame_p->descriptors=Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>();
-            frame_p->obss.clear();
-            frame_p->kps.clear();
-            //std::cout<<"frames[i]->obss.size(): "<<frames[i]->obss.size()<<std::endl;
+            for(int j=0; j<frame_p->obss.size(); j++){
+                frame_p->obss[j]=nullptr;
+            }
             submap.frames.push_back(frame_p);
             old_to_new_id_map[i]=submap.frames.size()-1;
         }
@@ -62,19 +61,11 @@ namespace vm{
                         std::cout<<"[CreateSubMap][error]new_frameid: "<<new_frameid<<":"<<submap.frames.size()<<std::endl;
                         exit(0);
                     }
-                    
-                    cv::KeyPoint kp=mappoints[i]->track[j].frame->kps[mappoints[i]->track[j].kp_ind];
-                    Eigen::Matrix<unsigned char, Eigen::Dynamic, 1> desc;
-                    mappoints[i]->track[j].frame->getDesc(mappoints[i]->track[j].kp_ind, desc);
-                    submap.frames[new_frameid]->AddKPAndDesc(kp, desc, mappoint_p);
-                    
-                    TrackItem temp_track;
-                    temp_track.frame=submap.frames[new_frameid];
-                    temp_track.kp_ind= submap.frames[new_frameid]->obss.size()-1;
-                    mappoint_p->track.push_back(temp_track);                    
+                    submap.frames[new_frameid]->obss[mappoints[i]->track[j].kp_ind]=mappoint_p;                
                 }
             }
         }
+        submap.AssignKpToMp();
     }
     
     void VisualMap::DelMappoint(int id){
@@ -105,39 +96,44 @@ namespace vm{
         }
     }
     
+    void VisualMap::AssignKpToMp(){
+        for(int i=0; i<mappoints.size(); i++){
+            mappoints[i]->track.clear();
+        }
+        for(int i=0; i<frames.size(); i++){
+            for(int k=0; k<frames[i]->obss.size(); k++){
+                if(frames[i]->obss[k]!=nullptr){
+                    TrackItem temp_track;
+                    temp_track.frame=frames[i];
+                    temp_track.kp_ind= k;
+                    frames[i]->obss[k]->track.push_back(temp_track);
+                }
+            }
+        }
+    }
+    
+    void VisualMap::CalPoseEdgeVal(){
+        for (int i=0; i<pose_graph_v1.size(); i++){
+            Eigen::Matrix4d rel_pose= pose_graph_v2[i]->getPose().inverse() *pose_graph_v1[i]->getPose();
+        }
+    }
+    
     void VisualMap::CheckConsistence(){
         for(int i=0; i<mappoints.size(); i++){
-            int del_id=-1;
-            do{
-                del_id=-1;
-                for(int j=0; j<mappoints[i]->track.size(); j++){
-                    std::shared_ptr<vm::Frame> frame_p = mappoints[i]->track[j].frame;
-                    int del_id=-1;
-                    if(frame_p==nullptr){
-                        del_id=j;
-                        LOG(INFO)<<"frame_p==nullptr";
-                        break;
-                    }
-                    std::shared_ptr<vm::MapPoint> mp = frame_p->obss[mappoints[i]->track[j].kp_ind];
-                    if(mp==nullptr){
-                        LOG(INFO)<<"mp==nullptr";
-                        del_id=j;
-                        break;
-                    }else{
-                        if(mp->id!=mappoints[i]->id){
-                            LOG(INFO)<<"mp->id!=mappoints[i]->id: "<<mp->id<<" : "<<mappoints[i]->id;
-                            //LOG(INFO)<<"frame_id: "<<frame_p->id;
-                            //LOG(INFO)<<"mappoints[i]->track[j].kp_ind: "<<mappoints[i]->track[j].kp_ind;
-                            del_id=j;
-                            break;
-                        }
+            for(int j=0; j<mappoints[i]->track.size(); j++){
+                std::shared_ptr<vm::Frame> frame_p = mappoints[i]->track[j].frame;
+                if(frame_p==nullptr){
+                    LOG(INFO)<<"frame_p==nullptr";
+                }
+                std::shared_ptr<vm::MapPoint> mp = frame_p->obss[mappoints[i]->track[j].kp_ind];
+                if(mp==nullptr){
+                    LOG(INFO)<<"mp==nullptr";
+                }else{
+                    if(mp->id!=mappoints[i]->id){
+                        LOG(INFO)<<"mp->id!=mappoints[i]->id: "<<mp->id<<" : "<<mappoints[i]->id;
                     }
                 }
-                if(del_id!=-1){
-                    mappoints[i]->track[del_id].frame->obss[mappoints[i]->track[del_id].kp_ind]=nullptr;
-                    mappoints[i]->track.erase(mappoints[i]->track.begin()+del_id); 
-                }
-            }while(del_id!=-1);            
+            }       
         }
         
         for(int i=0; i<frames.size(); i++){

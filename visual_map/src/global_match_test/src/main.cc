@@ -91,6 +91,7 @@ int main(int argc, char* argv[]){
     vm::loader_visual_map(map, map_name);
     std::vector<Eigen::Vector3d> mp_posis;
     map.GetMPPosiList(mp_posis);
+    show_mp_as_cloud(mp_posis, "global_match_test_mp");
     
     ORB_SLAM2::ORBVocabulary* mpVocabulary;
     ORB_SLAM2::KeyFrameDatabase* mpKeyFrameDatabase;
@@ -163,7 +164,35 @@ int main(int argc, char* argv[]){
                     re_posis.push_back(pose.block(0,3,3,1));
                 }
                 if(img_count%5==0){
-                    show_mp_as_cloud(re_posis, "global_match_test");
+                    show_mp_as_cloud(re_posis, "global_match_test_traj");
+                }
+                cv::Mat debug_img;
+                cv::cvtColor(img, debug_img, cv::COLOR_GRAY2RGB);
+                for(int i=0; i<inliers_kp.size(); i++){
+                    cv::circle(debug_img, frame.mvKeysUn[inliers_kp[i]].pt, 4, CV_RGB(0,0,255), 2);
+                }
+                visualization::RVizVisualizationSink::publish("global_match_test_img", debug_img);
+                if(inliers_mp.size()>=20){
+                    visualization::LineSegmentVector matches;
+                    for(int i=0; i<inliers_mp.size(); i++){
+                        visualization::LineSegment line_segment;
+                        line_segment.from = re_posis.back();
+                        line_segment.scale = 0.03;
+                        line_segment.alpha = 0.6;
+
+                        line_segment.color.red = 255;
+                        line_segment.color.green = 255;
+                        line_segment.color.blue = 255;
+                        Eigen::Vector3d mp_posi_eig;
+                        mp_posi_eig(0)=mp_posis[inliers_mp[i]].x();
+                        mp_posi_eig(1)=mp_posis[inliers_mp[i]].y();
+                        mp_posi_eig(2)=mp_posis[inliers_mp[i]].z();
+                        line_segment.to = mp_posi_eig;
+                        //std::cout<<line_segment.to.transpose()<<std::endl;
+                        //std::cout<<posi_match_vec.back()<<std::endl;
+                        matches.push_back(line_segment);
+                    }
+                    visualization::publishLines(matches, 0, visualization::kDefaultMapFrame,visualization::kDefaultNamespace, "global_match_test_line");
                 }
                 //std::cout<<"match count: "<<inliers_mp.size()<<std::endl;
             }catch (cv_bridge::Exception& e){
