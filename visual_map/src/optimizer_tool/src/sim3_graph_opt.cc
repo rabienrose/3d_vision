@@ -15,6 +15,11 @@
 #include "test_imu_tool/visual_tool.h"
 #include "visual_map/visual_map.h"
 #include "visual_map/visual_map_seri.h"
+#include <glog/logging.h>
+#include <gflags/gflags.h>
+
+DEFINE_int32(opti_count, 100, "How many of the iteration of optimization");
+DEFINE_double(gps_weight, 0.0001, "The weight of GPS impact in optimization");
 
 namespace g2o {
     class EdgePosePre : public BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>{
@@ -49,6 +54,8 @@ namespace g2o {
         void computeError()  {
         const g2o::VertexSim3Expmap* v1 = static_cast<const VertexSim3Expmap*>(_vertices[0]);
         _error= v1->estimate().inverse().translation()-_measurement;
+//         std::cout<<v1->estimate().inverse().translation().transpose()<<std::endl;
+//         std::cout<<_measurement.transpose()<<std::endl;
         }
     };
 }
@@ -57,11 +64,13 @@ namespace g2o {
 namespace OptimizerTool
 {
 
-    void optimize_sim3_graph( std::vector<Eigen::Vector3d>& gps_alin,
+    void optimize_sim3_graph( std::vector<Eigen::Vector3d>& gps_alin, std::vector<int>& gps_inlers,
         std::vector<Eigen::Matrix4d>& poses_out, std::vector<Eigen::Matrix4d>& poses_in,
         std::vector<Eigen::Matrix4d>& T_1_to_2_list, std::vector<double>& scale_1_to_2_list, 
         std::vector<int>& graph_v1_list, std::vector<int>& graph_v2_list
     ){
+        CHECK_EQ(gps_alin.size(), gps_inlers.size());
+        CHECK_EQ(gps_alin.size(), poses_in.size());
         g2o::SparseOptimizer optimizer;
         optimizer.setVerbose(false);
         
@@ -101,17 +110,19 @@ namespace OptimizerTool
         std::cout<<"add sim3 vertices"<<std::endl;
         
         std::vector<g2o::EdgePosiPre*> gps_edges;
-//         for(int i=0; i<poses_in.size(); i++){
-//             g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
-//             //std::cout<<v_sim3_list[i]->estimate().inverse().translation().transpose()<<std::endl;
-//             e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(v_sim3_list[i]));
-//             e->setMeasurement(gps_alin[i]);
-//             e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*0.001);
-//             optimizer.addEdge(e);
-//             gps_edges.push_back(e);
-//         }
-//         std::cout<<"add gps edge"<<std::endl;
-        
+        for(int i=0; i<poses_in.size(); i++){
+            if(gps_inlers[i]==1){
+                g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
+                //std::cout<<v_sim3_list[i]->estimate().inverse().translation().transpose()<<std::endl;
+                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(v_sim3_list[i]));
+                e->setMeasurement(gps_alin[i]);
+                e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*FLAGS_gps_weight);
+                optimizer.addEdge(e);
+                gps_edges.push_back(e);
+                e->computeError();
+            }
+        }
+        std::cout<<"add gps edge: "<<gps_edges.size()<<std::endl;
         
         std::vector<g2o::EdgeSim3*> sim3_edge_list;
         for(int i=0; i<T_1_to_2_list.size(); i++){
@@ -146,12 +157,11 @@ namespace OptimizerTool
             if(avg_error<0){
                 return;
             }
-            
         }
         std::cout<<"sim3 edge err before: "<<avg_error<<std::endl;
         
         optimizer.initializeOptimization();
-        optimizer.optimize(10);
+        optimizer.optimize(FLAGS_opti_count);
         
         avg_error=0;
         for(int i=0; i<gps_edges.size(); i++){
@@ -189,15 +199,21 @@ namespace OptimizerTool
         vm::VisualMap map;
         vm::loader_visual_map(map, map_addr+"/"+map_name);
         map.ComputeUniqueId();
-        std::vector<Eigen::Vector3d> gps_alin;
         std::vector<Eigen::Matrix4d> poses_out;
         std::vector<Eigen::Matrix4d> poses_in;
         std::vector<Eigen::Matrix4d> T_2_1_list;
         std::vector<double> scale_1_to_2_list;
         std::vector<int> graph_v1_list;
         std::vector<int> graph_v2_list;
+        std::vector<int> gps_inliers;
+        std::vector<Eigen::Vector3d> gps_alins;
         for(int i=0; i<map.frames.size(); i++){
-            gps_alin.push_back(map.frames[i]->gps_position);
+            if(map.frames[i]->gps_accu<10){
+                gps_inliers.push_back(1);
+            }else{
+                gps_inliers.push_back(0);
+            }
+            gps_alins.push_back(map.frames[i]->gps_position);
             poses_in.push_back(map.frames[i]->getPose());
         }
         scale_1_to_2_list=map.pose_graph_e_scale;
@@ -209,7 +225,7 @@ namespace OptimizerTool
             graph_v1_list.push_back(map.pose_graph_v1[i]->id);
             graph_v2_list.push_back(map.pose_graph_v2[i]->id);
         }
-        optimize_sim3_graph(gps_alin, poses_out, poses_in, T_2_1_list, scale_1_to_2_list, graph_v1_list, graph_v2_list);
+        optimize_sim3_graph(gps_alins, gps_inliers, poses_out, poses_in, T_2_1_list, scale_1_to_2_list, graph_v1_list, graph_v2_list);
         for(int i=0; i<map.frames.size(); i++){
             map.frames[i]->setPose(poses_out[i]);
         }

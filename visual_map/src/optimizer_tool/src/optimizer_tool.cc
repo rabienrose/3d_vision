@@ -23,8 +23,8 @@
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 
-DEFINE_int32(opti_count, 100, "How many of the iteration of optimization");
-DEFINE_double(gps_weight, 0.0001, "The weight of GPS impact in optimization");
+DECLARE_int32(opti_count);
+DECLARE_double(gps_weight);
 
 namespace g2o {
     class EdgePosePre : public BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>{
@@ -363,7 +363,7 @@ namespace OptimizerTool
         std::vector<int> gps_inliers;
         std::vector<Eigen::Vector3d> gps_alins;
         for(int i=0; i<map.frames.size(); i++){
-            if(map.frames[i]->gps_accu<10){
+            if(map.frames[i]->gps_accu<30){
                 gps_inliers.push_back(1);
             }else{
                 gps_inliers.push_back(0);

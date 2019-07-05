@@ -309,19 +309,19 @@ int main(int argc, char* argv[]){
     LOG(INFO)<<"kp_info_list: "<<kp_info_list.size();
     LOG(INFO)<<"scale_1_2: "<<scale_1_2;
     
-//     for(int i=0; i<map2.frames.size(); i++){
-//         Eigen::Matrix4d pose_transformed_temp;
-//         Eigen::Matrix4d temp_pose=map2.frames[i]->getPose();
-//         transformPoseUseSim3(sim3_1_2, scale_1_2, temp_pose, pose_transformed_temp);
-//         map2.frames[i]->setPose(pose_transformed_temp);
-//     }
-//     for(int j=0; j<map2.mappoints.size(); j++){
-//         Eigen::Vector4d posi_homo;
-//         posi_homo.block(0,0,3,1)=map2.mappoints[j]->position;
-//         posi_homo(3)=1;
-//         Eigen::Vector4d posi_gps_homo = sim3_1_2*posi_homo;
-//         map2.mappoints[j]->position=posi_gps_homo.block(0,0,3,1);                       
-//     }
+    for(int i=0; i<map2.frames.size(); i++){
+        Eigen::Matrix4d pose_transformed_temp;
+        Eigen::Matrix4d temp_pose=map2.frames[i]->getPose();
+        transformPoseUseSim3(sim3_1_2, scale_1_2, temp_pose, pose_transformed_temp);
+        map2.frames[i]->setPose(pose_transformed_temp);
+    }
+    for(int j=0; j<map2.mappoints.size(); j++){
+        Eigen::Vector4d posi_homo;
+        posi_homo.block(0,0,3,1)=map2.mappoints[j]->position;
+        posi_homo(3)=1;
+        Eigen::Vector4d posi_gps_homo = sim3_1_2*posi_homo;
+        map2.mappoints[j]->position=posi_gps_homo.block(0,0,3,1);                       
+    }
     
     GpsConverter gps_conv1(map1.gps_anchor(0), map1.gps_anchor(1), false);
     GpsConverter gps_conv2(map2.gps_anchor(0), map2.gps_anchor(1), false);
@@ -335,13 +335,13 @@ int main(int argc, char* argv[]){
         map2.frames[i]->position.y()=xy.y;
     }
     
-    for(int i=0; i<map2.frames.size(); i++){
+    for(int i=0; i<map1.frames.size(); i++){
         WGS84Corr latlon;
-        gps_conv2.MapXYToLatLon(map2.frames[i]->gps_position.x(), map2.frames[i]->gps_position.y(), latlon);
+        gps_conv2.MapXYToLatLon(map1.frames[i]->gps_position.x(), map1.frames[i]->gps_position.y(), latlon);
         UTMCoor xy;
         gps_conv1.MapLatLonToXY(latlon.lat, latlon.log, xy);
-        map2.frames[i]->gps_position.x()=xy.x;
-        map2.frames[i]->gps_position.y()=xy.y;
+        map1.frames[i]->gps_position.x()=xy.x;
+        map1.frames[i]->gps_position.y()=xy.y;
     }
     
     for(int i=0; i<map2.mappoints.size(); i++){

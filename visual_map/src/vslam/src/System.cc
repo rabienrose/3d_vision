@@ -281,7 +281,10 @@ namespace ORB_SLAM2
             pKF->UpdateConnections();
             pKF->UpdateBestCovisibles();
             //set<KeyFrame*> vpConnectedKFs= pKF->GetConnectedKeyFrames();
-            const vector<KeyFrame*> vpConnectedKFs = pKF->GetCovisiblesByWeight(100);
+            vector<KeyFrame*> vpConnectedKFs = pKF->GetCovisiblesByWeight(30);
+//             if(vpConnectedKFs.size()==0){
+//                 vpConnectedKFs=pKF->GetCovisiblesByWeight(0);
+//             }
             //LOG(INFO)<<vpConnectedKFs.size();
             for(vector<KeyFrame*>::const_iterator vit=vpConnectedKFs.begin(); vit!=vpConnectedKFs.end(); vit++){
                 KeyFrame* pKFn = *vit;

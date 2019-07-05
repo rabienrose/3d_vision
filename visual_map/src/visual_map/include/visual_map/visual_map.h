@@ -29,6 +29,7 @@ namespace vm{
         void CheckLowQuaFrame();
         void AssignKpToMp();
         void CalPoseEdgeVal();
+        void UpdatePoseEdge();
         void AddConnection(std::shared_ptr<Frame> v1, std::shared_ptr<Frame> v2, Eigen::Vector3d& posi, Eigen::Matrix3d& rot, double scale, double weight);
     };
 }

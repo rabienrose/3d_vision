@@ -89,7 +89,7 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
         if(simg!=NULL){
             cv_bridge::CvImagePtr cv_ptr;
             try{
-                cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
+                //cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
                 std::stringstream ss;
                 ss<<out_dir+"/images/img_"<<img_count<<".jpg";
                 std::stringstream ss_name;
@@ -97,7 +97,7 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
                 //cv::imshow("chamo", cv_ptr->image);
                 //cv::waitKey(1);
                 //std::cout<<ss.str()<<std::endl;
-                cv::imwrite(ss.str(), cv_ptr->image);
+                //cv::imwrite(ss.str(), cv_ptr->image);
                 std::stringstream ss_time;
                 ss_time<<"img_"<<img_count<<".jpg"<<","<<simg->header.stamp<<std::endl;
                 outfile_img_time<<ss_time.str();

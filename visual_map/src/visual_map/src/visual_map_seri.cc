@@ -141,6 +141,12 @@ namespace vm{
         
         putToFile((int)map.pose_graph_e_posi.size(), output);
         std::cout<<"covisi count: "<<map.pose_graph_e_posi.size()<<std::endl;
+        CHECK_EQ(map.pose_graph_e_posi.size(),map.pose_graph_e_posi.size());
+        CHECK_EQ(map.pose_graph_e_rot.size(),map.pose_graph_e_posi.size());
+        CHECK_EQ(map.pose_graph_e_scale.size(),map.pose_graph_e_posi.size());
+        CHECK_EQ(map.pose_graph_weight.size(),map.pose_graph_e_posi.size());
+        CHECK_EQ(map.pose_graph_v1.size(),map.pose_graph_e_posi.size());
+        CHECK_EQ(map.pose_graph_v2.size(),map.pose_graph_e_posi.size());
         for(int i=0; i<map.pose_graph_e_posi.size(); i++){
             putToFileD2F(map.pose_graph_e_posi[i].x(), output);
             putToFileD2F(map.pose_graph_e_posi[i].y(), output);
@@ -151,6 +157,7 @@ namespace vm{
             putToFileD2F(rot_qua.y(), output);
             putToFileD2F(rot_qua.z(), output);
             putToFileD2F(map.pose_graph_e_scale[i], output);
+            putToFileD2F(map.pose_graph_weight[i], output);
             putToFile(map.pose_graph_v1[i]->id, output);
             putToFile(map.pose_graph_v2[i]->id, output);
         } 
@@ -262,6 +269,7 @@ namespace vm{
             Eigen::Matrix3d rot(rot_qua);
             map.pose_graph_e_rot.push_back(rot);
             map.pose_graph_e_scale.push_back(getFromFileF2D(input));
+            map.pose_graph_weight.push_back(getFromFileF2D(input));
             
             int v1_id =getFromFileI(input);
             int v2_id =getFromFileI(input);

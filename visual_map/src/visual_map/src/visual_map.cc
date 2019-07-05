@@ -75,7 +75,33 @@ namespace vm{
                 }
             }
         }
+        submap.pose_graph_v1.clear();
+        submap.pose_graph_v2.clear();
+        submap.pose_graph_e_posi.clear();
+        submap.pose_graph_e_rot.clear();
+        submap.pose_graph_e_scale.clear();
+        submap.pose_graph_weight.clear();
+        for(int i=0; i<pose_graph_v1.size(); i++){
+            if(old_to_new_id_map[pose_graph_v1[i]->id]!=-1){
+                if(old_to_new_id_map[pose_graph_v2[i]->id]!=-1){
+                    submap.pose_graph_v1.push_back(submap.frames[old_to_new_id_map[pose_graph_v1[i]->id]]);
+                    submap.pose_graph_v2.push_back(submap.frames[old_to_new_id_map[pose_graph_v2[i]->id]]);
+                    submap.pose_graph_e_posi.push_back(pose_graph_e_posi[i]);
+                    submap.pose_graph_e_rot.push_back(pose_graph_e_rot[i]);
+                    submap.pose_graph_e_scale.push_back(pose_graph_e_scale[i]);
+                    submap.pose_graph_weight.push_back(pose_graph_weight[i]);
+                }
+            }
+        }
         submap.AssignKpToMp();
+    }
+    
+    void VisualMap::UpdatePoseEdge(){
+        for(int i=0; i<pose_graph_v1.size(); i++){
+            Eigen::Matrix4d r_pose = pose_graph_v2[i]->getPose().inverse()*pose_graph_v1[i]->getPose();
+            pose_graph_e_posi[i]=r_pose.block(0,3,3,1);
+            pose_graph_e_rot[i]=r_pose.block(0,0,3,3);
+        }
     }
     
     void VisualMap::DelMappoint(int id){

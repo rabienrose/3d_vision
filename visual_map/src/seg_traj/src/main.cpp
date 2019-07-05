@@ -119,6 +119,7 @@ int main(int argc, char* argv[]){
     for(int i=0; i<submaps.size(); i++){
         std::stringstream ss;
         ss<<"/"<<1000+i<<"_"<<FLAGS_map_name;
+        submaps[i].UpdatePoseEdge();
         vm::save_visual_map(submaps[i], FLAGS_map_addr+ss.str());
     }
     return 0;
