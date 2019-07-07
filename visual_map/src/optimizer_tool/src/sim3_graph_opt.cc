@@ -42,10 +42,10 @@ namespace g2o {
         }
     };
     
-    class EdgePosiPre : public BaseUnaryEdge<3, Eigen::Vector3d, VertexSim3Expmap>{
+    class EdgePosiPreSim3 : public BaseUnaryEdge<3, Eigen::Vector3d, VertexSim3Expmap>{
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-        EdgePosiPre(){};
+        EdgePosiPreSim3(){};
 
         bool read(std::istream& is){return true;};
 
@@ -117,10 +117,10 @@ namespace OptimizerTool
         }
         std::cout<<"add sim3 vertices"<<std::endl;
         
-        std::vector<g2o::EdgePosiPre*> gps_edges;
+        std::vector<g2o::EdgePosiPreSim3*> gps_edges;
         for(int i=0; i<poses_in.size(); i++){
             if(gps_inlers[i]==1){
-                g2o::EdgePosiPre* e = new g2o::EdgePosiPre();
+                g2o::EdgePosiPreSim3* e = new g2o::EdgePosiPreSim3();
                 //std::cout<<v_sim3_list[i]->estimate().inverse().translation().transpose()<<std::endl;
                 e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(v_sim3_list[i]));
                 e->setMeasurement(gps_alin[i]);
@@ -226,6 +226,8 @@ namespace OptimizerTool
                 gps_inliers.push_back(0);
             }
             gps_alins.push_back(map.frames[i]->gps_position);
+            //std::cout<<map.frames[i]->gps_position.transpose()<<std::endl;
+            //std::cout<<map.frames[i]->position.transpose()<<std::endl;
             poses_in.push_back(map.frames[i]->getPose());
         }
         scale_1_to_2_list=map.pose_graph_e_scale;
