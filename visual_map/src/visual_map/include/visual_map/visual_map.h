@@ -17,6 +17,8 @@ namespace vm{
         std::vector<Eigen::Matrix3d> pose_graph_e_rot;
         std::vector<double> pose_graph_e_scale;
         std::vector<double> pose_graph_weight;
+        Eigen::Vector3d Tbc_posi;
+        Eigen::Quaterniond Tbc_qua;
 
         void CreateSubMap(int startframe_id, int endframe_id, VisualMap& submap);
         void ComputeUniqueId();

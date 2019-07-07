@@ -1,6 +1,9 @@
 #include "visual_map/frame.h"
 
 namespace vm{
+    Frame::Frame(){
+        imu_next_frame==nullptr;
+    }
     Eigen::Matrix4d Frame::getPose(){
         Eigen::Matrix3d temp_rot(direction);
         Eigen::Matrix4d temp_pose= Eigen::Matrix4d::Identity();

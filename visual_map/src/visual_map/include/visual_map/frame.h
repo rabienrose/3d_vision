@@ -5,12 +5,17 @@ namespace vm{
     class MapPoint;
     class Frame {
     public:
+        Frame();
         int id;
         double time_stamp;
         std::string frame_file_name;
         std::vector<cv::KeyPoint> kps;
         Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> descriptors;
         std::vector<std::shared_ptr<MapPoint>> obss;
+        std::vector<Eigen::Vector3d> acces;
+        std::vector<Eigen::Vector3d> gyros;
+        std::vector<double> imu_times;
+        std::shared_ptr<Frame> imu_next_frame;
         Eigen::Vector3d position;
         Eigen::Quaterniond direction;
         Eigen::Vector3d gps_position;

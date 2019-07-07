@@ -145,6 +145,10 @@ public:
       return s*(r*xyz) + t;
     }
 
+     Vector3d mapnew (const Vector3d& xyz) const {
+      return (r*xyz) + t;
+    }
+
     Vector7d log() const
     {
       Vector7d res;

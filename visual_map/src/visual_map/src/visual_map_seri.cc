@@ -59,7 +59,14 @@ namespace vm{
         putToFile(map.gps_anchor.x(), output);
         putToFile(map.gps_anchor.y(), output);
         putToFile(map.gps_anchor.z(), output);
-        
+        putToFileD2F(map.Tbc_posi.x(), output);
+        putToFileD2F(map.Tbc_posi.y(), output);
+        putToFileD2F(map.Tbc_posi.z(), output);
+        putToFileD2F(map.Tbc_qua.w(), output);
+        putToFileD2F(map.Tbc_qua.x(), output);
+        putToFileD2F(map.Tbc_qua.y(), output);
+        putToFileD2F(map.Tbc_qua.z(), output);
+
         std::map<MapPoint*, int> mappoint_to_index;
         putToFile((int)map.mappoints.size(), output);
         std::cout<<"mp count: "<<map.mappoints.size()<<std::endl;
@@ -132,10 +139,21 @@ namespace vm{
                     output.write( (const char*)&frame_p->descriptors(k, j), 1 );
                 }
             }
-//             for(int j=0; j<desc_width; j++){
-//                 std::cout<<(int)frame_p->descriptors(j, desc_count-1)<<",";
-//             }
-//             std::cout<<std::endl;
+            putToFile((int)frame_p->acces.size(), output);
+            for(int j=0; j<frame_p->acces.size(); j++){
+                putToFileD2F(frame_p->acces[j](0), output);
+                putToFileD2F(frame_p->acces[j](1), output);
+                putToFileD2F(frame_p->acces[j](2), output);
+                putToFileD2F(frame_p->gyros[j](0), output);
+                putToFileD2F(frame_p->gyros[j](1), output);
+                putToFileD2F(frame_p->gyros[j](2), output);
+                putToFile(frame_p->imu_times[j], output);
+            }
+            if(frame_p->imu_next_frame==nullptr){
+                putToFile((int)-1, output);
+            }else{
+                putToFile(frame_p->imu_next_frame->id, output);
+            }
         }
         std::cout<<"kp count: "<<kp_count<<std::endl;
         
@@ -164,11 +182,21 @@ namespace vm{
         output.close();
     }
 
-    void loader_visual_map(VisualMap& map, std::string file_addr){
+    bool loader_visual_map(VisualMap& map, std::string file_addr){
         std::fstream input(file_addr.c_str(), std::ios::in | std::ios::binary);
+        if(!input.is_open()){
+            return false;
+        }
         map.gps_anchor(0) = getFromFileD(input);
         map.gps_anchor(1) = getFromFileD(input);
         map.gps_anchor(2) = getFromFileD(input);
+        map.Tbc_posi.x()=getFromFileF2D(input);
+        map.Tbc_posi.y()=getFromFileF2D(input);
+        map.Tbc_posi.z()=getFromFileF2D(input);
+        map.Tbc_qua.w()=getFromFileF2D(input);
+        map.Tbc_qua.x()=getFromFileF2D(input);
+        map.Tbc_qua.y()=getFromFileF2D(input);
+        map.Tbc_qua.z()=getFromFileF2D(input);
         
         int mappoints_size=getFromFileI(input);
         std::cout<<"mp count: "<<mappoints_size<<std::endl;
@@ -185,6 +213,7 @@ namespace vm{
         frames_size = getFromFileI( input);
         std::cout<<"frame count: "<<frames_size<<std::endl;
         int kp_count=0;
+        std::vector<int> nextimu_frameids;
         for(int i=0; i<frames_size; i++){
             std::shared_ptr<vm::Frame> frame_p;
             frame_p.reset(new vm::Frame);
@@ -243,12 +272,30 @@ namespace vm{
                     frame_p->descriptors(k, j)=temp_c;
                 }
             }
-//             for(int j=0; j<desc_width; j++){
-//                 std::cout<<(int)frame_p->descriptors(j, desc_count-1)<<",";
-//             }
-//             std::cout<<std::endl;
-            
+            int imu_count=getFromFileI(input);
+            for(int j=0; j<imu_count; j++){
+                Eigen::Vector3d acce;
+                acce(0)=getFromFileF2D(input);
+                acce(1)=getFromFileF2D(input);
+                acce(2)=getFromFileF2D(input);
+                Eigen::Vector3d gyro;
+                gyro(0)=getFromFileF2D(input);
+                gyro(1)=getFromFileF2D(input);
+                gyro(2)=getFromFileF2D(input);
+                frame_p->acces.push_back(acce);
+                frame_p->gyros.push_back(gyro);
+                frame_p->imu_times.push_back(getFromFileD(input));
+            }
+            int next_imu_id=getFromFileI(input);
+            nextimu_frameids.push_back(next_imu_id);
             map.frames.push_back(frame_p);
+        }
+        CHECK_EQ(nextimu_frameids.size(), map.frames.size());
+        for(int i=0; i<map.frames.size(); i++){
+            if(nextimu_frameids[i]!=-1){
+                CHECK_GT(map.frames.size(),nextimu_frameids[i]);
+                map.frames[i]->imu_next_frame=map.frames[nextimu_frameids[i]];
+            }
         }
         std::cout<<"kp count: "<<kp_count<<std::endl;
 
@@ -279,5 +326,6 @@ namespace vm{
             map.pose_graph_v2.push_back(map.frames[v2_id]);
         }
         map.AssignKpToMp();
+        return true;
     }
 }   

@@ -5,6 +5,9 @@
 #include "create_desc_index.h"
 
 int main(int argc, char** argv){
+    google::InitGoogleLogging(argv[0]);
+    google::InstallFailureSignalHandler();
+    google::ParseCommandLineFlags(&argc, &argv, true);
     visualization::RVizVisualizationSink::init();
     std::string resource_dir=argv[1];
     std::string map_name=argv[2];

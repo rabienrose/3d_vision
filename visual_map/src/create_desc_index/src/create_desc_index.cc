@@ -66,7 +66,6 @@ namespace DescIndex
         vm::VisualMap map;
         vm::loader_visual_map(map, resource_dir+"/"+map_name);
         map.ComputeUniqueId();
-
         
         Eigen::VectorXf projected_desc;
         Eigen::VectorXf projected_desc_c;

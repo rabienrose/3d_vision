@@ -5,6 +5,7 @@
 #include <opencv2/core/eigen.hpp>
 #include <orb_slam_lib/sim3_match.h>
 
+#include "Optimizer.h"
 #include "Converter.h"
 #include "KeyFrame.h"
 #include "KeyFrameDatabase.h"
@@ -15,7 +16,7 @@
 #include "Tracking.h"
 #include "read_write_data_lib/read_write.h"
 #include "ros/ros.h"
-// #include "g2o/types/types_seven_dof_expmap.h"
+#include "g2o/types/types_seven_dof_expmap.h"
 
 #define MAX_NO_ALINED_COUNT 10000
 namespace visual_loc {
@@ -43,7 +44,7 @@ public:
                        std::vector<ORB_SLAM2::MapPoint*>& mps_all);
 
 
-    bool AlignLocalMapByMapPoimt(Eigen::Matrix4d& frame_pose,
+    bool AlignLocalMapByMapPoint(Eigen::Matrix4d& frame_pose,
                                  std::vector<ORB_SLAM2::KeyFrame*>& vpKFs,
                                  std::vector<ORB_SLAM2::MapPoint*>& mps_all,
                                  ORB_SLAM2::Frame& frame,
@@ -85,6 +86,8 @@ public:
 
     bool ComputeSim3Ransac(std::vector<Eigen::Vector3d>& P1,
                            std::vector<Eigen::Vector3d>& P2,
+                           std::vector<cv::KeyPoint>& local_kp,
+                           const cv::Mat &mk,
                            Eigen::Matrix4d& T12i_eig,
                            double& scale);
 
@@ -108,8 +111,10 @@ private:
     std::vector<Eigen::Vector3d> local_pose;
     bool check_align_history[3];
     std::map<int, ORB_SLAM2::MapPoint*> global_id_local_pointer;
+    std::map<int, cv::KeyPoint> global_id_local_kp;
 
 public:
+    //for visualization
     std::vector<Eigen::Vector3d> local_posis;
     std::vector<Eigen::Vector3d> global_posis;
     std::vector<Eigen::Matrix4d> local_poses;

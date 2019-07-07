@@ -98,7 +98,7 @@ void ConvertFromTxt(std::string res_root) {
     float desc_scale;
     int desc_level; 
     int desc_count;
-    CHAMO::read_image_info(image_config_addr, width, height, desc_scale, desc_level, desc_count);
+    CHAMO::read_image_info(image_config_addr, width, height, desc_scale, desc_level, desc_count);    
     
     std::vector<int> old_to_new_kp_map;
     std::vector<std::shared_ptr<vm::Frame>> old_to_new_frame_map;
@@ -204,7 +204,21 @@ void ConvertFromTxt(std::string res_root) {
     
     vm::save_visual_map(map, res_root+"/chamo.map");
 }
+Eigen::Vector3d interEigenV(Eigen::Vector3d v1, Eigen::Vector3d v2, double t1, double t2, double t3){
+        return v1 + (v2 - v1) * (t3 - t1) / (t2 - t1);
+}
 
+class IMUData_t
+{
+public:
+    IMUData_t(const double& gx, const double& gy, const double& gz,
+                 const double& ax, const double& ay, const double& az,
+                 const double& t) :_g(gx,gy,gz), _a(ax,ay,az), _t(t){}
+    IMUData_t(){};
+    Eigen::Vector3d _g;    //gyr data
+    Eigen::Vector3d _a;    //acc data
+    double _t;      //timestamp
+};
 void ConvertFromVisualMap(std::string res_root, std::string map_name){
     std::string img_time_addr=res_root+"/image_time.txt";
     std::vector<double> img_timess;
@@ -223,8 +237,86 @@ void ConvertFromVisualMap(std::string res_root, std::string map_name){
         exit(0);
     }
     
+    Eigen::Matrix3d cam_inter;
+    Eigen::Vector4d cam_distort;
+    Eigen::Matrix4d Tbc;
+    CHAMO::read_cam_info(res_root+"/camera_config.txt", cam_inter, cam_distort, Tbc);
+    
     vm::VisualMap map;
     vm::loader_visual_map(map, res_root+"/"+map_name);
+    
+    map.Tbc_posi=Tbc.block(0,3,3,1);
+    Eigen::Matrix3d rot_t=Tbc.block(0,0,3,3);
+    map.Tbc_qua=Eigen::Quaterniond(rot_t);
+    
+    std::string imu_addr=res_root+"/imu.txt";
+    std::vector<Eigen::Matrix<double, 7, 1>> imu_datas_raw;
+    CHAMO::read_imu_data(imu_addr, imu_datas_raw);
+    
+    std::vector<IMUData_t> imu_datas;
+    for(int i=0; i<imu_datas_raw.size(); i++){
+        double timestamp=imu_datas_raw[i](0);
+        double gx=imu_datas_raw[i](1);
+        double gy=imu_datas_raw[i](2);
+        double gz=imu_datas_raw[i](3);
+        double ax=imu_datas_raw[i](4);
+        double ay=imu_datas_raw[i](5);
+        double az=imu_datas_raw[i](6);
+        IMUData_t imu_data(gx, gy, gz, ax, ay, az, timestamp);
+        imu_datas.push_back(imu_data);
+    }
+    
+    std::vector<std::vector<IMUData_t>> sycn_imu_datas_all;
+    int procceing_imu_id=1;
+    for(int j=0; j<map.frames.size(); j++){
+        double time = map.frames[j]->time_stamp;
+        std::vector<IMUData_t> temp_imu_dat;
+        bool finish_all_imu=false;
+        while(true){
+            int i=procceing_imu_id;
+            if(imu_datas[i]._t>=time && imu_datas[i-1]._t<time){
+                IMUData_t imu_data_temp;
+                imu_data_temp._g = interEigenV(imu_datas[i-1]._g, imu_datas[i]._g, imu_datas[i-1]._t, imu_datas[i]._t, time);
+                imu_data_temp._a = interEigenV(imu_datas[i-1]._a, imu_datas[i]._a, imu_datas[i-1]._t, imu_datas[i]._t, time);
+                imu_data_temp._t = time;
+                temp_imu_dat.push_back(imu_data_temp);
+                break;
+            }else{
+                if(imu_datas[i]._t<=time){
+                    temp_imu_dat.push_back(imu_datas[i]);
+                    procceing_imu_id++;
+                    if(procceing_imu_id>=imu_datas.size()){
+                        finish_all_imu=true;
+                    }
+                }else{
+                    break;
+                }
+            }
+        }
+        sycn_imu_datas_all.push_back(temp_imu_dat);
+        if(finish_all_imu==true){
+            break;
+        }
+    }
+    CHECK_EQ(sycn_imu_datas_all.size(), map.frames.size());
+    for(int i=0; i<sycn_imu_datas_all.size()-1; i++){
+        if(sycn_imu_datas_all[i+1].size()>0){
+            if(sycn_imu_datas_all[i].size()==0){
+                continue;
+            }
+            map.frames[i]->imu_next_frame=map.frames[i+1];
+            map.frames[i]->acces.push_back(sycn_imu_datas_all[i].back()._a);
+            map.frames[i]->gyros.push_back(sycn_imu_datas_all[i].back()._g);
+            map.frames[i]->imu_times.push_back(sycn_imu_datas_all[i].back()._t);
+        }
+        for(int j=0; j<sycn_imu_datas_all[i+1].size()-1; j++){
+            map.frames[i]->acces.push_back(sycn_imu_datas_all[i+1][j]._a);
+            map.frames[i]->gyros.push_back(sycn_imu_datas_all[i+1][j]._g);
+            map.frames[i]->imu_times.push_back(sycn_imu_datas_all[i+1][j]._t);
+        }
+    }
+    //include the first frame imudata between two frames, not include the last frame imudata.
+    //not include the imudat after the last frame
     
     for(int i=0;i<map.frames.size(); i++){
         int time_id=-1;

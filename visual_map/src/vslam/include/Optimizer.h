@@ -55,6 +55,19 @@ public:
     // if bFixScale is true, optimize SE3 (stereo,rgbd), Sim3 otherwise (mono)
     static int OptimizeSim3(KeyFrame* pKF1, KeyFrame* pKF2, std::vector<MapPoint *> &vpMatches1,
                             g2o::Sim3 &g2oS12, const float th2, const bool bFixScale);
+
+    static int OptimizeSim3Align(std::vector<Eigen::Vector3d>& global_mp,
+                          std::vector<Eigen::Vector3d>& local_mp,
+                          std::vector<cv::KeyPoint> local_kp,
+                          const cv::Mat mk2,
+                          Eigen::Matrix4d& T12,
+                          double &scale_12,
+                          const float th2);
+    static int OptimizeSim3Align(std::vector<Eigen::Vector3d>& global_mp,
+                          std::vector<Eigen::Vector3d>& local_mp,
+                          Eigen::Matrix4d& T12,
+                          double &scale_12,
+                          const float th2);    
 };
 
 } //namespace ORB_SLAM

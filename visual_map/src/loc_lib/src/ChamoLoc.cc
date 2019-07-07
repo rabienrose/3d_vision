@@ -1,5 +1,5 @@
 #include <loc_lib/ChamoLoc.h>
-#ifndef __APPLE__
+#ifdef __visualization__
 #include "visualization/color-palette.h"
 #include "visualization/color.h"
 #include "visualization/common-rviz-visualization.h"
@@ -47,7 +47,7 @@ namespace std {
 
 
 namespace wayz {
-#ifndef __APPLE__
+#ifdef __visualization__
     
     void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic){
         Eigen::Matrix3Xd points;
@@ -432,7 +432,7 @@ namespace wayz {
         std::vector<cv::Point3f> inliers_mp;
         std::vector<cv::Point2f> inliers_kp;
         int match_count = UpdateByMap(Img, timestamp, inliers_mp, inliers_kp);
-#ifndef __APPLE__
+#ifdef __visualization__
         if(match_count){
             show_mp_as_cloud(posi_match_vec, "loc_lib_posi");
             cv::Mat debug_img;
@@ -500,8 +500,9 @@ namespace wayz {
         //feature points
         std::string posi_addr=folder_path+"/mp_posi_opt.txt";
         CHAMO::read_mp_posi(posi_addr, mp_posis);
+#ifdef __visualization__
         show_mp_as_cloud(mp_posis, "temp_mp");
-        
+#endif
         std::string cam_addr=folder_path+"/camera_config.txt";
         CHAMO::read_cam_info(cam_addr, cam_inter, cam_distort, Tbc);
         convert_eigen_double_mat_float(cam_inter, cam_inter_cv);

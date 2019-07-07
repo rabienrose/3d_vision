@@ -120,6 +120,43 @@ namespace g2o {
     return os.good();
   }
 
+
+  /**Sim3XYZ*/
+
+  EdgeSim3XYZ::EdgeSim3XYZ() :
+  BaseBinaryEdge<3, Vector3d, VertexSBAPointXYZ, VertexSim3Expmap>()
+  {
+  }
+
+  bool EdgeSim3XYZ::read(std::istream& is)
+  {
+    for (int i=0; i<3; i++)
+    {
+      is >> _measurement[i];
+    }
+
+    for (int i=0; i<3; i++)
+      for (int j=i; j<3; j++) {
+  is >> information()(i,j);
+      if (i!=j)
+        information()(j,i)=information()(i,j);
+    }
+    return true;
+  }
+
+  bool EdgeSim3XYZ::write(std::ostream& os) const
+  {
+    for (int i=0; i<3; i++){
+      os  << _measurement[i] << " ";
+    }
+
+    for (int i=0; i<3; i++)
+      for (int j=i; j<3; j++){
+  os << " " <<  information()(i,j);
+    }
+    return os.good();
+  }
+
   /**Sim3ProjectXYZ*/
 
   EdgeSim3ProjectXYZ::EdgeSim3ProjectXYZ() :

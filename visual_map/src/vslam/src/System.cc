@@ -202,6 +202,7 @@ namespace ORB_SLAM2
             std::string filename= splited.back();
             std::shared_ptr<vm::Frame> frame_p;
             frame_p.reset(new vm::Frame);
+            frame_p->time_stamp=pKF->mTimeStamp;
             frame_p->fx=pKF->fx;
             frame_p->fy=pKF->fy;
             frame_p->cx=pKF->cx;

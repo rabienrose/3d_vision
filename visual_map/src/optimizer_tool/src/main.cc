@@ -19,8 +19,10 @@ int main(int argc, char* argv[]) {
     visualization::RVizVisualizationSink::init();
     if(FLAGS_opti_type=="BA"){
         OptimizerTool::optimize_gps_pose(FLAGS_map_addr, FLAGS_map_name);
-    }else{
+    }else if(FLAGS_opti_type=="pose graph"){
         OptimizerTool::optimize_sim3_graph(FLAGS_map_addr, FLAGS_map_name);
+    }else if(FLAGS_opti_type=="imu"){
+        OptimizerTool::optimize_imu(FLAGS_map_addr, FLAGS_map_name);
     }
     
 }

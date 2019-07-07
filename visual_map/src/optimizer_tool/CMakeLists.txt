@@ -10,7 +10,7 @@ cs_add_library(${PROJECT_NAME}
     src/optimizer_tool.cc
     src/sim3_graph_opt.cc
     src/opti_based_lidar.cc
-    #src/opti_imu.cc
+    src/opti_imu.cc
 )
 
 cs_add_executable(${PROJECT_NAME}_test

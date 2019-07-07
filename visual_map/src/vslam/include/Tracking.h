@@ -68,6 +68,7 @@ public:
     void SetLastFramePose();
     
     std::vector<MapPoint*> GetmvpLocalMapPoints();
+    std::vector<KeyFrame*> GetmvpLocalKeyFrames();
 
 public:
 

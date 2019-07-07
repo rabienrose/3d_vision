@@ -18,7 +18,7 @@ namespace ORB_SLAM2 {
 
 namespace chamo {
 void LoadMap(std::string res_root, std::shared_ptr<loop_closure::inverted_multi_index::InvertedMultiIndex<5>>& index_,
-    Eigen::MatrixXf& projection_matrix_);
+    Eigen::MatrixXf& projection_matrix_, std::string index_filename="index.dat");
 
 void MatchImg(std::vector<Eigen::Vector3d>& mp_posis, std::shared_ptr<loop_closure::inverted_multi_index::InvertedMultiIndex<5>>& index_,
     Eigen::MatrixXf& projection_matrix_, ORB_SLAM2::Frame& frame, std::vector<int>& inliers_mp, std::vector<int>& inliers_kp,

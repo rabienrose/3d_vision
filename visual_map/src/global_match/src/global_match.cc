@@ -79,7 +79,7 @@ namespace chamo {
     }
     
     void LoadMap(std::string res_root, std::shared_ptr<loop_closure::inverted_multi_index::InvertedMultiIndex<5>>& index_,
-        Eigen::MatrixXf& projection_matrix_){
+        Eigen::MatrixXf& projection_matrix_, std::string index_filename){
         std::ifstream in_stream(res_root+"/words_projmat.dat", std::ios_base::binary);
         int deserialized_version;
         common::Deserialize(&deserialized_version, &in_stream);
@@ -93,7 +93,7 @@ namespace chamo {
 
         index_.reset(new loop_closure::inverted_multi_index::InvertedMultiIndex<5>(words_first_half_, words_second_half_, 10));
         loop_closure::proto::InvertedMultiIndex proto_inverted_multi_index;
-        std::fstream input(res_root+"/index.dat", std::ios::in | std::ios::binary);
+        std::fstream input(res_root+"/"+index_filename, std::ios::in | std::ios::binary);
         if (!proto_inverted_multi_index.ParseFromIstream(&input)) {
             std::cerr << "Failed to parse map data." << std::endl;
         }

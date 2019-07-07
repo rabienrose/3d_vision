@@ -4,6 +4,8 @@
 #include "visual_map/visual_map.h"
 #include "visual_map/visual_map_seri.h"
 
+#define PI 3.1415226
+
 namespace visual_loc {
 VisualLocalization::VisualLocalization() {}
 int get_frame_id(std::string& img_name)
@@ -43,6 +45,10 @@ bool VisualLocalization::ResetInit()
     for (int i = 0; i < 3; i++) {
         check_align_history[i] = false;
     }
+    global_pose.clear();
+    local_pose.clear();
+    global_id_local_kp.clear();
+    global_id_local_pointer.clear();
 }
 
 bool VisualLocalization::AddImage(cv::Mat& img,
@@ -51,9 +57,6 @@ bool VisualLocalization::AddImage(cv::Mat& img,
                                   Eigen::Vector3d& output_posi)
 {
     // get local frame pose
-    clock_t start,finish;
-    double totaltime;
-    start=clock();
     cv::Mat Tcw = mpsys->TrackMonocular(img, time_stamp, img_name);
     Eigen::Matrix4d frame_pose_eigen = Eigen::Matrix4d::Identity();
     bool is_keyframe = false;
@@ -61,7 +64,7 @@ bool VisualLocalization::AddImage(cv::Mat& img,
     std::vector<ORB_SLAM2::KeyFrame*> vpKFs;
     std::vector<ORB_SLAM2::MapPoint*> mps_all;
     std::vector<ORB_SLAM2::MapPoint*> mps_local;
-    // LOG(INFO)<<"Tracking DONE";
+
     if (Tcw.cols > 0) {
         cv::Mat Rwc = Tcw.rowRange(0, 3).colRange(0, 3).t();
         cv::Mat twc = -Rwc * Tcw.rowRange(0, 3).col(3);
@@ -73,22 +76,18 @@ bool VisualLocalization::AddImage(cv::Mat& img,
         frame_pose_eigen.block(0, 3, 3, 1) = trans;
         track_init = true;
         mpmap = mpsys->getMapPointer();
-        vpKFs = mpmap->GetAllKeyFrames();
-        mps_all = mpmap->GetAllMapPoints();
+        vpKFs = mpmap->GetAllKeyFrames(); 
+        // mps_all = mpmap->GetAllMapPoints()
+        // vpKFs = mpsys->getTrackPointer()->GetmvpLocalKeyFrames();
         is_keyframe = mpsys->getTrackPointer()->created_new_kf;
         mps_local = mpsys->getTrackPointer()->GetmvpLocalMapPoints();
-        // LOG(INFO)<<"LOCAL MP size: "<<mpsys->getTrackPointer()->GetmvpLocalMapPoints().size();
     }
     // Tracking lost after initilization, reset tracker
     else if (track_init) {
         ResetInit();
         track_init = false;
     }
-    finish=clock();
-    totaltime=(double)(finish-start)/CLOCKS_PER_SEC;
-    std::cout<<"Track Time: "<<totaltime<<std::endl;
 
-    start=clock();
     // get global pose
     ORB_SLAM2::Frame frame = mpsys->getCurrentFrame();
     float reproject_err_t;
@@ -99,24 +98,20 @@ bool VisualLocalization::AddImage(cv::Mat& img,
     mpsys->getDebugImg(img_display, reproject_err_t, match_count_t, mp_count_t, kf_count_t);
     if (!img_display.empty()) {
         cv::imshow("chamo", img_display);
-        cv::waitKey(5);
+        cv::waitKey(0);
     }
-    // LOG(INFO)<<"Global Matching DONE";
+
     std::vector<int> inliers_mp;
     std::vector<int> inliers_kp;
     Eigen::Matrix4d pose;
-    chamo::MatchImg(mp_posis, index_, projection_matrix_, frame, inliers_mp, inliers_kp, pose);
-
-    finish=clock();
-    totaltime=(double)(finish-start)/CLOCKS_PER_SEC;
-    std::cout<<"Global Match Time: "<<totaltime<<std::endl;
-
+    // if (!align_init || is_keyframe) {
+        chamo::MatchImg(mp_posis, index_, projection_matrix_, frame, inliers_mp, inliers_kp, pose);
+    // }
     // align the map
     bool get_global_match = inliers_kp.size() > 0;
     int frame_id = get_frame_id(img_name);
     bool is_align = false;
     std::map<int, Eigen::Vector3d> local_kp_global_mp;
-    // LOG(INFO) << "get_global_match: " << get_global_match << " Tcw: " << Tcw.cols;
 
     if (get_global_match) {
         global_pose.insert(std::pair<int, Eigen::Matrix4d>(frame_id, pose));
@@ -124,9 +119,7 @@ bool VisualLocalization::AddImage(cv::Mat& img,
         for (int i = 0; i < inliers_kp.size(); ++i) {
             if (frame.mvpMapPoints[inliers_kp[i]]) {
                 global_id_local_pointer[inliers_mp[i]] = frame.mvpMapPoints[inliers_kp[i]];
-                // global_id_local_pointer.insert(
-                // std::pair<int, ORB_SLAM2::MapPoint*>(inliers_mp[i],
-                // frame.mvpMapPoints[inliers_kp[i]]));
+                global_id_local_kp[inliers_mp[i]] = frame.mvKeysUn[inliers_kp[i]];
             }
             local_kp_global_mp.insert(
                     std::pair<int, Eigen::Vector3d>(inliers_kp[i], mp_posis[inliers_mp[i]]));
@@ -134,30 +127,25 @@ bool VisualLocalization::AddImage(cv::Mat& img,
     }
 
     UpdateGlobalLocalMatches(mps_local);
-    // LOG(INFO)<<"UpdateGlobalLocalMatches DONE";
 
-    start=clock();
     bool b_force_align = get_global_match && !former_match;
-    // bool b_enough_size = vpKFs.size() >= 10 && global_pose.size() >= 10 && get_global_match;
-    bool b_enough_size = get_global_match;
-    if ((is_keyframe || b_force_align) && b_enough_size) {
+    bool b_enough_size = vpKFs.size() >= 20 && global_pose.size() >= 10 && get_global_match;
+    // bool b_enough_size = vpKFs.size() >= 20 && global_pose.size() >= 10;
+    if ((is_keyframe ) && b_enough_size) {
         if (frame.mpReferenceKF == NULL)
             return false;
         // std::vector<ORB_SLAM2::KeyFrame *> covisible_kf =
         // frame.mpReferenceKF->GetBestCovisibilityKeyFrames(40);
         // is_align = AlignLocalMap(frame_pose_eigen, vpKFs, covisible_kf, mps_all);
-        is_align = AlignLocalMapByMapPoimt(frame_pose_eigen,
+        is_align = AlignLocalMapByMapPoint(frame_pose_eigen,
                                            vpKFs,
-                                           mps_all,
+                                           mps_local,
                                            frame,
                                            local_kp_global_mp);
     }
-    finish=clock();
-    totaltime=(double)(finish-start)/CLOCKS_PER_SEC;
-    std::cout<<"Align Time: "<<totaltime<<std::endl;
 
-    // LOG(INFO)<<"Align Map DONE";
     if (is_align || (Tcw.cols > 0 && no_align_count < MAX_NO_ALINED_COUNT)) {
+    // if ( Tcw.cols > 0) {
         Eigen::Vector3d local_posi = frame_pose_eigen.block(0, 3, 3, 1);
         output_posi = local_posi;
         if (is_align) {
@@ -175,7 +163,7 @@ bool VisualLocalization::AddImage(cv::Mat& img,
         output_posi = global_posi;
         no_align_count = MAX_NO_ALINED_COUNT;
         former_match = false;
-        // LOG(INFO) << "GLOBAL";
+        LOG(INFO) << "GLOBAL";
         return true;
     }
 
@@ -198,6 +186,8 @@ void VisualLocalization::UpdateGlobalLocalMatches(std::vector<ORB_SLAM2::MapPoin
         }
 
         if (!in_local) {
+            auto it_erase = global_id_local_kp.find(it->first);
+            global_id_local_kp.erase(it_erase);
             global_id_local_pointer.erase(it++);
             continue;
         }
@@ -285,38 +275,48 @@ bool VisualLocalization::AlignLocalMap(Eigen::Matrix4d& frame_pose,
     return true;
 }
 
-bool VisualLocalization::AlignLocalMapByMapPoimt(Eigen::Matrix4d& frame_pose,
+bool VisualLocalization::AlignLocalMapByMapPoint(Eigen::Matrix4d& frame_pose,
                                                  std::vector<ORB_SLAM2::KeyFrame*>& vpKFs,
                                                  std::vector<ORB_SLAM2::MapPoint*>& mps_all,
                                                  ORB_SLAM2::Frame& frame,
                                                  std::map<int, Eigen::Vector3d>& local_kp_global_mp)
 {
+    return true;
     // construct mappoint matches
     std::vector<Eigen::Vector3d> global_mp;
     std::vector<Eigen::Vector3d> local_mp;
+    std::vector<cv::KeyPoint> local_kp;
 
     global_mp.reserve(local_kp_global_mp.size());
     local_mp.reserve(local_kp_global_mp.size());
-
+    local_kp.reserve(local_kp_global_mp.size());
     for (const auto& id_mp : global_id_local_pointer) {
+       if(id_mp.second->GetObservations().size() < 3) {
+            continue;
+        }
         cv::Mat local_mp_cv = id_mp.second->GetWorldPos();
         Eigen::Vector3d local_mp_eigen;
         cv::cv2eigen(local_mp_cv, local_mp_eigen);
         global_mp.push_back(mp_posis[id_mp.first]);
         local_mp.push_back(std::move(local_mp_eigen));
+        local_kp.push_back(global_id_local_kp.find(id_mp.first)->second);
     }
+    // cv::Mat Rcw = frame.mpReferenceKF->GetRotation();
+    // cv::Mat Tcw = frame.mpReferenceKF->GetTranslation();
     // for (const auto& kp_mp : local_kp_global_mp) {
-    // if (frame.mvpMapPoints[kp_mp.first]) {
-    // cv::Mat local_mp_cv = frame.mvpMapPoints[kp_mp.first]->GetWorldPos();
-    // Eigen::Vector3d local_mp_eigen;
-    // cv::cv2eigen(local_mp_cv, local_mp_eigen);
-    // global_mp.push_back(kp_mp.second);
-    // local_mp.push_back(std::move(local_mp_eigen));
-    // }
+        // if (frame.mvpMapPoints[kp_mp.first]) {
+            // cv::Mat local_mp_cv_tmp = frame.mvpMapPoints[kp_mp.first]->GetWorldPos();
+            // cv::Mat local_mp_cv = Rcw * local_mp_cv_tmp + Tcw;
+            // Eigen::Vector3d local_mp_eigen;
+            // cv::cv2eigen(local_mp_cv, local_mp_eigen);
+            // global_mp.push_back(kp_mp.second);
+            // local_mp.push_back(std::move(local_mp_eigen));
+            // local_kp.push_back(frame.mvKeysUn[kp_mp.first]);
+        // }
     // }
 
     // LOG(INFO) << "global_mp: " << global_mp.size();
-    if (global_mp.size() < 20) {
+    if (global_mp.size() < 40) {
         return false;
     }
 
@@ -324,28 +324,83 @@ bool VisualLocalization::AlignLocalMapByMapPoimt(Eigen::Matrix4d& frame_pose,
     double scale_12;
     Eigen::Matrix4d T12;
     // orb_slam::ComputeSim3(global_mp, local_mp, T12, scale_12);
+    clock_t start,finish;
+    double totaltime;
+    start=clock();
 
-    bool check_align1 = ComputeSim3Ransac(global_mp, local_mp, T12, scale_12);
-    // LOG(INFO) << "ComputeSim3Ransac Done";
+    bool check_align = ComputeSim3Ransac(global_mp, local_mp, local_kp, frame.mK, T12, scale_12);
+    finish=clock();
+    totaltime=(double)(finish-start)/CLOCKS_PER_SEC;
+    // std::cout<<"ComputeSim3Ransac Time: "<<totaltime<<std::endl;
     // bool check_align = CheckAlign(global_mp, local_mp, T12, scale_12, 15.0, false);
-    if (!(check_align1)) {
+    if (!(check_align)) {
         return false;
     }
 
-    LOG(INFO) << "Align!!!";
+    // LOG(INFO)<<"T12: "<<T12<<"  scale: "<<scale_12;
+    // Eigen::Matrix3d Rcw_eigen,Rcm_eigen;
+    // Eigen::Vector3d Tcw_eigen,Tcm_eigen;
+    // cv::Mat pose_lc = frame.mpReferenceKF->GetPoseInverse();
+    // Rcw = pose_lc.rowRange(0,3).colRange(0,3).clone();
+    // Tcw = pose_lc.rowRange(0,3).col(3).clone();
+    // cv::cv2eigen(Rcw,Rcw_eigen);
+    // cv::cv2eigen(Tcw,Tcw_eigen);
+    // LOG(INFO)<<"Rcw: "<<Rcw_eigen<<" Tcw: "<<Tcw_eigen;
+    // Rcm_eigen = T12.block(0,0,3,3) / scale_12;
+    // Tcm_eigen = T12.block(0,3,3,1);
+    // g2o::Sim3 Smw(Rcw_eigen, Tcw_eigen, 1.0);
+    // g2o::Sim3 Scm(Rcm_eigen, Tcm_eigen, scale_12);
+    // g2o::Sim3 g2oS12 = Smw * Scm;
+
+    // T12.block(0,0,3,3) = g2oS12.rotation().toRotationMatrix() * g2oS12.scale();
+    // T12.block(0,3,3,1) = g2oS12.translation();
+    // scale_12 = g2oS12.scale();
     // update local map and pose of current frame
     // LOG(INFO)<<"T12: "<<T12<<"  scale: "<<scale_12;
-    clock_t start,finish;
-    double totaltime;
-    start = clock();
+
+    // LOG(INFO) << "DONE COMPUTE SIM3 " ;
+    // int frame_id = get_frame_id(frame.file_name_);
+    // Eigen::Matrix4d global_match_pose;
+    // if (global_pose.count(frame_id)) {
+        // global_match_pose = global_pose[frame_id];
+    // } else {
+        // return false;
+    // }
+    // Eigen::Matrix4d frame_pose_sim3;
+    // TransformPoseUseSim3(T12,scale_12,frame_pose,frame_pose_sim3);
+    // // std::cout << global_match_pose << std::endl;
+    // // std::cout << frame_pose_sim3 << std::endl;
+    // Eigen::Matrix4d delta = global_match_pose.inverse() * frame_pose_sim3; 
+    // // std::cout << delta << std::endl;
+    // // Eigen::Vector3d translation_diff =
+            // // global_match_pose.block(0, 3, 3, 1) - frame_pose_sim3.block(0, 3, 3, 1);
+    // Eigen::Matrix3d rotation_diff = delta.block(0, 0, 3, 3);
+    // Eigen::Vector3d translation_diff = delta.block(0, 3, 3, 1);
+    // Eigen::Vector3d euler_angle = rotation_diff.eulerAngles(2, 1, 0) * 180.0 / PI;
+
+    // for(int i = 0; i < 3; i++) {
+        // if(fabs(euler_angle[i]) > PI / 0.5) {
+            // if((PI - fabs(euler_angle[i])) > 1) {
+                // return false;
+            // }
+        // }
+        // else
+        // {
+            // if(fabs(euler_angle[i]) > 1) {
+                // return false;
+            // }
+        // }
+    // }
+    // double translation_err = translation_diff.dot(translation_diff);
+    // // LOG(INFO)<<"delta: "<<euler_angle<<"  "<<translation_err;
+    // if(sqrt(translation_err) > 5.0) {
+        // return false;
+    // }
+    LOG(INFO) << "Align!!!";
     UpdateLocalMap(T12, scale_12, frame_pose, vpKFs, mps_all);
-    finish=clock();
-    totaltime=(double)(finish-start)/CLOCKS_PER_SEC;
-    std::cout<<"Update Time: "<<totaltime<<std::endl;
 
     return true;
 }
-
 
 void VisualLocalization::UpdateLocalMap(const Eigen::Matrix4d& T12,
                                         const double& scale,
@@ -360,7 +415,8 @@ void VisualLocalization::UpdateLocalMap(const Eigen::Matrix4d& T12,
     Eigen::Matrix4d T_local = Eigen::Matrix4d::Identity();
     Sophus::Sim3d T_local_sim3(T_local);
     //filter
-    if(align_init){
+    if(align_init) {
+    // if(false){
         typedef Eigen::Matrix<double,7,1> Vector7d;
         Vector7d T12_lie_algibra = T12_sim3.log();
         Vector7d T_local_lie_algibra = T_local_sim3.log();
@@ -373,6 +429,7 @@ void VisualLocalization::UpdateLocalMap(const Eigen::Matrix4d& T12,
         T12_update = T12_sim3_update.matrix();
         scale_update = T12_sim3_update.scale();
     }
+
     // update MapPoint
     for (int i = 0; i < mps_all.size(); i++) {
         if (mps_all[i]->isBad())
@@ -393,9 +450,9 @@ void VisualLocalization::UpdateLocalMap(const Eigen::Matrix4d& T12,
     // update keyframe pose use sim3
     for (int i = 0; i < vpKFs.size(); i++) {
         ORB_SLAM2::KeyFrame* pKF = vpKFs[i];
-        while (pKF->isBad()) {
-            continue;
-        }
+        // while (pKF->isBad()) {
+            // continue;
+        // }
         Eigen::Matrix4d keyframe_pose = Eigen::Matrix4d::Identity();
         cv::Mat Trw = pKF->GetPose();
         cv::Mat Rwc = Trw.rowRange(0, 3).colRange(0, 3).t();
@@ -423,7 +480,7 @@ void VisualLocalization::UpdateLocalMap(const Eigen::Matrix4d& T12,
             }
         }
         pKF->SetPose(Tcw_sim3);
-        pKF->UpdateConnections();
+        // pKF->UpdateConnections();
     }
 
     // update current frame
@@ -533,6 +590,8 @@ void VisualLocalization::GetNNearestKF(int frame_id,
 
 bool VisualLocalization::ComputeSim3Ransac(std::vector<Eigen::Vector3d>& P1,
                                            std::vector<Eigen::Vector3d>& P2,
+                                           std::vector<cv::KeyPoint>& local_kp,
+                                           const cv::Mat &mk,
                                            Eigen::Matrix4d& T12,
                                            double& scale_12)
 { 
@@ -544,7 +603,7 @@ bool VisualLocalization::ComputeSim3Ransac(std::vector<Eigen::Vector3d>& P1,
     }
 
     float ransac_prob = 0.99;
-    int ransac_min_inliers = max(30,int(match_size * 0.3));
+    int ransac_min_inliers = max(30,int(match_size * 0.30));
     int ransac_max_iter = 300;
 
     // Adjust Parameters according to number of correspondences
@@ -596,17 +655,28 @@ bool VisualLocalization::ComputeSim3Ransac(std::vector<Eigen::Vector3d>& P1,
         //LOG(INFO)<< ransac_min_inliers<<"  "<<ninliers;  
         if (ninliers > ransac_min_inliers) {
             std::vector<Eigen::Vector3d> P3D1_inlier, P3D2_inlier;
+            // std::vector<cv::KeyPoint> local_kp_inlier;
             P3D1_inlier.reserve(match_size);
             P3D2_inlier.reserve(match_size);
+            // local_kp.reserve(match_size);
             for (int i = 0; i < match_size; i++){
                 if (b_inliners[i]){
                     P3D1_inlier.push_back(P1[i]);
                     P3D2_inlier.push_back(P2[i]);
+                    // local_kp_inlier.push_back(local_kp[i]);
                 }
             }
-            orb_slam::ComputeSim3(P3D1_inlier, P3D2_inlier, T12, scale_12);
-            int ninliers_final = CheckInliers(P3D1_inlier, P3D2_inlier, T12, scale_12, b_inliners);
-            if(ninliers_final > 0.9 * ninliers){
+
+            int ninliers_final = ORB_SLAM2::Optimizer::OptimizeSim3Align(P3D1_inlier,
+                                                                       P3D2_inlier,
+                                                                       T12,
+                                                                       scale_12,
+                                                                       2.0);
+            // LOG(INFO)<< "ninlier_opti: "<<ninlier_opti;
+            // orb_slam::ComputeSim3(P3D1_inlier, P3D2_inlier, T12, scale_12);
+            // int ninliers_final = CheckInliers(P3D1_inlier, P3D2_inlier, T12, scale_12, b_inliners);
+            // if(ninliers_final > 0.5 * ninliers){
+            if(ninliers_final > 30){
                 return true;
             }
         }

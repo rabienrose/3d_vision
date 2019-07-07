@@ -51,6 +51,20 @@ namespace vm{
             submap.frames.push_back(frame_p);
             old_to_new_id_map[i]=submap.frames.size()-1;
         }
+        for(int i=0; i<submap.frames.size(); i++){
+            if(submap.frames[i]->imu_next_frame!=nullptr){
+                int old_frame_id=submap.frames[i]->imu_next_frame->id;
+                if(old_to_new_id_map[old_frame_id]!=-1){
+                    submap.frames[i]->imu_next_frame=submap.frames[old_to_new_id_map[old_frame_id]];
+                }else{
+                    submap.frames[i]->imu_next_frame=nullptr;
+                    submap.frames[i]->acces.clear();
+                    submap.frames[i]->gyros.clear();
+                    submap.frames[i]->imu_times.clear();
+                }
+            }
+        }
+        
         for(int i=0; i<mappoints.size(); i++){
             for(int j=0; j<mappoints[i]->track.size(); j++){
                 if(mappoints[i]->track[j].frame->id>=old_to_new_id_map.size()){

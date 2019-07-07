@@ -102,6 +102,7 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp,
 {
     cv::undistort(im, mImGray, mK, mDistCoef);
     cv::Mat distCoefZero=cv::Mat::zeros(mDistCoef.rows, mDistCoef.cols, mDistCoef.type());
+
     if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET)
         mCurrentFrame = Frame(mImGray,timestamp,mpIniORBextractor,mpORBVocabulary,mK,distCoefZero,mbf,mThDepth,file_name, FLAGS_use_orb);
     else
@@ -657,8 +658,10 @@ bool Tracking::TrackWithMotionModel()
     }
 
     if(nmatches<20)
+    {
+        
         return false;
-
+    }
     // Optimize frame pose with all matches
     Optimizer::PoseOptimization(&mCurrentFrame);
 
@@ -694,7 +697,7 @@ bool Tracking::TrackWithMotionModel()
 
 bool Tracking::TrackLocalMap()
 {
-    // We have an estimation of the camera pose and some map points tracked in the frame.
+    // We have an estimation of the camera pose and some map pTrackLocalMapoints tracked in the frame.
     // We retrieve the local map and try to find matches to points in the local map.
 
     UpdateLocalMap();
@@ -1213,6 +1216,10 @@ void Tracking::InformOnlyTracking(const bool &flag)
 std::vector<MapPoint*> Tracking::GetmvpLocalMapPoints()
 {
     return mvpLocalMapPoints;
+}
+std::vector<KeyFrame*> Tracking::GetmvpLocalKeyFrames()
+{
+    return mvpLocalKeyFrames;
 }
 
 } //namespace ORB_SLAM

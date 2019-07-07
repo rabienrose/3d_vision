@@ -211,8 +211,9 @@ int main(int argc, char* argv[]){
         if(!ros::ok()){
             break;
         }
-        // if(skip++ < 3390) continue;
-        // if(skip++ % 3 != 0) continue;
+        skip++;
+        // if(skip < 1000) continue;
+        if(skip % 3 != 0) continue;
         rosbag::MessageInstance m =*it;
         sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
         if(simg!=NULL){
@@ -224,9 +225,9 @@ int main(int argc, char* argv[]){
                 double timestamp = simg->header.stamp.toSec();
                 std::stringstream img_name;
                 img_name<<"img_"<<img_count<<".jpg";
-                LOG(INFO)<<img_name.str();
                 Eigen::Vector3d output_posi;
                 string img_str = img_name.str();
+                LOG(INFO)<<img_name.str();
                 bool update = VisualLocalization.AddImage(img,img_str,timestamp,output_posi);
                 if(update){
                     Eigen::Vector3d posi = VisualLocalization.GetGlobalPosition(img_str);

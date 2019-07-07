@@ -470,6 +470,9 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
         umax[v] = v0;
         ++v0;
     }
+    
+    //
+    extractor_ = cv::xfeatures2d::FREAK::create(false, true, 22, 1);
 }
 
 static void computeOrientation(const Mat& image, vector<KeyPoint>& keypoints, const vector<int>& umax)
@@ -1106,7 +1109,6 @@ void ORBextractor::ExtractDesc( InputArray _image, InputArray _mask, vector<KeyP
             _keypoints.insert(_keypoints.end(), keypoints.begin(), keypoints.end());
         }
     }else{
-        cv::Ptr<cv::DescriptorExtractor> extractor_ = cv::xfeatures2d::FREAK::create(false, true, 22, 1);
         std::vector<cv::Mat> desc_levels;
         for (int level = 0; level < nlevels; ++level)
         {
@@ -1123,6 +1125,7 @@ void ORBextractor::ExtractDesc( InputArray _image, InputArray _mask, vector<KeyP
             Mat workingMat = mvImagePyramid[level].clone();
             GaussianBlur(workingMat, workingMat, Size(7, 7), 2, 2, BORDER_REFLECT_101);
 
+            // Compute the descriptors
             Mat desc;
             extractor_->compute(workingMat, keypoints, desc);
             desc_levels.push_back(desc);

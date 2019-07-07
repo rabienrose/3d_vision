@@ -127,6 +127,28 @@ namespace g2o {
 
 
 /**/
+class EdgeSim3XYZ : public  BaseBinaryEdge<3, Vector3d, VertexSBAPointXYZ, VertexSim3Expmap>
+{
+  public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    EdgeSim3XYZ();
+    virtual bool read(std::istream& is);
+    virtual bool write(std::ostream& os) const;
+
+    void computeError()
+    {
+      const VertexSim3Expmap* v1 = static_cast<const VertexSim3Expmap*>(_vertices[1]);
+      const VertexSBAPointXYZ* v2 = static_cast<const VertexSBAPointXYZ*>(_vertices[0]);
+
+      Vector3d obs(_measurement);
+      _error = obs - v1->estimate().map(v2->estimate());
+    }
+
+   // virtual void linearizeOplus();
+
+};
+
+/**/
 class EdgeSim3ProjectXYZ : public  BaseBinaryEdge<2, Vector2d,  VertexSBAPointXYZ, VertexSim3Expmap>
 {
   public:
