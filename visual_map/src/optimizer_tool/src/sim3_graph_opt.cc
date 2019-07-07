@@ -67,7 +67,7 @@ namespace OptimizerTool
     void optimize_sim3_graph( std::vector<Eigen::Vector3d>& gps_alin, std::vector<int>& gps_inlers,
         std::vector<Eigen::Matrix4d>& poses_out, std::vector<Eigen::Matrix4d>& poses_in,
         std::vector<Eigen::Matrix4d>& T_1_to_2_list, std::vector<double>& scale_1_to_2_list, 
-        std::vector<int>& graph_v1_list, std::vector<int>& graph_v2_list
+        std::vector<int>& graph_v1_list, std::vector<int>& graph_v2_list, bool input_is_sim
     ){
         CHECK_EQ(gps_alin.size(), gps_inlers.size());
         CHECK_EQ(gps_alin.size(), poses_in.size());
@@ -91,7 +91,15 @@ namespace OptimizerTool
 
             Eigen::Matrix<double,3,3> Rcw = pose_inv.block(0,0,3,3);
             Eigen::Matrix<double,3,1> tcw = pose_inv.block(0,3,3,1);
-            g2o::Sim3 Siw(Rcw,tcw,1.0);
+            g2o::Sim3 Siw;
+            if(input_is_sim){
+                double scale=Rcw.block(0,0,3,1).norm();
+                Rcw=Rcw/scale;
+                Siw=g2o::Sim3(Rcw,tcw,scale);
+            }else{
+                Siw=g2o::Sim3(Rcw,tcw,1);
+            }
+            
             VSim3->setEstimate(Siw);
             if(i==0){
                 VSim3->setFixed(true);
@@ -186,11 +194,15 @@ namespace OptimizerTool
             Eigen::Matrix3d eigR = CorrectedSiw.rotation().toRotationMatrix();
             Eigen::Vector3d eigt = CorrectedSiw.translation();
             double s = CorrectedSiw.scale();
-            //std::cout<<s<<std::endl;
-            eigt *=(1./s); //[R t/s;0 1]
             Eigen::Matrix4d Tiw=Eigen::Matrix4d::Identity();
-            Tiw.block(0,0,3,3)=eigR;
-            Tiw.block(0,3,3,1)=eigt;
+            if(input_is_sim){
+                Tiw.block(0,0,3,3)=eigR*s;
+                Tiw.block(0,3,3,1)=eigt;
+            }else{
+                eigt *=(1./s); //[R t/s;0 1]
+                Tiw.block(0,0,3,3)=eigR;
+                Tiw.block(0,3,3,1)=eigt;
+            }
             poses_out[i]=Tiw.inverse();
         }
     }
@@ -225,7 +237,7 @@ namespace OptimizerTool
             graph_v1_list.push_back(map.pose_graph_v1[i]->id);
             graph_v2_list.push_back(map.pose_graph_v2[i]->id);
         }
-        optimize_sim3_graph(gps_alins, gps_inliers, poses_out, poses_in, T_2_1_list, scale_1_to_2_list, graph_v1_list, graph_v2_list);
+        optimize_sim3_graph(gps_alins, gps_inliers, poses_out, poses_in, T_2_1_list, scale_1_to_2_list, graph_v1_list, graph_v2_list, false);
         for(int i=0; i<map.frames.size(); i++){
             map.frames[i]->setPose(poses_out[i]);
         }

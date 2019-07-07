@@ -28,4 +28,5 @@
   <depend>visual_map</depend>
   <depend>gps_vis_odom</depend>
   <depend>vis_loc_lib</depend>
+  <depend>optimizer_tool</depend>
 </package>

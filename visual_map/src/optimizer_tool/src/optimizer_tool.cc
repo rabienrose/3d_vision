@@ -161,9 +161,6 @@ namespace OptimizerTool
 //         }
 //         
 //         std::cout<<"err_total: "<<err_total/temp_count<<std::endl;
-        
-        Eigen::Matrix3d Rwi_=Eigen::Matrix3d::Identity();
-        show_mp_as_cloud(mp_posis_out, Rwi_, "/temp_mp");
         std::cout<<"procece mp"<<std::endl;
         
         int nlevels=8;

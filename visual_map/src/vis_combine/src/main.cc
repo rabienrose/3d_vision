@@ -27,6 +27,7 @@
 #include "orb_slam_lib/sim3_match.h"
 #include "CoorConv.h"
 #include "vis_loc.h"
+#include "optimizer_tool/optimizer_tool.h"
 
 DEFINE_string(map_root_addr, "", "First map to merge.");
 
@@ -34,31 +35,6 @@ DEFINE_string(map_root_addr, "", "First map to merge.");
 void printFrameInfo(ORB_SLAM2::Frame& frame){
     std::cout<<"kp count: "<<frame.mvKeysUn.size()<<std::endl;
     std::cout<<"desc size (w:h) "<<frame.mDescriptors.cols<<":"<<frame.mDescriptors.rows<<std::endl;
-}
-
-void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic){
-    Eigen::Matrix3Xd points;
-    points.resize(3,mp_posis.size());
-    for(int i=0; i<mp_posis.size(); i++){
-        points.block<3,1>(0,i)=mp_posis[i];
-    }    
-    publish3DPointsAsPointCloud(points, visualization::kCommonRed, 1.0, visualization::kDefaultMapFrame,topic);
-}
-    
-void show_pose_as_marker(std::vector<Eigen::Vector3d>& posis, std::vector<Eigen::Quaterniond>& rots, std::string topic){
-    visualization::PoseVector poses_vis;
-    for(int i=0; i<posis.size(); i=i+1){
-        visualization::Pose pose;
-        pose.G_p_B = posis[i];
-        pose.G_q_B = rots[i];
-
-        pose.id =poses_vis.size();
-        pose.scale = 0.2;
-        pose.line_width = 0.02;
-        pose.alpha = 1;
-        poses_vis.push_back(pose);
-    }
-    visualization::publishVerticesFromPoseVector(poses_vis, visualization::kDefaultMapFrame, "vertices", topic);
 }
 
 void transformPoseUseSim3(Eigen::Matrix4d& sim3, Eigen::Matrix4d& in_pose,  Eigen::Matrix4d& out_pose){
@@ -407,6 +383,21 @@ int main(int argc, char* argv[]){
             break;
         }
     }
+    std::vector<Eigen::Vector3d> gps_alin;
+    std::vector<int> gps_inlers;
+    std::vector<Eigen::Matrix4d> poses_out;
+    for(int i=0; i<pose_in.size(); i++){
+        gps_inlers.push_back(0);
+        Eigen::Vector3d temp=Eigen::Vector3d::Zero();
+        gps_alin.push_back(temp);
+        pose_in[i]=pose_in[i].inverse();
+        //pose_in[i]=Eigen::Matrix4d::Identity();
+    }
+    for(int i=0; i<map_graph_sim3.size(); i++){
+        map_graph_sim3[i].block(0,0,3,3)=map_graph_sim3[i].block(0,0,3,3)/map_graph_scale[i];
+    }
+    OptimizerTool::optimize_sim3_graph(gps_alin, gps_inlers, poses_out, pose_in, map_graph_sim3, map_graph_scale, map_graph_v1, map_graph_v2, true);
+    
     vm::VisualMap base_map=*maps[0];
     for(int j=1; j<maps.size(); j++){
         GpsConverter gps_conv1(base_map.gps_anchor(0), base_map.gps_anchor(1), false);
@@ -422,7 +413,7 @@ int main(int argc, char* argv[]){
     }
     
     for(int j=1; j<maps.size(); j++){
-        Eigen::Matrix4d T_1_t = pose_in[j].inverse();
+        Eigen::Matrix4d T_1_t = poses_out[j];
         for(int i=0; i<maps[j]->frames.size(); i++){
             Eigen::Matrix4d pose_transformed_temp;
             Eigen::Matrix4d temp_pose=maps[j]->frames[i]->getPose();
