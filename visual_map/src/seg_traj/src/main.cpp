@@ -43,7 +43,7 @@ int main(int argc, char* argv[]){
     vm::loader_visual_map(map, FLAGS_map_addr+"/"+FLAGS_map_name);
 
     std::cout<<"start segmentation"<<std::endl;
-    int cur_frame_id=100;
+    int cur_frame_id=10;
     int last_frame_id=0;
     int max_seg_count=FLAGS_max_seg_frame_count;
     std::vector<vm::VisualMap> submaps;

@@ -52,6 +52,11 @@ int main(int argc, char* argv[]){
     for(int i=0; i<map.mappoints.size(); i++){
         mp_posi.push_back(map.mappoints[i]->position);
     }
+    std::vector<Eigen::Quaterniond> rots;
+    for(int i=0; i<map.frames.size(); i++){
+        rots.push_back(map.frames[i]->direction);
+    }
+    show_pose_as_marker(traj_posi, rots, "vm_pose");
     visualization::LineSegmentVector matches;
     for(int i=0; i<map.pose_graph_e_posi.size(); i++){
         visualization::LineSegment line_segment;

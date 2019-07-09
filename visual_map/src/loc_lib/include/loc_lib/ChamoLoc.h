@@ -11,7 +11,12 @@
 #include "descriptor-projection/build-projection-matrix.h"
 #include "inverted-multi-index/inverted_multi_index.pb.h"
 #include "read_write_data_lib/read_write.h"
-#include "orb_slam_lib/two_frame_pose.h"
+#include "Tracking.h"
+#include "KeyFrame.h"
+#include "Converter.h"
+#include "global_match/orb_match.h"
+#include "global_match/global_match.h"
+#include "ORBVocabulary.h"
 
 namespace wayz {
 
@@ -55,6 +60,8 @@ private:
     Eigen::Matrix4d Tbc;
     cv::Mat cam_inter_cv;
     cv::Mat cam_distort_cv;
+    ORB_SLAM2::ORBextractor* mpORBextractor;
+    ORB_SLAM2::ORBVocabulary* mpVocabulary;
     std::map<double, Eigen::Vector3d> posi_list;
     std::vector<Eigen::Vector3d> posi_vec;
     std::vector<Eigen::Vector3d> posi_match_vec;

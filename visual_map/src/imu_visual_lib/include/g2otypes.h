@@ -54,7 +54,6 @@ public:
     bool read(std::istream& is) {return true;}
     bool write(std::ostream& os) const {return true;}
     void computeError();
-    virtual void linearizeOplus();
 
     void SetParams(double x, double y, double fx_, double fy_, double cx_, double cy_) {
         refnormxy[0] = x; refnormxy[1] = y;
@@ -155,9 +154,6 @@ public:
     bool write(std::ostream& os) const {return true;}
 
     void computeError();
-
-    virtual void linearizeOplus();
-
     void SetParams(const Vector3d& gw) {
         GravityVec = gw;
     }
@@ -183,6 +179,7 @@ public:
         Vector2d obs(_measurement);
 
         _error = obs - cam_project(Pc);
+        //std::cout<<_error.norm()<<std::endl;
     }
 
     bool isDepthPositive() {
@@ -221,9 +218,6 @@ public:
         res[1] = proj[1]*fy + cy;
         return res;
     }
-
-    //
-    virtual void linearizeOplus();
 
     void SetParams(const double& fx_, const double& fy_, const double& cx_, const double& cy_,
                    const Matrix3d& Rbc_, const Vector3d& Pbc_) {
@@ -297,9 +291,6 @@ public:
         return res;
     }
 
-    //
-    virtual void linearizeOplus();
-
     void SetParams(const double& fx_, const double& fy_, const double& cx_, const double& cy_,
                    const Matrix3d& Rbc_, const Vector3d& Pbc_, const Vector3d& Pw_) {
         fx = fx_;
@@ -337,8 +328,6 @@ public:
     bool write(std::ostream &os) const{return true;}
 
     void computeError();
-
-    virtual void linearizeOplus();
 
 };
 
@@ -405,8 +394,6 @@ public:
 
     void computeError();
 
-    virtual void linearizeOplus();
-
     void SetParams(const Vector3d& gw) {
         GravityVec = gw;
     }
@@ -428,8 +415,6 @@ public:
     bool write(std::ostream& os) const {return true;}
 
     void computeError();
-
-    virtual void linearizeOplus();
 
 };
 
@@ -487,9 +472,6 @@ public:
         res[1] = proj[1]*fy + cy;
         return res;
     }
-
-    //
-    virtual void linearizeOplus();
 
     void SetParams(const double& fx_, const double& fy_, const double& cx_, const double& cy_,
                    const Matrix3d& Rbc_, const Vector3d& Pbc_) {
@@ -563,9 +545,6 @@ public:
         return res;
     }
 
-    //
-    virtual void linearizeOplus();
-
     void SetParams(const double& fx_, const double& fy_, const double& cx_, const double& cy_,
                    const Matrix3d& Rbc_, const Vector3d& Pbc_, const Vector3d& Pw_) {
         fx = fx_;
@@ -603,8 +582,6 @@ public:
 
     void computeError();
 
-    virtual void linearizeOplus();
-
 };
 
 //------------------------------------------
@@ -627,7 +604,6 @@ public:
     virtual void setToOriginImpl() {
       _estimate = NavState();
     }
-
     virtual void oplusImpl(const double* update_);
 };
 
@@ -646,8 +622,6 @@ public:
     bool write(std::ostream &os) const{return true;}
 
     void computeError();
-
-    virtual void linearizeOplus();
 
 };
 
@@ -668,8 +642,6 @@ public:
     bool write(std::ostream& os) const;
 
     void computeError();
-
-    virtual void linearizeOplus();
 
     void SetParams(const Vector3d& gw) {
         GravityVec = gw;
@@ -739,9 +711,6 @@ public:
         res[1] = proj[1]*fy + cy;
         return res;
     }
-
-    //
-    virtual void linearizeOplus();
 
     void SetParams(const double& fx_, const double& fy_, const double& cx_, const double& cy_,
                    const Matrix3d& Rbc_, const Vector3d& Pbc_) {
@@ -815,8 +784,6 @@ public:
         return res;
     }
 
-    //
-    virtual void linearizeOplus();
 
     void SetParams(const double& fx_, const double& fy_, const double& cx_, const double& cy_,
                    const Matrix3d& Rbc_, const Vector3d& Pbc_, const Vector3d& Pw_) {
@@ -883,8 +850,6 @@ public:
     Matrix3d Rwbj;
 
     void computeError();
-
-    virtual void linearizeOplus();
 };
 
 

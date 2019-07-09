@@ -62,6 +62,12 @@ namespace orb_slam
 
         for(int i=0; i<N-2; i++)
         {
+            if(vImuPreInt[i+1].getDeltaTime()==0){
+                continue;
+            }
+            if(vImuPreInt[i+2].getDeltaTime()==0){
+                continue;
+            }
             // Delta time between frames
             double dt12 = vImuPreInt[i+1].getDeltaTime();
             double dt23 = vImuPreInt[i+2].getDeltaTime();
@@ -146,7 +152,7 @@ namespace orb_slam
     }
 
     void CalGravityAndScale(const vector<cv::Mat>& vTwc, const vector<IMUPreintegrator>& vImuPreInt, cv::Mat Tbc,
-        double& sstar, cv::Mat& gwstar
+        double& sstar, cv::Mat& gwstar, double& scale_confi, double& grav_confi
     ){
         int N= vTwc.size();
         cv::Mat A = cv::Mat::zeros(3*(N-2),4,CV_32F);
@@ -159,6 +165,12 @@ namespace orb_slam
 
         for(int i=0; i<N-2; i++)
         {
+            if(vImuPreInt[i+1].getDeltaTime()==0){
+                continue;
+            }
+            if(vImuPreInt[i+2].getDeltaTime()==0){
+                continue;
+            }
             double dt12 = vImuPreInt[i+1].getDeltaTime();
             double dt23 = vImuPreInt[i+2].getDeltaTime();
             // Pre-integrated measurements
@@ -192,6 +204,9 @@ namespace orb_slam
             // Debug log
             //cout<<"iter "<<i<<endl;
         }
+        
+        //Eigen::JacobiSVD<MatrixXd> svd(A);
+        
         // Use svd to compute A*x=B, x=[s,gw] 4x1 vector
         // A = u*w*vt, u*w*vt*x=B
         // Then x = vt'*winv*u'*B
@@ -199,10 +214,12 @@ namespace orb_slam
         // Note w is 4x1 vector by SVDecomp()
         // A is changed in SVDecomp() with cv::SVD::MODIFY_A for speed
         cv::SVDecomp(A,w,u,vt,cv::SVD::MODIFY_A);
+        //double cond = w.at<float>(0) / w.at<float>(3);
+        //std::cout<<"cond: "<<cond<<std::endl;
         // Debug log
         //cout<<"u:"<<endl<<u<<endl;
         //cout<<"vt:"<<endl<<vt<<endl;
-        //cout<<"w:"<<endl<<w<<endl;
+        //cout<<"w:"<<w.t()<<endl;
 
         // Compute winv
         cv::Mat winv=cv::Mat::eye(4,4,CV_32F);
@@ -219,6 +236,17 @@ namespace orb_slam
         }
         // Then x = vt'*winv*u'*B
         cv::Mat x = vt.t()*winv*u.t()*B;
+        cv::Mat x1=x.clone();
+        x1.at<float>(0)=x.at<float>(0)*0.7;
+        double err = cv::norm(A*x-A*x1)/B.rows;
+        scale_confi=err;
+        x1=x.clone();
+        x1.at<float>(1)=x.at<float>(1)*0.7;
+        x1.at<float>(2)=x.at<float>(2)*0.7;
+        x1.at<float>(3)=x.at<float>(3)*0.7;
+        grav_confi=err = cv::norm(A*x-A*x1)/B.rows;
+        
+        //std::cout<<B.rows<<std::endl;
 
         // x=[s,gw] 4x1 vector
         sstar = x.at<float>(0);    // scale should be positive
@@ -271,7 +299,7 @@ namespace orb_slam
         long unsigned int maxKFid = 0;
 
         // Set KeyFrame vertices
-        for(size_t i=0; i<preints.size(); i++)
+        for(size_t i=0; i<states.size(); i++)
         {
             //std::cout<<states[i].Get_R()<<std::endl;
             g2o::VertexNavStatePR * vNSPR = new g2o::VertexNavStatePR();
@@ -308,6 +336,9 @@ namespace orb_slam
         std::vector<g2o::EdgeNavStatePRV*> prvEdges;
         for(size_t i=1; i<preints.size(); i++)
         {
+            if(preints[i].getDeltaTime()==0){
+                continue;
+            }
             // PVR edge
             {
                 // PR0, PR1, V0, V1, B0
@@ -319,7 +350,6 @@ namespace orb_slam
                 epvr->setVertex(4, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(3*(i-1)+2)));
                 epvr->setMeasurement(preints[i]);
 
-                //Matrix9d InvCovPVR = pKF1->GetIMUPreInt().getCovPVPhi().inverse();
                 Matrix9d CovPRV = preints[i].getCovPVPhi();
                 CovPRV.col(3).swap(CovPRV.col(6));
                 CovPRV.col(4).swap(CovPRV.col(7));
@@ -328,7 +358,7 @@ namespace orb_slam
                 CovPRV.row(4).swap(CovPRV.row(7));
                 CovPRV.row(5).swap(CovPRV.row(8));
                 epvr->setInformation(CovPRV.inverse());
-
+                //epvr->setInformation(Matrix9d::Identity());
                 epvr->SetParams(GravityVec);
 
                 g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
@@ -336,6 +366,7 @@ namespace orb_slam
                 rk->setDelta(thHuberNavStatePRV);
                 prvEdges.push_back(epvr);
                 optimizer.addEdge(epvr);
+                epvr->computeError();
             }
             // Bias edge
             {
@@ -426,23 +457,20 @@ namespace orb_slam
         // Optimize!
         optimizer.initializeOptimization();
         optimizer.optimize(100);
-        for(int i=0; i<1; i++){
-            
-            totall_pvr_error=0;
-            for(int i=0; i<prvEdges.size(); i++){
-                prvEdges[i]->computeError();
-                totall_pvr_error = totall_pvr_error+sqrt(prvEdges[i]->chi2())/prvEdges.size();
-            }
-            std::cout<<"totall_pvr_error after: "<<totall_pvr_error<<std::endl;
-            
-            
-            totall_proj_error=0;
-            for(int i=0; i<project_edges.size(); i++){
-                project_edges[i]->computeError();
-                totall_proj_error = totall_proj_error+sqrt(project_edges[i]->chi2())/project_edges.size();
-            }
-            std::cout<<"totall_proj_error after: "<<totall_proj_error<<std::endl;
+        totall_pvr_error=0;
+        for(int i=0; i<prvEdges.size(); i++){
+            prvEdges[i]->computeError();
+            totall_pvr_error = totall_pvr_error+sqrt(prvEdges[i]->chi2())/prvEdges.size();
         }
+        std::cout<<"totall_pvr_error after: "<<totall_pvr_error<<std::endl;
+        
+        
+        totall_proj_error=0;
+        for(int i=0; i<project_edges.size(); i++){
+            project_edges[i]->computeError();
+            totall_proj_error = totall_proj_error+sqrt(project_edges[i]->chi2())/project_edges.size();
+        }
+        std::cout<<"totall_proj_error after: "<<totall_proj_error<<std::endl;
         // Recover optimized data
         //Keyframes
         for(size_t i=0; i<states.size(); i++)
@@ -507,6 +535,9 @@ namespace orb_slam
             //Matrix3d Rwcj =Twj.rotation_matrix();
 
             const IMUPreintegrator& imupreint = vImuPreInt[i];
+            if(imupreint.getDeltaTime()==0){
+                continue;
+            }
 
             g2o::EdgeGyrBias * eBiasg = new g2o::EdgeGyrBias();
             eBiasg->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));

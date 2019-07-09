@@ -31,6 +31,6 @@ namespace orb_slam
     void CalAccBias(const std::vector<cv::Mat>& vTwc, const std::vector<IMUPreintegrator>& vImuPreInt, 
                     double& sstar, cv::Mat& gwstar, cv::Mat Tbc, Eigen::Matrix3d& Rwi, Eigen::Vector3d& bias_a);
     void CalGravityAndScale(const std::vector<cv::Mat>& vTwc, const std::vector<IMUPreintegrator>& vImuPreInt, cv::Mat Tbc,
-        double& sstar, cv::Mat& gwstar);
+        double& sstar, cv::Mat& gwstar, double& scale_confi, double& grav_confi);
 }
 #endif // CONFIGPARAM_H

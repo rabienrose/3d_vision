@@ -28,4 +28,7 @@
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
+  <depend>vslam</depend>
+  <depend>global_match</depend>
+  <depend>visual_map</depend>
 </package>

@@ -176,7 +176,6 @@ public:
         Quaterniond qr(R);
         return normalizeRotationQ(qr).toRotationMatrix();
     }
-private:
     /*
      * NOTE:
      * don't add pointer as member variable.

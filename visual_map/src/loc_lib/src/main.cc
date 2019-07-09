@@ -125,8 +125,8 @@ void subscribe_bag(int argc, char* argv[],std::string img_topic, std::string imu
 int main(int argc, char* argv[])
 {
     visualization::RVizVisualizationSink::init();
-    std::string imgtopic = "camera/left/image_raw";
-    std::string imutopic = "imu/raw_data";
+    std::string imgtopic = "img";
+    std::string imutopic = "imu";
     std::string res_addr = argv[1];
 
     std::string bagfilepath;

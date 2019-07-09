@@ -1,8 +1,8 @@
 #OUT_ADDR=$1
 #BAG_NAME=$2
 
-OUT_ADDR=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/test_save_vm
-BAG_NAME=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/iphone_test/7_3_night/build_near_07-03-20-29-52.bag
+OUT_ADDR=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/test_android
+BAG_NAME=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/6_27_cloudy/building_near_10.bag
 #BAG_NAME=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/iphone_test/6_14_sunset_sunny/office_1.bag
 EXE_ROOT=/home/chamo/Documents/work/3d_vision/visual_map
 
