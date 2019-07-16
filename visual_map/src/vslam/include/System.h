@@ -27,6 +27,11 @@ public:
     Frame getCurrentFrame(); 
     Map*  getMapPointer();
     Tracking* getTrackPointer();
+    void LoadORBMap(std::string map_name, 
+                                 ORB_SLAM2::ORBVocabulary*& mpVocabulary, 
+                                 ORB_SLAM2::KeyFrameDatabase*& mpKeyFrameDatabase, 
+                                 ORB_SLAM2::Map*& mpMap
+                   );
 private:
     ORBVocabulary* mpVocabulary;
     KeyFrameDatabase* mpKeyFrameDatabase;
@@ -35,6 +40,7 @@ private:
     LocalMapping* mpLocalMapper;
     LoopClosing* mpLoopCloser;
     int last_kfcount;
+    int first_loc_frameid;
 };
 
 }// namespace ORB_SLAM

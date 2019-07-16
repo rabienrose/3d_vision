@@ -129,11 +129,11 @@ bool doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm:
             //LOG(INFO)<<"local_pc.size(): "<<local_pc.size();
             Eigen::Matrix4d T_tar_sour;
             double scale_tar_sour; 
-            std::vector<cv::KeyPoint> local_kp;
-            cv::Mat mk;
+            std::vector<cv::KeyPoint> local_kp; //not use in ComputeSim3Ransac
+            cv::Mat mk; //not use in ComputeSim3Ransac
+            //orb_slam::ComputeSim3(global_pc, local_pc , T_tar_sour, scale_tar_sour);
             bool succ= visloc_t.ComputeSim3Ransac(global_pc, local_pc, local_kp, mk, T_tar_sour, scale_tar_sour);
             if(succ){
-                //orb_slam::ComputeSim3(global_pc, local_pc , T_tar_sour, scale_tar_sour);
                 //LOG(INFO)<<"scale_tar_sour: "<<scale_tar_sour;
                 std::map<std::shared_ptr<vm::Frame>, int> frame_list;
                 for(int j=0; j<inliers_mp.size(); j++){
@@ -221,8 +221,8 @@ bool doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm:
     
     std::vector<Eigen::Vector3d> posi_sour_temp;
     std::vector<Eigen::Vector3d> posi_tar_temp;
+    std::cout<<"match count: "<<pc_match_sour.size()<<std::endl;
     if(pc_match_sour.size()<50){
-        std::cout<<"too few pc: "<<pc_match_sour.size()<<std::endl;
         return false;
     }
     for(int i=0; i< pc_match_sour.size(); i++){
@@ -231,7 +231,9 @@ bool doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm:
     }
     std::vector<cv::KeyPoint> local_kp;
     cv::Mat mk;
-    bool succ= visloc_t.ComputeSim3Ransac(posi_tar_temp, posi_sour_temp,local_kp,mk, sim3_tar_sour, scale_tar_sour);
+    bool succ=true;
+    //orb_slam::ComputeSim3(posi_tar_temp, posi_sour_temp , sim3_tar_sour, scale_tar_sour);
+    succ= visloc_t.ComputeSim3Ransac(posi_tar_temp, posi_sour_temp,local_kp,mk, sim3_tar_sour, scale_tar_sour);
     if(succ){
         
     }else{
@@ -307,6 +309,7 @@ int main(int argc, char* argv[]){
     
     std::vector<std::shared_ptr<vm::VisualMap>> maps;
     std::vector<std::string> desc_index_files;
+    std::vector<std::string> map_names;
     for(int i=0; i<100; i++){
         std::stringstream ss;
         ss<<FLAGS_map_root_addr<<"/chamo_"<<i<<".map";
@@ -314,7 +317,11 @@ int main(int argc, char* argv[]){
         map.reset(new vm::VisualMap);
         bool re =vm::loader_visual_map(*map, ss.str());
         if(re){
+            std::stringstream ss;
+            ss<<"chamo_"<<i<<".map";
+            map_names.push_back(ss.str());
             map->ComputeUniqueId();
+            map->UpdatePoseEdge();
             maps.push_back(map);
             std::stringstream ss1;
             ss1<<"chamo_"<<i<<".map.desc";
@@ -336,53 +343,56 @@ int main(int argc, char* argv[]){
     for(int i=0; i<maps.size()-1; i++){
         for(int j=i+1; j<maps.size(); j++){
             Eigen::Matrix4d sim3_j_i;
-            double scale_j_i;
+            double scale_j_i=1;
             bool succ = doAMatch(kp_info_list, *maps[i], *maps[j], desc_index_files[j],FLAGS_map_root_addr, T_tar_sour_list, scale_tar_sour_list, graph_tar_list, graph_sour_list, sim3_j_i, scale_j_i);
             if(succ){
                 map_graph_v1.push_back(i);
                 map_graph_v2.push_back(j);
                 map_graph_sim3.push_back(sim3_j_i);
                 map_graph_scale.push_back(scale_j_i);
-                std::cout<<"match succ!! "<<i<<"->"<<j<<":"<<scale_j_i<<std::endl;
+                std::cout<<"match succ!! "<<map_names[i]<<"->"<<map_names[j]<<":"<<scale_j_i<<std::endl;
+            }else{
+                std::cout<<"match failed!! "<<map_names[i]<<"->"<<map_names[j]<<std::endl;
             }
         }
     }
-    std::vector<int> expended_list;
-    for(int i=0; i<maps.size(); i++){
-        expended_list.push_back(0);
-    }
-    std::vector<int> p_list;
-    std::vector<int> c_list;
-    std::vector<Eigen::Matrix4d> T_c_ps;
-    ExpandANode(0,expended_list, map_graph_v1, map_graph_v2, p_list, c_list, T_c_ps, map_graph_sim3);
-    for(int i=0; i<p_list.size(); i++){
-        std::cout<<"debug: "<<p_list[i]<<"->"<<c_list[i]<<std::endl;
-    }
-    int cur_map=0;
-    int safe_count=0;
+//     std::vector<int> expended_list;
+//     for(int i=0; i<maps.size(); i++){
+//         expended_list.push_back(0);
+//     }
+//     std::vector<int> p_list;
+//     std::vector<int> c_list;
+//     std::vector<Eigen::Matrix4d> T_c_ps;
+//     ExpandANode(0,expended_list, map_graph_v1, map_graph_v2, p_list, c_list, T_c_ps, map_graph_sim3);
+//     for(int i=0; i<p_list.size(); i++){
+//         std::cout<<"debug: "<<map_names[p_list[i]]<<"->"<<map_names[c_list[i]]<<std::endl;
+//     }
+//     int cur_map=0;
+//     int safe_count=0;
     std::vector<Eigen::Matrix4d> pose_in;
     for(int i=0; i<maps.size(); i++){
         pose_in.push_back(Eigen::Matrix4d::Identity());
     }
-    while(true){
-        safe_count++;
-        bool findInP=false;
-        for(int i=0; i<p_list.size(); i++){
-            if(p_list[i]==cur_map){
-                std::cout<<p_list[i]<<"->"<<c_list[i]<<std::endl;
-                pose_in[c_list[i]]=T_c_ps[i]*pose_in[p_list[i]];
-                cur_map=c_list[i];
-                findInP=true;
-                break;
-            }
-        }
-        if(findInP==false){
-            break;
-        }
-        if(safe_count>100){
-            break;
-        }
-    }
+//     while(true){
+//         safe_count++;
+//         bool findInP=false;
+//         for(int i=0; i<p_list.size(); i++){
+//             if(p_list[i]==cur_map){
+//                 std::cout<<p_list[i]<<"->"<<c_list[i]<<std::endl;
+//                 pose_in[c_list[i]]=T_c_ps[i]*pose_in[p_list[i]];
+//                 
+//                 findInP=true;
+//                 break;
+//             }
+//         }
+//         if(findInP==false){
+//             cur_map=c_list[i];
+//             break;
+//         }
+//         if(safe_count>100){
+//             break;
+//         }
+//     }
     std::vector<Eigen::Vector3d> gps_alin;
     std::vector<int> gps_inlers;
     std::vector<Eigen::Matrix4d> poses_out;

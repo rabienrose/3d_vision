@@ -104,7 +104,7 @@ int main(int argc, char* argv[]){
     std::vector<Eigen::Vector3d> re_traj;
     
     if(match_method=="orb"){
-        chamo::LoadORBMap(res_root, mpVocabulary, mpKeyFrameDatabase, mpMap);
+        //chamo::LoadORBMap(res_root,map_name, mpVocabulary, mpKeyFrameDatabase, mpMap);
     }else{
         chamo::LoadMap(res_root, index_, projection_matrix_);
     }
@@ -123,6 +123,8 @@ int main(int argc, char* argv[]){
     ORB_SLAM2::Frame frame;
     std::vector<Eigen::Vector3d> re_posis;
     std::vector<raw_match> time_matchnum_vec;
+    ofstream f;
+    f.open(res_root+"/frame_pose_opt.txt");
     for(;it!=view.end();it++){
         if(!ros::ok()){
             break;
@@ -136,6 +138,7 @@ int main(int argc, char* argv[]){
             }
             cv_bridge::CvImagePtr cv_ptr;
             try{
+                
                 cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
                 cv::Mat img= cv_ptr->image;
                 double timestamp = simg->header.stamp.toSec();
@@ -153,8 +156,8 @@ int main(int argc, char* argv[]){
                 }else{
                     chamo::MatchImg(mp_posis, index_, projection_matrix_, frame, inliers_mp, inliers_kp, pose);
                 }
+                
                 double dur = (double)(clock() - start)/CLOCKS_PER_SEC;
-
                 raw_match su = {0};
                 su.runtime = dur;
                 su.timestamp = timestamp;
@@ -162,6 +165,13 @@ int main(int argc, char* argv[]){
                 time_matchnum_vec.push_back(su);
                 if(inliers_mp.size()>=20){
                     re_posis.push_back(pose.block(0,3,3,1));
+                    std::stringstream ss;
+                    f<<ss_time.str()<<",";
+
+                    f << timestamp<<","<< pose(0,0) << "," << pose(0,1)  << "," << pose(0,2) << ","  << pose(0,3) << "," <<
+                        pose(1,0) << "," << pose(1,1)  << "," << pose(1,2) << ","  << pose(1,3) << "," <<
+                        pose(2,0) << "," << pose(2,1)  << "," << pose(2,2) << ","  << pose(2,3) << std::endl;
+                    
                 }
                 if(img_count%5==0){
                     show_mp_as_cloud(re_posis, "global_match_test_traj");
@@ -201,7 +211,7 @@ int main(int argc, char* argv[]){
             }
         }
     }
-    
+    f.close();
     Export_Raw_MatchFile(res_root, time_matchnum_vec);
     return 0;
 }

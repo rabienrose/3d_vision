@@ -48,7 +48,7 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
 }
 
 
-void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_topic, std::string imu_topic, std::string gps_topic){
+void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_topic, std::string imu_topic, std::string gps_topic, bool isExtractImage){
 
     std::string bag_addr=bag_addr_;
     std::string out_dir=out_addr_;
@@ -86,15 +86,16 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
         rosbag::MessageInstance m =*it;
 
         sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
-        if(simg!=NULL){
+        if( simg!=NULL ){
             cv_bridge::CvImagePtr cv_ptr;
             try{
-                cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
-                std::stringstream ss;
-                ss<<out_dir+"/images/img_"<<img_count<<".jpg";
-                std::stringstream ss_name;
-                ss_name<<"img_"<<img_count<<".jpg";
-                cv::imwrite(ss.str(), cv_ptr->image);
+                if(isExtractImage ){
+                    cv_ptr = cv_bridge::toCvCopy(simg, "bgr8");
+                    std::stringstream ss;
+                    ss<<out_dir+"/images/img_"<<img_count<<".jpg";
+                    cv::imwrite(ss.str(), cv_ptr->image);
+                }std::stringstream ss_name;
+                    ss_name<<"img_"<<img_count<<".jpg";
                 std::stringstream ss_time;
                 ss_time<<"img_"<<img_count<<".jpg"<<","<<simg->header.stamp<<std::endl;
                 outfile_img_time<<ss_time.str();

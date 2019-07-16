@@ -18,6 +18,11 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include "vis_loc.h"
+#include <gflags/gflags.h>
+#include <glog/logging.h>
+
+DEFINE_string(bag_addr, "", "Bag contain the image data.");
+DEFINE_string(output_addr, "", "Place to save the output file.");
 
 ORB_SLAM2::ORBVocabulary* mpVocabulary;
 ORB_SLAM2::KeyFrameDatabase* mpKeyFrameDatabase;
@@ -187,12 +192,13 @@ void visMap(){
 
                                         
 int main(int argc, char* argv[]){
-    ros::init(argc, argv, "vis_loc");
-    ros::NodeHandle nh;
+    google::InitGoogleLogging(argv[0]);
+    google::InstallFailureSignalHandler();
+    google::ParseCommandLineFlags(&argc, &argv, true);
     visualization::RVizVisualizationSink::init();
-    std::string work_root = argv[1];
-    std::string bag_addr  = argv[2];
-    VisualLocalization.SetInit(work_root);
+    ros::NodeHandle nh;
+    std::string bag_addr  = FLAGS_bag_addr;
+    VisualLocalization.SetInit(FLAGS_output_addr);
     VisualLocalization.LoadMapLabMap();
 
     img_count=0;
@@ -213,7 +219,7 @@ int main(int argc, char* argv[]){
         }
         skip++;
         // if(skip < 1000) continue;
-        if(skip % 3 != 0) continue;
+        if(skip % 1 != 0) continue;
         rosbag::MessageInstance m =*it;
         sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
         if(simg!=NULL){
@@ -233,7 +239,7 @@ int main(int argc, char* argv[]){
                     Eigen::Vector3d posi = VisualLocalization.GetGlobalPosition(img_str);
                     traj.push_back(posi);
                     local_traj.push_back(output_posi);
-                    // show_mp_as_cloud(VisualLocalization.global_posis, "global_traj");
+                    show_mp_as_cloud(VisualLocalization.global_posis, "global_traj");
                     show_mp_as_cloud(VisualLocalization.local_posis, "local_traj");
                     show_mp_as_cloud(traj,"global_traj");
                     std::vector<Eigen::Quaterniond> global_rot,local_rot;

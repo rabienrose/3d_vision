@@ -70,7 +70,7 @@ namespace vm{
         std::map<MapPoint*, int> mappoint_to_index;
         putToFile((int)map.mappoints.size(), output);
         std::cout<<"mp count: "<<map.mappoints.size()<<std::endl;
-        for(int i=0; i<map.mappoints.size(); i++){
+        for(size_t i=0; i<map.mappoints.size(); i++){
             std::shared_ptr<MapPoint> mappoint_p = map.mappoints[i];
             mappoint_to_index[mappoint_p.get()]=i;
             putToFileD2F(mappoint_p->position.x(), output);
@@ -82,7 +82,7 @@ namespace vm{
         putToFile((int)map.frames.size(), output);
         std::cout<<"frame count: "<<map.frames.size()<<std::endl;
         int kp_count=0;
-        for(int i=0; i<map.frames.size(); i++){
+        for(size_t i=0; i<map.frames.size(); i++){
             std::shared_ptr<Frame> frame_p=map.frames[i];
             putToFile(frame_p->frame_file_name, output);
             putToFile(frame_p->time_stamp, output);
@@ -113,7 +113,7 @@ namespace vm{
 
             std::vector<cv::KeyPoint>& keypoints1=frame_p->kps;
             putToFile((int)keypoints1.size(), output);
-            for (int j=0; j<keypoints1.size(); j++){
+            for (size_t j=0; j<keypoints1.size(); j++){
                 kp_count++;
                 putToFile(keypoints1[j].pt.x, output);
                 putToFile(keypoints1[j].pt.y, output);
@@ -140,7 +140,7 @@ namespace vm{
                 }
             }
             putToFile((int)frame_p->acces.size(), output);
-            for(int j=0; j<frame_p->acces.size(); j++){
+            for(size_t j=0; j<frame_p->acces.size(); j++){
                 putToFileD2F(frame_p->acces[j](0), output);
                 putToFileD2F(frame_p->acces[j](1), output);
                 putToFileD2F(frame_p->acces[j](2), output);
@@ -165,7 +165,7 @@ namespace vm{
         CHECK_EQ(map.pose_graph_weight.size(),map.pose_graph_e_posi.size());
         CHECK_EQ(map.pose_graph_v1.size(),map.pose_graph_e_posi.size());
         CHECK_EQ(map.pose_graph_v2.size(),map.pose_graph_e_posi.size());
-        for(int i=0; i<map.pose_graph_e_posi.size(); i++){
+        for(size_t i=0; i<map.pose_graph_e_posi.size(); i++){
             putToFileD2F(map.pose_graph_e_posi[i].x(), output);
             putToFileD2F(map.pose_graph_e_posi[i].y(), output);
             putToFileD2F(map.pose_graph_e_posi[i].z(), output);
@@ -291,7 +291,7 @@ namespace vm{
             map.frames.push_back(frame_p);
         }
         CHECK_EQ(nextimu_frameids.size(), map.frames.size());
-        for(int i=0; i<map.frames.size(); i++){
+        for(size_t i=0; i<map.frames.size(); i++){
             if(nextimu_frameids[i]!=-1){
                 CHECK_GT(map.frames.size(),nextimu_frameids[i]);
                 map.frames[i]->imu_next_frame=map.frames[nextimu_frameids[i]];

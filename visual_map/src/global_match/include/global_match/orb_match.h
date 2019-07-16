@@ -15,11 +15,6 @@ namespace chamo {
                                  ORB_SLAM2::ORBVocabulary* mpVocabulary, 
                                  ORB_SLAM2::KeyFrameDatabase* mpKeyFrameDatabase, 
                                  ORB_SLAM2::Map* mpMap);
-        void LoadORBMap(std::string res_root, 
-                                 ORB_SLAM2::ORBVocabulary*& mpVocabulary, 
-                                 ORB_SLAM2::KeyFrameDatabase*& mpKeyFrameDatabase, 
-                                 ORB_SLAM2::Map*& mpMap
-                       );
         void GetORBextractor(std::string res_root, ORB_SLAM2::ORBextractor** mpORBextractor, cv::Mat& mK, cv::Mat& mDistCoef);
         void GetAFrame(cv::Mat img, ORB_SLAM2::Frame& frame, ORB_SLAM2::ORBextractor* mpORBextractor, ORB_SLAM2::ORBVocabulary*& mpVocabulary,
                        cv::Mat mK, cv::Mat mDistCoef, std::string file_name, double timestamp);

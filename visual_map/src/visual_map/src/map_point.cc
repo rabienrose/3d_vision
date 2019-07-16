@@ -3,7 +3,7 @@
 namespace vm{
 
     void TrackItem::getUV(float& x, float& y, int& octave){
-        if(kp_ind>=frame->kps.size()){
+        if((size_t)kp_ind>=frame->kps.size()){
             std::cout<<"[TrackItem::getUV][error]kp_ind>=frame->kps.size()"<<std::endl;
             exit(0);
         }

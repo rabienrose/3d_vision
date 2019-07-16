@@ -273,6 +273,7 @@ namespace OptimizerTool{
                 Eigen::Matrix3d tempm=T_i_c.block(0,0,3,3);
                 map.frames[i]->direction=Eigen::Quaterniond(tempm);
             }
+            map.UpdatePoseEdge();
             vm::save_visual_map(map, res_root+"/imu_"+map_name);
             
         return;

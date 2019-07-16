@@ -16,6 +16,7 @@
 #include "visual_map/visual_map_seri.h"
 
 DEFINE_string(voc_addr, "", "Vocabulary file address.");
+DEFINE_string(map_addr, "", "map file address.");
 
 namespace ORB_SLAM2
 {
@@ -34,6 +35,77 @@ namespace ORB_SLAM2
         while (pos < str.length() && prev < str.length());
         return tokens;
     }
+    void System::LoadORBMap(std::string map_name, 
+                                 ORB_SLAM2::ORBVocabulary*& mpVocabulary, 
+                                 ORB_SLAM2::KeyFrameDatabase*& mpKeyFrameDatabase, 
+                                 ORB_SLAM2::Map*& mpMap
+                   ){
+        
+        vm::VisualMap map;
+        
+        vm::loader_visual_map(map, map_name);
+        map.ComputeUniqueId();
+        
+        mpMap = new ORB_SLAM2::Map();
+        CHECK_GT(map.frames.size(),0);
+        std::vector<float> cam_info;
+        cam_info.push_back(map.frames[0]->fx);
+        cam_info.push_back(map.frames[0]->fy);
+        cam_info.push_back(map.frames[0]->cx);
+        cam_info.push_back(map.frames[0]->cy);
+        cam_info.push_back(map.frames[0]->width);
+        cam_info.push_back(map.frames[0]->height);
+        std::vector<ORB_SLAM2::KeyFrame*> kfs;
+        for(int i=0; i<map.frames.size(); i++){
+            ORB_SLAM2::KeyFrame* pKF = new ORB_SLAM2::KeyFrame();
+            cv::Mat pose_c_w=ORB_SLAM2::Converter::toCvMat(map.frames[i]->getPose()).inv();
+            int desc_width=map.frames[i]->descriptors.rows();
+            int desc_count=map.frames[i]->descriptors.cols();
+            cv::Mat desc_mat = cv::Mat(desc_count, desc_width, CV_8UC1);
+            for(int j=0; j<desc_width; j++){
+                for(int k=0; k<desc_count; k++){
+                    desc_mat.at<unsigned char>(k, j) = map.frames[i]->descriptors(j, k);
+                } 
+            }
+            pKF->setData(i, map.frames[i]->time_stamp, map.frames[i]->kps, cam_info, map.frames[i]->frame_file_name, 8, 1.2, pose_c_w, 
+                        desc_mat, mpMap, mpKeyFrameDatabase, mpVocabulary);
+            mpMap->AddKeyFrame(pKF);
+            kfs.push_back(pKF);
+        }
+
+        for(int i=0; i<map.mappoints.size(); i++){
+            int mp_id=i;
+            ORB_SLAM2::MapPoint* pMP=NULL;
+            for (int j=0; j<map.mappoints[i]->track.size(); j++){
+                int kp_id=map.mappoints[i]->track[j].kp_ind;
+                int kpframe_id=map.mappoints[i]->track[j].frame->id;                
+                if(pMP==NULL){
+                    pMP = new ORB_SLAM2::MapPoint(ORB_SLAM2::Converter::toCvMat(map.mappoints[i]->position),kfs[kpframe_id],mpMap);
+                }
+
+                kfs[kpframe_id]->AddMapPoint(pMP,kp_id);
+                pMP->AddObservation(kfs[kpframe_id],kp_id);     
+            }
+            mpMap->AddMapPoint(pMP);
+        } 
+        
+        std::vector<ORB_SLAM2::MapPoint*> mps_all=mpMap->GetAllMapPoints();
+        for(int i=0; i<mps_all.size(); i++){
+            mps_all[i]->ComputeDistinctiveDescriptors();
+            mps_all[i]->UpdateNormalAndDepth();
+        }
+        
+        vector<ORB_SLAM2::KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+        for (vector<ORB_SLAM2::KeyFrame*>::iterator it = vpKFs.begin(); it != vpKFs.end(); ++it){
+            (*it)->finishDataSetting();
+            mpKeyFrameDatabase->add((*it));
+        }
+        for (vector<ORB_SLAM2::KeyFrame*>::iterator it = vpKFs.begin(); it != vpKFs.end(); ++it){
+            (*it)->UpdateConnections();
+        }
+        first_loc_frameid=vpKFs.size();
+        std::cout<<"map loaded!"<<std::endl;
+     }
     
     System::System(bool do_loop_detect_flag)
     {
@@ -45,7 +117,11 @@ namespace ORB_SLAM2
             mpVocabulary->load(FLAGS_voc_addr);
         }
         mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
-        mpMap = new Map();
+        if(FLAGS_map_addr!=""){
+            LoadORBMap(FLAGS_map_addr, mpVocabulary,  mpKeyFrameDatabase, mpMap);
+        }else{
+            mpMap = new Map();
+        }
         mpTracker = new Tracking(mpVocabulary, mpMap, mpKeyFrameDatabase,0 ,false);
         mpLocalMapper = new LocalMapping(mpMap, true);
         mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabulary, false);

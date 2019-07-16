@@ -112,7 +112,7 @@ int main(int argc, char **argv)
                 sys.getDebugImg(img_display, reproject_err_t, match_count_t, mp_count_t, kf_count_t);
                 if(!img_display.empty()){
                     cv::imshow("chamo", img_display);
-                    show_pose_as_marker(quas, posis, "vslam_output_result");
+                    show_mp_as_cloud(posis, "vslam_output_posi");
                     cv::waitKey(1);
                 }                
             }catch (cv_bridge::Exception& e){

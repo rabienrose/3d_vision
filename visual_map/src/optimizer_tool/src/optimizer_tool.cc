@@ -100,7 +100,7 @@ namespace OptimizerTool
         std::vector<bool> mp_mask;
         mp_mask.resize(mp_infos.size());
         for(int i=0; i<mp_infos.size(); i++){
-            if(mp_infos.size()>5){
+            if(mp_infos[i].size()>=2){
                 mp_mask[i]=true;
                 int last_id=mp_infos[i].size()-1;
                 std::vector<cv::Point2f> pts1;
@@ -162,7 +162,6 @@ namespace OptimizerTool
 //         
 //         std::cout<<"err_total: "<<err_total/temp_count<<std::endl;
         std::cout<<"procece mp"<<std::endl;
-        
         int nlevels=8;
         float scaleFactor=1.2;
         std::vector<float> mvScaleFactor;

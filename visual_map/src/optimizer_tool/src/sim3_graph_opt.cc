@@ -169,6 +169,7 @@ namespace OptimizerTool
         std::cout<<"sim3 edge err before: "<<avg_error<<std::endl;
         
         optimizer.initializeOptimization();
+        optimizer.computeInitialGuess();
         optimizer.optimize(FLAGS_opti_count);
         
         avg_error=0;

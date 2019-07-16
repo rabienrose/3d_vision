@@ -48,6 +48,7 @@ void KeyFrame::setData(int kf_id, double timestamp, std::vector<cv::KeyPoint>& k
     mpORBvocabulary = pORBvocabulary;
     mpMap = pMap;
     mnId=kf_id;
+    nNextId=kf_id+1;
     mTimeStamp =timestamp;
     mnGridCols=FRAME_GRID_COLS;
     mnGridRows=FRAME_GRID_ROWS;
@@ -82,6 +83,9 @@ void KeyFrame::setData(int kf_id, double timestamp, std::vector<cv::KeyPoint>& k
     file_name_=file_name;
     N=keysUn.size();
     mvKeysUn=keysUn;
+    if(N>0){
+        mvpMapPoints.resize(mvKeysUn.size());
+    }
     mDescriptors=descriptors;
     if(mDescriptors.empty()!=true){
         std::vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptors);
@@ -101,9 +105,6 @@ void KeyFrame::setData(int kf_id, double timestamp, std::vector<cv::KeyPoint>& k
     for(int i=0; i<desc_level; i++)
     {
         mvInvLevelSigma2[i]=1.0f/mvLevelSigma2[i];
-    }
-    if(keysUn.size()>0){
-        AssignFeaturesToGrid();
     }
     
     if(pose_c_w.empty()!=true){

@@ -26,10 +26,6 @@ set(dso_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/src/util/globalCalib.cpp
 )
 
-include_directories(
-  ${PROJECT_SOURCE_DIR}/src
-  ${PROJECT_SOURCE_DIR}/src/Sophus
-) 
 
 cs_add_library(${PROJECT_NAME} ${dso_SOURCE_FILES})
 

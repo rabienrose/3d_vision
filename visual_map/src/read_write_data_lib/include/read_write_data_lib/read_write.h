@@ -2,6 +2,7 @@
 #include <Eigen/Dense>
 #include <string>
 #include <map>
+#include <vector>
 
 namespace CHAMO
 {

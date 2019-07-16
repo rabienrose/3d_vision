@@ -26,6 +26,7 @@
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
+#include <pcl/filters/random_sample.h>
 
 void show_mp_as_cloud(std::vector<Eigen::Vector3d>& mp_posis, std::string topic){
     Eigen::Matrix3Xd points;
@@ -89,8 +90,8 @@ void addMP(PointHessian* ph, std::vector<Eigen::Vector3d>& mp_list, Eigen::Matri
         mp_posi_homo(3)=1;
         mp_posi_homo = host->shell->camToWorld.matrix()*mp_posi_homo;
         mp_posi=mp_posi_homo.block(0,0,3,1);
-        if(mp_posi(2)>15){
-            return;
+        if(mp_posi(2)<-1){
+            //return;
         }
         for(int i=0;i<mp_list.size() ;i++){
             if((mp_list[i]-mp_posi).norm()<0.01){
@@ -126,19 +127,19 @@ void addMP(ImmaturePoint* ph, std::vector<Eigen::Vector3d>& mp_list, Eigen::Matr
 
 void saveToPcd(std::string semi_pcd, std::vector<Eigen::Vector3d>& mp_display){
     //
-    
-    pcl::PointCloud<pcl::PointXYZ> cloud;
-    cloud.width    = mp_display.size();
-    cloud.height   = 1; 
-    cloud.is_dense = false;
-    cloud.points.resize (cloud.width * cloud.height);
-    for (size_t i = 0; i < cloud.points.size (); ++i)
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    cloud->width    = mp_display.size();
+    cloud->height   = 1; 
+    cloud->is_dense = false;
+    cloud->points.resize (cloud->width * cloud->height);
+    for (size_t i = 0; i < cloud->points.size (); ++i)
     {
-        cloud.points[i].x = mp_display[i](0);
-        cloud.points[i].y = mp_display[i](1);
-        cloud.points[i].z = mp_display[i](2);
+        cloud->points[i].x = mp_display[i](0);
+        cloud->points[i].y = mp_display[i](1);
+        cloud->points[i].z = mp_display[i](2);
     }
-    pcl::io::savePCDFileBinary(semi_pcd, cloud);
+
+    pcl::io::savePCDFileBinary(semi_pcd, *cloud);
 }
             
 int main(int argc, char* argv[]){
@@ -197,8 +198,8 @@ int main(int argc, char* argv[]){
         sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
         if(simg!=NULL){
             img_count++;
-            if(img_count<0){
-            //if(img_count<3400){
+            //if(img_count<0){
+            if(img_count<100){
                 continue;
             }
             cv_bridge::CvImagePtr cv_ptr;
@@ -271,6 +272,7 @@ int main(int argc, char* argv[]){
     }
     
     if(output_step==-1){
+        
         std::string semi_pcd=res_root+"/semi_pc.pcd";
         saveToPcd(semi_pcd, mp_display);
     }

@@ -20,8 +20,6 @@ int get_frame_id(std::string& img_name)
 bool VisualLocalization::SetInit(const std::string& work_dir)
 {
     workspace = work_dir;
-    std::string strSettingsFile = workspace + "/vslam.yaml";
-    std::string strVocFile = workspace + "/FreakAll.bin";
     mpsys = new ORB_SLAM2::System(false);
     align_init = false;
     track_init = false;
@@ -35,8 +33,6 @@ bool VisualLocalization::SetInit(const std::string& work_dir)
 bool VisualLocalization::ResetInit()
 {
     delete mpsys;
-    std::string strSettingsFile = workspace + "/vslam.yaml";
-    std::string strVocFile = workspace + "/FreakAll.bin";
     mpsys = new ORB_SLAM2::System(false);
     align_init = false;
     track_init = false;
@@ -98,7 +94,7 @@ bool VisualLocalization::AddImage(cv::Mat& img,
     mpsys->getDebugImg(img_display, reproject_err_t, match_count_t, mp_count_t, kf_count_t);
     if (!img_display.empty()) {
         cv::imshow("chamo", img_display);
-        cv::waitKey(0);
+        cv::waitKey(1);
     }
 
     std::vector<int> inliers_mp;
@@ -200,7 +196,7 @@ void VisualLocalization::LoadMapLabMap()
 
     chamo::LoadMap(workspace, index_, projection_matrix_);
     vm::VisualMap map;
-    vm::loader_visual_map(map, workspace + "/opti_chamo_1000.map");
+    vm::loader_visual_map(map, workspace + "/opti_1000_chamo.map");
     map.GetMPPosiList(mp_posis);
 }
 
@@ -281,7 +277,6 @@ bool VisualLocalization::AlignLocalMapByMapPoint(Eigen::Matrix4d& frame_pose,
                                                  ORB_SLAM2::Frame& frame,
                                                  std::map<int, Eigen::Vector3d>& local_kp_global_mp)
 {
-    return true;
     // construct mappoint matches
     std::vector<Eigen::Vector3d> global_mp;
     std::vector<Eigen::Vector3d> local_mp;
