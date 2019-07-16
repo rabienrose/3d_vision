@@ -27,8 +27,7 @@ namespace vm{
         void GetMPPosiList(std::vector<Eigen::Vector3d>& mp_posis);
         std::shared_ptr<vm::MapPoint> getMPById(int id);
         void CheckConsistence();
-        void CheckLowQuaMappoint();
-        void CheckLowQuaFrame();
+        void GetCovisi(std::shared_ptr<vm::Frame> frame_p, std::map<std::shared_ptr<vm::Frame>, int>& connections);
         void AssignKpToMp();
         void CalPoseEdgeVal();
         void UpdatePoseEdge();

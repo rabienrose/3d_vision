@@ -22,14 +22,14 @@ SEG_ADDR=${EXE_ROOT}/devel/lib/seg_traj/seg_traj
 DSO_ADDR=${EXE_ROOT}/devel/lib/dso/dso_test 
 POSE_EXTRACTOR=${EXE_ROOT}/devel/lib/global_match_test/global_match_test 
 
-mkdir ${OUT_ADDR}/images
-${BAG_EXTRACT_ADDR} --bag_addr=${BAG_NAME} --out_dir=${OUT_ADDR} --img_topic=img --imu_topic=imu --gps_topic=gps --isExtractImage=false
-#${ORB_SLAM_ADDR} --bag_addr=${BAG_NAME} --output_addr=${OUT_ADDR}/ --voc_addr=${OUT_ADDR}/FreakAll.bin --camera_config=${OUT_ADDR}/camera_config.txt --image_topic=img --min_frame=0 --max_frame=10000 --step_frame=1 --use_orb=false --feature_count=2000 --feature_scale_factor=1.2 --feature_level=8 --min_match_count=100 --max_step_KF=15 --v=0 --logtostderr=true --colorlogtostderr=true
-${CONV_MAP_ADDR} --res_root=${OUT_ADDR} --map_name=chamo.map visualmap
-${SEG_ADDR} --map_addr=${OUT_ADDR} --map_name=chamo.map --err_thres=10.5
-${OPTI_ADDR} --map_addr=${OUT_ADDR} --map_name=1000_chamo.map --opti_type=BA --opti_count=100 --gps_weight=0.01
+#mkdir ${OUT_ADDR}/images
+#${BAG_EXTRACT_ADDR} --bag_addr=${BAG_NAME} --out_dir=${OUT_ADDR} --img_topic=img --imu_topic=imu --gps_topic=gps --isExtractImage=false
+#${ORB_SLAM_ADDR} --bag_addr=${BAG_NAME} --output_addr=${OUT_ADDR}/ --voc_addr=${OUT_ADDR}/FreakAll.bin --camera_config=${OUT_ADDR}/camera_config.txt --image_topic=img --min_frame=0 --max_frame=1000 --step_frame=1 --use_orb=false --feature_count=2000 --feature_scale_factor=1.2 --feature_level=8 --min_match_count=100 --max_step_KF=15 --v=0 --logtostderr=true --colorlogtostderr=true
+#${CONV_MAP_ADDR} --res_root=${OUT_ADDR} --map_name=chamo.map visualmap
+#${SEG_ADDR} --map_addr=${OUT_ADDR} --map_name=chamo.map --err_thres=10.5
+#${OPTI_ADDR} --map_addr=${OUT_ADDR} --map_name=1000_chamo.map --opti_type=BA --opti_count=100 --gps_weight=0.01
 #${OPTI_ADDR} --map_addr=${OUT_ADDR} --map_name=chamo.map --opti_type=imu --opti_count=100 --gps_weight=0.00000001
-${INDEX_ADDR} ${OUT_ADDR} opti_1000_chamo.map
+${INDEX_ADDR} ${OUT_ADDR} culling_opti_1000_chamo.map
 #python ${EXE_ROOT}/convert_to_dso_config.py ${OUT_ADDR}
 #${POSE_EXTRACTOR} ${OUT_ADDR} ${OUT_ADDR}/opti_1000_chamo.map ${BAG_NAME} img maplab
 #${DSO_ADDR} ${OUT_ADDR}/ ${BAG_NAME} img 20 1 -1

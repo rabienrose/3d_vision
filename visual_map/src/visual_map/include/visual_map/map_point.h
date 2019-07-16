@@ -13,8 +13,11 @@ namespace vm{
     class MapPoint{
     public:
         int id=-1;
+        int match_count=0;
         Eigen::Vector3d position;
         std::vector<TrackItem> track;
+        int calDescDiff(Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& query_desc);
+        void getALLDesc(Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& descs);
     };
 
 }

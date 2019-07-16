@@ -77,7 +77,8 @@ namespace OptimizerTool
     };
     void optimize_true_pose(std::vector<Eigen::Matrix4d>& poses_alin, std::vector<Eigen::Vector3d>& gps_alin, std::vector<int>& gps_inlers,
         std::vector<std::vector<orb_slam::MP_INFO>>& mp_infos, Eigen::Matrix3d cam_inter,
-        std::vector<Eigen::Matrix4d>& poses_out, std::vector<Eigen::Vector3d>& mp_posis_out
+        std::vector<Eigen::Matrix4d>& poses_out, std::vector<Eigen::Vector3d>& mp_posis_out,
+        std::vector<bool> is_fix
     ){
 
         std::vector<cv::Mat> proj_cv_mats;
@@ -92,9 +93,9 @@ namespace OptimizerTool
             }
             proj_cv_mats.push_back(cv_mat);
         }
-        std::cout<<"procece lidar: "<<proj_cv_mats.size()<<std::endl;
-        std::cout<<"mp_infos count: "<<mp_infos.size()<<std::endl;
-        std::cout<<"mp_posis count: "<<mp_posis_out.size()<<std::endl;
+//         std::cout<<"process frame: "<<proj_cv_mats.size()<<std::endl;
+//         std::cout<<"mp_infos count: "<<mp_infos.size()<<std::endl;
+//         std::cout<<"mp_posis count: "<<mp_posis_out.size()<<std::endl;
         mp_posis_out.resize(mp_infos.size());
         
         std::vector<bool> mp_mask;
@@ -125,6 +126,7 @@ namespace OptimizerTool
                 mp_posis_out[i](0)=out_posi.at<float>(0)/out_posi.at<float>(3);
                 mp_posis_out[i](1)=out_posi.at<float>(1)/out_posi.at<float>(3);
                 mp_posis_out[i](2)=out_posi.at<float>(2)/out_posi.at<float>(3);
+                //std::cout<<mp_posis_out[i].transpose()<<std::endl;
             }else{
                 mp_mask[i]=false;
                 mp_posis_out[i](0)=1000000;
@@ -161,7 +163,7 @@ namespace OptimizerTool
 //         }
 //         
 //         std::cout<<"err_total: "<<err_total/temp_count<<std::endl;
-        std::cout<<"procece mp"<<std::endl;
+//         std::cout<<"procece mp"<<std::endl;
         int nlevels=8;
         float scaleFactor=1.2;
         std::vector<float> mvScaleFactor;
@@ -200,6 +202,7 @@ namespace OptimizerTool
             Eigen::Matrix<double,3,1> t=poses_alin[i].block(0,3,3,1);
             vSE3->setEstimate(g2o::SE3Quat(R,t).inverse());
             vSE3->setId(i);
+            vSE3->setFixed(is_fix[i]);
             kf_verts.push_back(vSE3);
             optimizer.addVertex(vSE3);
             if(i>maxKFid)
@@ -250,6 +253,7 @@ namespace OptimizerTool
                 g2o::EdgeSE3ProjectXYZ* e = new g2o::EdgeSE3ProjectXYZ();
 
                 e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(mp_verts.back()));
+                CHECK_GT(kf_verts.size(),mp_infos[i][j].frame_id);
                 e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(kf_verts[mp_infos[i][j].frame_id]));
                 
 //                 Eigen::Vector3d mp_posi = mp_verts.back()->estimate();
@@ -288,12 +292,12 @@ namespace OptimizerTool
                 if(true){
                     //std::cout<<mp_verts.back()->estimate().transpose()<<std::endl;
                     e->computeError();
-                    //std::cout<<sqrt(e->chi2())<<std::endl;
+                    //std::cout<<e->chi2()<<std::endl;
                 }
                 proj_edges.push_back(e);
             }
         }
-        std::cout<<"add project edge"<<std::endl;
+//         std::cout<<"add project edge"<<std::endl;
         
         float avg_error=0;
         for(int i=0; i<lidar_edges.size(); i++){
@@ -319,7 +323,7 @@ namespace OptimizerTool
             optimizer.optimize(FLAGS_opti_count);
             time = clock() - time;
             //std::cout<<"cam after: "<<vCam->estimate().transpose()<<std::endl;
-            std::cout<<"opt time: "<<((float)time)/CLOCKS_PER_SEC<<std::endl;
+//             std::cout<<"opt time: "<<((float)time)/CLOCKS_PER_SEC<<std::endl;
             avg_error=0;
             for(int i=0; i<lidar_edges.size(); i++){
                 lidar_edges[i]->computeError();
@@ -345,6 +349,95 @@ namespace OptimizerTool
         }
     }
     
+    void local_BA(std::string map_addr, std::string map_name){
+        vm::VisualMap map;
+        vm::loader_visual_map(map, map_addr+"/"+map_name);
+        Eigen::Matrix3d cam_inter;
+        if(map.frames.size()>0){
+            cam_inter=map.frames[0]->getKMat();
+        }else{
+            std::cout<<"[optimize_gps_pose][error]frame is empty"<<std::endl;
+            exit(0);
+        }
+        map.ComputeUniqueId();
+        for(int i=0; i<map.frames.size(); i=i+1){
+            std::cout<<i<<std::endl;
+            std::vector<Eigen::Matrix4d> poses_alin;
+            std::vector<bool> is_fix;
+            std::map<std::shared_ptr<vm::Frame>, int> frame_list;
+            map.GetCovisi(map.frames[i], frame_list);
+            std::vector<std::shared_ptr<vm::Frame>> convi;
+            std::map<std::shared_ptr<vm::Frame>, int>::iterator it;
+            std::vector<int> pose_to_frames;
+            std::vector<int> frames_to_pose;
+            for(int j=0; j<map.frames.size(); j++){
+                frames_to_pose.push_back(-1);
+            }
+            for ( it = frame_list.begin(); it != frame_list.end(); it++ ){
+                if(it->second>1){
+                    convi.push_back(it->first);
+                    poses_alin.push_back(it->first->getPose());
+                    pose_to_frames.push_back(it->first->id);
+                    frames_to_pose[it->first->id]=poses_alin.size()-1;
+                    is_fix.push_back(false);
+                }
+            }
+            
+            std::cout<<"window size: "<<poses_alin.size()<<std::endl;
+            std::vector<std::vector<orb_slam::MP_INFO>> mp_infos;
+            std::vector<int> pose_to_mps;
+            std::set<std::shared_ptr<vm::MapPoint>> local_mps;
+            for(int j=0; j<convi.size(); j++){
+                for(int k=0; k<convi[j]->obss.size(); k++){
+                    if(convi[j]->obss[k]!=nullptr){
+                        local_mps.insert(convi[j]->obss[k]);
+                    }
+                }
+            }
+            std::vector<std::shared_ptr<vm::MapPoint>> local_mps_v(local_mps.begin(), local_mps.end());
+            for(int j=0; j<local_mps_v.size(); j++){
+                pose_to_mps.push_back(j);
+                std::vector<orb_slam::MP_INFO> track_info;
+                for(int n=0; n<local_mps_v[j]->track.size(); n++){
+                    orb_slam::MP_INFO info;
+                    local_mps_v[j]->track[n].getUV(info.u, info.v, info.octove);
+                    info.frame_id=frames_to_pose[local_mps_v[j]->track[n].frame->id];
+                    if(info.frame_id==-1){
+                        poses_alin.push_back(local_mps_v[j]->track[n].frame->getPose());
+                        frames_to_pose[local_mps_v[j]->track[n].frame->id]=poses_alin.size()-1;
+                        pose_to_frames.push_back(local_mps_v[j]->track[n].frame->id);
+                        is_fix.push_back(true);
+                        info.frame_id=frames_to_pose[local_mps_v[j]->track[n].frame->id];
+                    }
+                    info.mp_id=j;
+                    track_info.push_back(info);
+                }
+                mp_infos.push_back(track_info);
+            }
+            
+            
+            std::vector<int> gps_inliers;
+            std::vector<Eigen::Vector3d> gps_alins;
+            for(int j=0; j<poses_alin.size(); j++){
+                gps_alins.push_back(Eigen::Vector3d::Zero());
+                gps_inliers.push_back(-1);
+            }
+                        
+            std::vector<Eigen::Matrix4d> poses_out;
+            std::vector<Eigen::Vector3d> mp_posis_out;
+            optimize_true_pose(poses_alin, gps_alins, gps_inliers, mp_infos, cam_inter, poses_out, mp_posis_out, is_fix);
+            for(int j=0; j<poses_out.size(); j++){
+                int frame_id= pose_to_frames[j];
+                //map.frames[frame_id]->setPose(poses_out[j]);
+            }
+            for(int j=0; j<mp_posis_out.size(); j++){
+                int mp_id =pose_to_mps[j];
+                //map.mappoints[mp_id]->position=mp_posis_out[j];
+            }
+        }
+        vm::save_visual_map(map, map_addr+"/opti_"+map_name);
+    }
+    
     void optimize_gps_pose(std::string map_addr, std::string map_name){
         std::cout<<"start lidar opti"<<std::endl;
         
@@ -352,8 +445,10 @@ namespace OptimizerTool
         vm::loader_visual_map(map, map_addr+"/"+map_name);
         map.ComputeUniqueId();
         std::vector<Eigen::Matrix4d> poses_alin;
+        std::vector<bool> is_fix;
         for(int i=0; i<map.frames.size(); i++){
             poses_alin.push_back(map.frames[i]->getPose());
+            is_fix.push_back(false);
         }
         
         std::vector<int> gps_inliers;
@@ -389,7 +484,8 @@ namespace OptimizerTool
         
         std::vector<Eigen::Matrix4d> poses_out;
         std::vector<Eigen::Vector3d> mp_posis_out;
-        optimize_true_pose(poses_alin, gps_alins, gps_inliers, mp_infos, cam_inter, poses_out, mp_posis_out);
+        
+        optimize_true_pose(poses_alin, gps_alins, gps_inliers, mp_infos, cam_inter, poses_out, mp_posis_out, is_fix);
         for(int i=0; i<poses_out.size(); i++){
             map.frames[i]->setPose(poses_out[i]);
         }

@@ -15,4 +15,5 @@ namespace OptimizerTool
         std::vector<Eigen::Matrix4d>& T_1_to_2_list, std::vector<double>& scale_1_to_2_list, 
         std::vector<int>& graph_v1_list, std::vector<int>& graph_v2_list, bool input_is_sim=false
     );
+    void local_BA(std::string map_addr, std::string map_name);
 }

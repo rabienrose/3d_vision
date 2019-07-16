@@ -236,11 +236,25 @@ namespace vm{
         }
     }
     
-    void VisualMap::CheckLowQuaMappoint(){
-        
-    }
-    
-    void VisualMap::CheckLowQuaFrame(){
-        
+    void VisualMap::GetCovisi(std::shared_ptr<vm::Frame> frame_p, std::map<std::shared_ptr<vm::Frame>, int>& connections){
+        for(int j=0 ; j<frame_p->obss.size(); j++){
+            if(frame_p->obss[j]!=nullptr){
+                for(int k=0; k<frame_p->obss[j]->track.size(); k++){
+                    std::shared_ptr<vm::Frame> temp_frame_p = frame_p->obss[j]->track[k].frame;
+                    CHECK_NOTNULL(temp_frame_p);
+                    if(temp_frame_p->id==-1){
+                        continue;
+                    }
+                    if(temp_frame_p->id==frame_p->id){
+                        continue;
+                    }
+                    if(connections.count(temp_frame_p)==0){
+                        connections[temp_frame_p]=1;
+                    }else{
+                        connections[temp_frame_p]=connections[temp_frame_p]+1;
+                    }
+                }
+            }
+        }
     }
 }

@@ -185,6 +185,7 @@ int main(int argc, char* argv[]){
                 if(inliers_mp.size()>=20){
                     visualization::LineSegmentVector matches;
                     for(int i=0; i<inliers_mp.size(); i++){
+                        map.mappoints[inliers_mp[i]]->match_count=map.mappoints[inliers_mp[i]]->match_count+1;
                         visualization::LineSegment line_segment;
                         line_segment.from = re_posis.back();
                         line_segment.scale = 0.03;
@@ -213,5 +214,6 @@ int main(int argc, char* argv[]){
     }
     f.close();
     Export_Raw_MatchFile(res_root, time_matchnum_vec);
+    vm::save_visual_map(map, map_name);
     return 0;
 }

@@ -23,6 +23,8 @@ int main(int argc, char* argv[]) {
         OptimizerTool::optimize_sim3_graph(FLAGS_map_addr, FLAGS_map_name);
     }else if(FLAGS_opti_type=="imu"){
         OptimizerTool::optimize_imu(FLAGS_map_addr, FLAGS_map_name);
+    }else if(FLAGS_opti_type=="local"){
+        OptimizerTool::local_BA(FLAGS_map_addr, FLAGS_map_name);
     }
     
 }

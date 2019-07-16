@@ -9,6 +9,7 @@
 
 DEFINE_string(map_addr, "", "Folder of the map file, also the place to save the new map file.");
 DEFINE_string(map_name, "", "File name of map file.");
+DEFINE_string(culling_type, "", "mp | frame | project.");
 DEFINE_double(search_range, 50, "Range of size to consider as candidator of compare with current KF.");
 
 void findNNFrames(std::vector<std::shared_ptr<vm::Frame>>& inputs, std::vector<std::shared_ptr<vm::Frame>>& outputs, std::shared_ptr<vm::Frame> query){
@@ -19,6 +20,14 @@ void findNNFrames(std::vector<std::shared_ptr<vm::Frame>>& inputs, std::vector<s
     }
 }
 
+void MergeMP(std::shared_ptr<vm::MapPoint> base_mp, std::shared_ptr<vm::MapPoint> to_merge_mp){
+    for(int k=0; k<to_merge_mp->track.size(); k++){
+        CHECK_GT(to_merge_mp->track[k].frame->obss.size(), to_merge_mp->track[k].kp_ind);
+        to_merge_mp->track[k].frame->obss[to_merge_mp->track[k].kp_ind]=base_mp;
+    }
+    
+}
+
 int main(int argc, char* argv[]){
     google::InitGoogleLogging(argv[0]);
     google::InstallFailureSignalHandler();
@@ -27,101 +36,123 @@ int main(int argc, char* argv[]){
     vm::VisualMap map;
     std::cout<<FLAGS_map_addr+"/"+FLAGS_map_name<<std::endl;
     vm::loader_visual_map(map, FLAGS_map_addr+"/"+FLAGS_map_name);
-    int mp_count=0;
     
-    double t_proj_err=0;
-    
-    std::vector<int> del_mp_ids;
-    for(int i=0; i<map.frames.size(); i++){
-        for(int j=0; j<map.frames[i]->obss.size(); j++){
-            if(map.frames[i]->obss[j]!=nullptr){
+    if(FLAGS_culling_type=="mp"){
+        std::vector<int> del_mp_ids;
+        for(int i=0; i<map.frames.size(); i++){
+            for(int j=0; j<map.frames[i]->obss.size(); j++){
+                if(map.frames[i]->obss[j]!=nullptr){
+                    Eigen::Matrix<double, 3,4> proj_mat = map.frames[i]->getProjMat();
+                    Eigen::Vector4d posi_homo;
+                    posi_homo.block(0,0,3,1)=map.frames[i]->obss[j]->position;
+                    posi_homo(3)=1;
+                    Eigen::Vector3d proj_homo = proj_mat*posi_homo;
+                    //std::cout<<proj_mat<<std::endl;
+                    double u=proj_homo(0)/proj_homo(2);
+                    double v=proj_homo(1)/proj_homo(2);
+                    cv::Point2f uv= map.frames[i]->kps[j].pt;
+                    //std::cout<<u<<":"<<v<<"     "<<uv.x<<":"<<uv.y<<std::endl;
+                    
+                    float proj_err=sqrt((uv.x-u)*(uv.x-u)+(uv.y-v)*(uv.y-v));
+                    if(proj_err>5){
+                        map.frames[i]->obss[j]=nullptr;
+                    }
+                }
+            }
+        }
+    }else if(FLAGS_culling_type=="frame"){
+        int mp_count=0;
+        map.AssignKpToMp();
+        map.ComputeUniqueId();
+        int total_size=map.mappoints.size();
+        for(int i=total_size-1; i>=0; i--){
+            if(map.mappoints[i]->track.size()<2){
+                map.DelMappoint(map.mappoints[i]->id);
+                mp_count++;
+            }
+        }
+        LOG(INFO)<<"del "<<mp_count<<" mp!"<<std::endl;
+        map.AssignKpToMp();
+        map.ComputeUniqueId();
+        bool del_any_frame=false;
+        std::vector<int> frame_obss_count;
+        for(int i=0; i<map.frames.size(); i++){
+            int cont_t=0;
+            for(int j=0; j<map.frames[i]->obss.size(); j++){
+                if(map.frames[i]->obss[j]!=nullptr){
+                    cont_t++;
+                }
+            }
+            frame_obss_count.push_back(cont_t);
+        }
+        do{
+            del_any_frame=false;
+            for(int i=0; i<map.frames.size(); i++){
+                std::map<std::shared_ptr<vm::Frame>, int> frame_list;
+                map.GetCovisi(map.frames[i], frame_list);
+                std::map<std::shared_ptr<vm::Frame>, int>::iterator it;
+                for ( it = frame_list.begin(); it != frame_list.end(); it++ ){
+                    float rate_1=it->second/(float)frame_obss_count[map.frames[i]->id];
+                    float rate_2=it->second/(float)frame_obss_count[it->first->id];
+                    
+                    if(rate_1>0.6){
+                        if(rate_2>0.6){
+                            //std::cout<<rate_1<<":"<<rate_2<<std::endl;
+                            //std::cout<<"del :"<<it->first->id<<std::endl;
+                            map.DelFrame(it->first->id);
+                            del_any_frame=true;
+                            break;
+                        }
+                    }
+                }
+                if(del_any_frame){
+                    break;
+                }
+            }
+        }while(del_any_frame==true);
+    }else if(FLAGS_culling_type=="project"){
+        for(int i=0; i<map.frames.size(); i++){
+            for(int j=0; j<map.mappoints.size(); j++){
                 Eigen::Matrix<double, 3,4> proj_mat = map.frames[i]->getProjMat();
                 Eigen::Vector4d posi_homo;
-                posi_homo.block(0,0,3,1)=map.frames[i]->obss[j]->position;
+                posi_homo.block(0,0,3,1)=map.mappoints[j]->position;
                 posi_homo(3)=1;
                 Eigen::Vector3d proj_homo = proj_mat*posi_homo;
                 //std::cout<<proj_mat<<std::endl;
                 double u=proj_homo(0)/proj_homo(2);
                 double v=proj_homo(1)/proj_homo(2);
-                cv::Point2f uv= map.frames[i]->kps[j].pt;
-                //std::cout<<u<<":"<<v<<"     "<<uv.x<<":"<<uv.y<<std::endl;
-                
-                float proj_err=sqrt((uv.x-u)*(uv.x-u)+(uv.y-v)*(uv.y-v));
-                if(proj_err>5){
-                    map.frames[i]->obss[j]=nullptr;
-                }
-            }
-        }
-    }
-    map.AssignKpToMp();
-    map.ComputeUniqueId();
-    int total_size=map.mappoints.size();
-    for(int i=total_size-1; i>=0; i--){
-        if(map.mappoints[i]->track.size()<2){
-            map.DelMappoint(map.mappoints[i]->id);
-            mp_count++;
-        }
-    }
-    LOG(INFO)<<"del "<<mp_count<<" mp!"<<std::endl;
-    map.AssignKpToMp();
-    map.ComputeUniqueId();
-    bool del_any_frame=false;
-    std::vector<int> frame_obss_count;
-    for(int i=0; i<map.frames.size(); i++){
-        int cont_t=0;
-        for(int j=0; j<map.frames[i]->obss.size(); j++){
-            if(map.frames[i]->obss[j]!=nullptr){
-                cont_t++;
-            }
-        }
-        frame_obss_count.push_back(cont_t);
-    }
-    do{
-        del_any_frame=false;
-        for(int i=0; i<map.frames.size(); i++){
-            std::map<std::shared_ptr<vm::Frame>, int> frame_list;
-            for(int j=0 ; j<map.frames[i]->obss.size(); j++){
-                if(map.frames[i]->obss[j]!=nullptr){
-                    for(int k=0; k<map.frames[i]->obss[j]->track.size(); k++){
-                        std::shared_ptr<vm::Frame> temp_frame_p = map.frames[i]->obss[j]->track[k].frame;
-                        CHECK_NOTNULL(temp_frame_p);
-                        if(temp_frame_p->id==-1){
-                            continue;
-                        }
-                        if(temp_frame_p->id==map.frames[i]->id){
-                            continue;
-                        }
-                        if(frame_list.count(temp_frame_p)==0){
-                            frame_list[temp_frame_p]=1;
-                        }else{
-                            frame_list[temp_frame_p]=frame_list[temp_frame_p]+1;
+                for(int k=0; k<map.frames[i]->kps.size(); k++){
+                    cv::Point2f uv= map.frames[i]->kps[k].pt;                
+                    float proj_err=sqrt((uv.x-u)*(uv.x-u)+(uv.y-v)*(uv.y-v));
+                    if(proj_err<5){
+                        Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> query_desc = map.frames[i]->descriptors.col(k);
+                        int diff = map.mappoints[j]->calDescDiff(query_desc);
+                        //std::cout<<diff<<std::endl;
+                        if(diff<40){
+                            
+                            if(map.frames[i]->obss[k]==nullptr){
+                                std::cout<<"add: "<<i<<":"<<j<<":"<<k<<":"<<diff<<std::endl;
+                                map.frames[i]->obss[k]=map.mappoints[j];
+                            }else{
+                                if(map.mappoints[j]->id!=map.frames[i]->obss[k]->id){
+                                    std::cout<<"merge: "<<i<<":"<<j<<":"<<k<<":"<<diff<<std::endl;
+                                    MergeMP(map.mappoints[j], map.frames[i]->obss[k]);
+                                }
+                            }
                         }
                     }
                 }
             }
-            std::map<std::shared_ptr<vm::Frame>, int>::iterator it;
-            
-            for ( it = frame_list.begin(); it != frame_list.end(); it++ ){
-                float rate_1=it->second/(float)frame_obss_count[map.frames[i]->id];
-                float rate_2=it->second/(float)frame_obss_count[it->first->id];
-                
-                if(rate_1>0.6){
-                    if(rate_2>0.6){
-                        //std::cout<<rate_1<<":"<<rate_2<<std::endl;
-                        //std::cout<<"del :"<<it->first->id<<std::endl;
-                        map.DelFrame(it->first->id);
-                        del_any_frame=true;
-                        break;
-                    }
-                }
-            }
-            if(del_any_frame){
-                break;
+        }
+    }else if(FLAGS_culling_type=="stable"){
+        int total_size=map.mappoints.size();
+        map.ComputeUniqueId();
+        for(int i=total_size-1; i>=0; i--){
+            if(map.mappoints[i]->match_count==0){
+                map.DelMappoint(map.mappoints[i]->id);
             }
         }
-    }while(del_any_frame==true);
-    
-    map.ComputeUniqueId();
+    }
     vm::save_visual_map(map, FLAGS_map_addr+"/culling_"+FLAGS_map_name);
     return 0;
 }
