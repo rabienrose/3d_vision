@@ -10,15 +10,8 @@
 DEFINE_string(map_addr, "", "Folder of the map file, also the place to save the new map file.");
 DEFINE_string(map_name, "", "File name of map file.");
 DEFINE_string(culling_type, "", "mp | frame | project.");
-DEFINE_double(search_range, 50, "Range of size to consider as candidator of compare with current KF.");
-
-void findNNFrames(std::vector<std::shared_ptr<vm::Frame>>& inputs, std::vector<std::shared_ptr<vm::Frame>>& outputs, std::shared_ptr<vm::Frame> query){
-    for(int i=0; i<inputs.size(); i++){
-        if((inputs[i]->position-query->position).norm()<FLAGS_search_range){
-            outputs.push_back(inputs[i]);
-        }
-    }
-}
+DEFINE_double(max_repro_err, 5, "");
+DEFINE_double(max_proj_desc_err, 40, "");
 
 void MergeMP(std::shared_ptr<vm::MapPoint> base_mp, std::shared_ptr<vm::MapPoint> to_merge_mp){
     for(int k=0; k<to_merge_mp->track.size(); k++){
@@ -38,7 +31,7 @@ int main(int argc, char* argv[]){
     vm::loader_visual_map(map, FLAGS_map_addr+"/"+FLAGS_map_name);
     
     if(FLAGS_culling_type=="mp"){
-        std::vector<int> del_mp_ids;
+        int del_edge_count=0;
         for(int i=0; i<map.frames.size(); i++){
             for(int j=0; j<map.frames[i]->obss.size(); j++){
                 if(map.frames[i]->obss[j]!=nullptr){
@@ -54,13 +47,13 @@ int main(int argc, char* argv[]){
                     //std::cout<<u<<":"<<v<<"     "<<uv.x<<":"<<uv.y<<std::endl;
                     
                     float proj_err=sqrt((uv.x-u)*(uv.x-u)+(uv.y-v)*(uv.y-v));
-                    if(proj_err>5){
+                    if(proj_err>FLAGS_max_repro_err){
+                        del_edge_count++;
                         map.frames[i]->obss[j]=nullptr;
                     }
                 }
             }
         }
-    }else if(FLAGS_culling_type=="frame"){
         int mp_count=0;
         map.AssignKpToMp();
         map.ComputeUniqueId();
@@ -71,9 +64,13 @@ int main(int argc, char* argv[]){
                 mp_count++;
             }
         }
+        LOG(INFO)<<"del "<<del_edge_count<<" edges!"<<std::endl;
         LOG(INFO)<<"del "<<mp_count<<" mp!"<<std::endl;
+    }else if(FLAGS_culling_type=="frame"){
         map.AssignKpToMp();
         map.ComputeUniqueId();
+        map.FilterTrack();
+        map.AssignKpToMp();
         bool del_any_frame=false;
         std::vector<int> frame_obss_count;
         for(int i=0; i<map.frames.size(); i++){
@@ -92,6 +89,8 @@ int main(int argc, char* argv[]){
                 map.GetCovisi(map.frames[i], frame_list);
                 std::map<std::shared_ptr<vm::Frame>, int>::iterator it;
                 for ( it = frame_list.begin(); it != frame_list.end(); it++ ){
+                    CHECK_NE(map.frames[i]->id, -1);
+                    CHECK_NE(it->first->id, -1);
                     float rate_1=it->second/(float)frame_obss_count[map.frames[i]->id];
                     float rate_2=it->second/(float)frame_obss_count[it->first->id];
                     
@@ -99,6 +98,14 @@ int main(int argc, char* argv[]){
                         if(rate_2>0.6){
                             //std::cout<<rate_1<<":"<<rate_2<<std::endl;
                             //std::cout<<"del :"<<it->first->id<<std::endl;
+                            //std::cout<<"it->second :"<<it->second<<std::endl;
+                            int cont_t=0;
+                            for(int j=0; j<map.frames[i]->obss.size(); j++){
+                                if(map.frames[i]->obss[j]!=nullptr){
+                                    cont_t++;
+                                }
+                            }
+                            //std::cout<<"cont_t :"<<cont_t<<std::endl;
                             map.DelFrame(it->first->id);
                             del_any_frame=true;
                             break;
@@ -128,7 +135,7 @@ int main(int argc, char* argv[]){
                         Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> query_desc = map.frames[i]->descriptors.col(k);
                         int diff = map.mappoints[j]->calDescDiff(query_desc);
                         //std::cout<<diff<<std::endl;
-                        if(diff<40){
+                        if(diff<FLAGS_max_proj_desc_err){
                             
                             if(map.frames[i]->obss[k]==nullptr){
                                 std::cout<<"add: "<<i<<":"<<j<<":"<<k<<":"<<diff<<std::endl;

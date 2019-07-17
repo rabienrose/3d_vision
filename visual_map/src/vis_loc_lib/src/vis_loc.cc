@@ -612,8 +612,8 @@ bool VisualLocalization::ComputeSim3Ransac(std::vector<Eigen::Vector3d>& P1,
     else
         n_iterations = ceil(log(1 - ransac_prob) / log(1 - pow(epsilon, 3)));
 
-    ransac_max_iter = max(1, min(n_iterations, ransac_max_iter));
-
+    //ransac_max_iter = max(1, min(n_iterations, ransac_max_iter));
+    ransac_max_iter=1000;
     int count_iter = 0;
 
     if (match_size < ransac_min_inliers) {
@@ -671,7 +671,7 @@ bool VisualLocalization::ComputeSim3Ransac(std::vector<Eigen::Vector3d>& P1,
             // orb_slam::ComputeSim3(P3D1_inlier, P3D2_inlier, T12, scale_12);
             // int ninliers_final = CheckInliers(P3D1_inlier, P3D2_inlier, T12, scale_12, b_inliners);
             // if(ninliers_final > 0.5 * ninliers){
-            if(ninliers_final > 30){
+            if(ninliers_final > 60){
                 return true;
             }
         }

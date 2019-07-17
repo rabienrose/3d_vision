@@ -76,7 +76,7 @@ namespace vm{
             putToFileD2F(mappoint_p->position.x(), output);
             putToFileD2F(mappoint_p->position.y(), output);
             putToFileD2F(mappoint_p->position.z(), output);
-            putToFile(mappoint_p->match_count, output);
+            //putToFile(mappoint_p->match_count, output);
             //std::cout<<mappoint_p->position.transpose()<<std::endl;
         }
         
@@ -207,7 +207,7 @@ namespace vm{
             mappoint_p->position.x()=getFromFileF2D(input);
             mappoint_p->position.y()=getFromFileF2D(input);
             mappoint_p->position.z()=getFromFileF2D(input);
-            mappoint_p->match_count=getFromFileI(input);
+            //mappoint_p->match_count=getFromFileI(input);
             //std::cout<<mappoint_p->match_count<<std::endl;
             map.mappoints.push_back(mappoint_p);
         }

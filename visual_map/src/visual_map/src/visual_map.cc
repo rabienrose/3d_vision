@@ -257,4 +257,53 @@ namespace vm{
             }
         }
     }
+    void VisualMap::FilterTrack(){
+        int dup_count=0;
+        for(int i=0; i<mappoints.size(); i++){
+            std::map<std::shared_ptr<vm::Frame>, std::vector<int>> frame_mask;
+            for(int j=0; j<mappoints[i]->track.size(); j++){
+                if(frame_mask.count(mappoints[i]->track[j].frame)!=0){
+                    frame_mask[mappoints[i]->track[j].frame].push_back(j);
+                    dup_count++;
+                }else{
+                    std::vector<int> temp;
+                    temp.push_back(j);
+                    frame_mask[mappoints[i]->track[j].frame]=temp;
+                }
+            }
+            std::map<std::shared_ptr<vm::Frame>, std::vector<int>>::iterator it;
+            for ( it = frame_mask.begin(); it != frame_mask.end(); it++ ){
+                if(it->second.size()>1){
+                    float min_err=11111;
+                    int min_trackid;
+                    //std::cout<<"++++++++++++++++++++++"<<std::endl;
+                    for(int j=0; j<it->second.size(); j++){
+                        Eigen::Matrix<double, 3,4> proj_mat = it->first->getProjMat();
+                        Eigen::Vector4d posi_homo;
+                        posi_homo.block(0,0,3,1)=mappoints[i]->position;
+                        posi_homo(3)=1;
+                        Eigen::Vector3d proj_homo = proj_mat*posi_homo;
+                        double u=proj_homo(0)/proj_homo(2);
+                        double v=proj_homo(1)/proj_homo(2);
+                        int kp_ind = mappoints[i]->track[it->second[j]].kp_ind;
+                        cv::Point2f uv= it->first->kps[kp_ind].pt;
+                        float proj_err=sqrt((uv.x-u)*(uv.x-u)+(uv.y-v)*(uv.y-v));
+                        //std::cout<<kp_ind<<":"<<proj_err<<std::endl;
+                        if(proj_err<min_err){
+                            min_err=proj_err;
+                            min_trackid=it->second[j];
+                        }
+                    }
+                    for(int j=0; j<it->second.size(); j++){
+                        if(it->second[j]!=min_trackid){
+                            int kp_ind = mappoints[i]->track[it->second[j]].kp_ind;
+                            //std::cout<<"del: "<<kp_ind<<std::endl;
+                            it->first->obss[kp_ind]=nullptr;
+                        }
+                    }
+                }
+            }
+        }
+        std::cout<<"dup_count: "<<dup_count<<std::endl;
+    }
 }

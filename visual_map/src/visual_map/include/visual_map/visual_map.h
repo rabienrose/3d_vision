@@ -32,5 +32,6 @@ namespace vm{
         void CalPoseEdgeVal();
         void UpdatePoseEdge();
         void AddConnection(std::shared_ptr<Frame> v1, std::shared_ptr<Frame> v2, Eigen::Vector3d& posi, Eigen::Matrix3d& rot, double scale, double weight);
+        void FilterTrack(); //remove the track that connect to the same frame. Keep the one with smallest reprojection error.
     };
 }

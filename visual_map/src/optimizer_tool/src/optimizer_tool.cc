@@ -382,6 +382,36 @@ namespace OptimizerTool
                     is_fix.push_back(false);
                 }
             }
+            float total_err=0;
+            int err_count=0;
+            for(int ii=0; ii<convi.size(); ii++){
+                for(int j=0; j<convi[ii]->obss.size(); j++){
+                    if(convi[ii]->obss[j]!=nullptr){
+                        Eigen::Matrix<double, 3,4> proj_mat = convi[ii]->getProjMat();
+                        Eigen::Vector4d posi_homo;
+                        posi_homo.block(0,0,3,1)=convi[ii]->obss[j]->position;
+                        posi_homo(3)=1;
+                        Eigen::Vector3d proj_homo = proj_mat*posi_homo;
+                        //std::cout<<proj_mat<<std::endl;
+                        double u=proj_homo(0)/proj_homo(2);
+                        double v=proj_homo(1)/proj_homo(2);
+                        cv::Point2f uv= convi[ii]->kps[j].pt;
+                        //std::cout<<u<<":"<<v<<"     "<<uv.x<<":"<<uv.y<<std::endl;
+                        
+                        float proj_err=sqrt((uv.x-u)*(uv.x-u)+(uv.y-v)*(uv.y-v));
+//                         if(proj_err>10){
+//                             std::cout<<proj_err<<std::endl;
+//                         }
+                        
+                        total_err=total_err+proj_err;
+                        err_count++;
+                    }
+                }
+            }
+            std::cout<<total_err/err_count<<std::endl;
+            if(total_err/err_count<2){
+                continue;
+            }
             
             std::cout<<"window size: "<<poses_alin.size()<<std::endl;
             std::vector<std::vector<orb_slam::MP_INFO>> mp_infos;
@@ -396,7 +426,7 @@ namespace OptimizerTool
             }
             std::vector<std::shared_ptr<vm::MapPoint>> local_mps_v(local_mps.begin(), local_mps.end());
             for(int j=0; j<local_mps_v.size(); j++){
-                pose_to_mps.push_back(j);
+                pose_to_mps.push_back(local_mps_v[j]->id);
                 std::vector<orb_slam::MP_INFO> track_info;
                 for(int n=0; n<local_mps_v[j]->track.size(); n++){
                     orb_slam::MP_INFO info;
@@ -428,11 +458,11 @@ namespace OptimizerTool
             optimize_true_pose(poses_alin, gps_alins, gps_inliers, mp_infos, cam_inter, poses_out, mp_posis_out, is_fix);
             for(int j=0; j<poses_out.size(); j++){
                 int frame_id= pose_to_frames[j];
-                //map.frames[frame_id]->setPose(poses_out[j]);
+                map.frames[frame_id]->setPose(poses_out[j]);
             }
             for(int j=0; j<mp_posis_out.size(); j++){
                 int mp_id =pose_to_mps[j];
-                //map.mappoints[mp_id]->position=mp_posis_out[j];
+                map.mappoints[mp_id]->position=mp_posis_out[j];
             }
         }
         vm::save_visual_map(map, map_addr+"/opti_"+map_name);

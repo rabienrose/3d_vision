@@ -7,7 +7,7 @@ BAG_NAME=$2
 #BAG_NAME=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/iphone_test/6_12_cloudy/office_2.bag
 BAG_NAME=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/iphone_test/6_27_cloudy/office.bag
 #BAG_NAME=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/test_imu/07-09-17-46-43.bag
-OUT_ADDR=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/demo_loc
+OUT_ADDR=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/test_combine_garage/out
 EXE_ROOT=/home/chamo/Documents/work/3d_vision/visual_map
 
 echo working directory ${OUT_ADDR}
@@ -29,7 +29,7 @@ POSE_EXTRACTOR=${EXE_ROOT}/devel/lib/global_match_test/global_match_test
 #${SEG_ADDR} --map_addr=${OUT_ADDR} --map_name=chamo.map --err_thres=10.5
 #${OPTI_ADDR} --map_addr=${OUT_ADDR} --map_name=1000_chamo.map --opti_type=BA --opti_count=100 --gps_weight=0.01
 #${OPTI_ADDR} --map_addr=${OUT_ADDR} --map_name=chamo.map --opti_type=imu --opti_count=100 --gps_weight=0.00000001
-${INDEX_ADDR} ${OUT_ADDR} culling_opti_1000_chamo.map
+${INDEX_ADDR} ${OUT_ADDR} opti_culling_opti_culling_chamo_out.map
 #python ${EXE_ROOT}/convert_to_dso_config.py ${OUT_ADDR}
 #${POSE_EXTRACTOR} ${OUT_ADDR} ${OUT_ADDR}/opti_1000_chamo.map ${BAG_NAME} img maplab
 #${DSO_ADDR} ${OUT_ADDR}/ ${BAG_NAME} img 20 1 -1

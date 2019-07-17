@@ -403,10 +403,14 @@ int main(int argc, char* argv[]){
         pose_in[i]=pose_in[i].inverse();
         //pose_in[i]=Eigen::Matrix4d::Identity();
     }
+    std::vector<double> graph_weight;
+    
     for(int i=0; i<map_graph_sim3.size(); i++){
         map_graph_sim3[i].block(0,0,3,3)=map_graph_sim3[i].block(0,0,3,3)/map_graph_scale[i];
+        graph_weight.push_back(1);
     }
-    OptimizerTool::optimize_sim3_graph(gps_alin, gps_inlers, poses_out, pose_in, map_graph_sim3, map_graph_scale, map_graph_v1, map_graph_v2, true);
+    
+    OptimizerTool::optimize_sim3_graph(gps_alin, gps_inlers, poses_out, pose_in, map_graph_sim3, map_graph_scale, map_graph_v1, map_graph_v2, graph_weight,  true);
     
     vm::VisualMap base_map=*maps[0];
     for(int j=1; j<maps.size(); j++){
@@ -444,7 +448,7 @@ int main(int argc, char* argv[]){
     for(int i=0; i<T_tar_sour_list.size(); i++){
         Eigen::Matrix3d rot=T_tar_sour_list[i].block(0,0,3,3)/scale_tar_sour_list[i];
         Eigen::Vector3d posi=T_tar_sour_list[i].block(0,3,3,1);
-        base_map.AddConnection(graph_sour_list[i], graph_tar_list[i], posi,rot, scale_tar_sour_list[i], 100);
+        base_map.AddConnection(graph_sour_list[i], graph_tar_list[i], posi,rot, scale_tar_sour_list[i], -1);
     }
     base_map.ComputeUniqueId();
     base_map.CheckConsistence();
