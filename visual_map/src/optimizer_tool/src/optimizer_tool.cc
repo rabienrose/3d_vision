@@ -25,6 +25,9 @@
 
 DECLARE_int32(opti_count);
 DECLARE_double(gps_weight);
+DECLARE_double(t_c_g_x);
+DECLARE_double(t_c_g_y);
+DECLARE_double(t_c_g_z);
 
 namespace g2o {
     class EdgePosePre : public BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>{
@@ -55,10 +58,12 @@ namespace g2o {
         bool read(std::istream& is){return true;};
 
         bool write(std::ostream& os) const{return true;};
+        
+        Eigen::Vector3d tcg=Eigen::Vector3d::Zero();
 
         void computeError()  {
         const g2o::VertexSE3Expmap* v1 = static_cast<const VertexSE3Expmap*>(_vertices[0]);
-        _error= v1->estimate().inverse().translation()-_measurement;
+        _error= v1->estimate().inverse().rotation().toRotationMatrix()*tcg+v1->estimate().inverse().translation()-_measurement;
         }
     };
 }
@@ -218,6 +223,9 @@ namespace OptimizerTool
                 e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(kf_verts[i]));
                 e->setMeasurement(gps_alin[i]);
                 e->setInformation(Eigen::Matrix<double, 3, 3>::Identity()*FLAGS_gps_weight);
+                e->tcg(0)=FLAGS_t_c_g_x;
+                e->tcg(1)=FLAGS_t_c_g_y;
+                e->tcg(2)=FLAGS_t_c_g_z;
                 optimizer.addEdge(e);
                 lidar_edges.push_back(e);
             }
@@ -361,7 +369,6 @@ namespace OptimizerTool
         }
         map.ComputeUniqueId();
         for(int i=0; i<map.frames.size(); i=i+1){
-            std::cout<<i<<std::endl;
             std::vector<Eigen::Matrix4d> poses_alin;
             std::vector<bool> is_fix;
             std::map<std::shared_ptr<vm::Frame>, int> frame_list;
@@ -408,7 +415,6 @@ namespace OptimizerTool
                     }
                 }
             }
-            std::cout<<total_err/err_count<<std::endl;
             if(total_err/err_count<2){
                 continue;
             }

@@ -21,8 +21,19 @@
 #include "global_match/global_match.h"
 #include "visual_map/visual_map.h"
 #include "visual_map/visual_map_seri.h"
-
 #include <ctime>
+#include <glog/logging.h>
+#include <gflags/gflags.h>
+
+DEFINE_double(t_c_g_x, 0, "gps position in camera coordinate");
+DEFINE_double(t_c_g_y, 0, "gps position in camera coordinate");
+DEFINE_double(t_c_g_z, 0, "gps position in camera coordinate");
+DEFINE_string(res_root, "", "");
+DEFINE_string(map_name, "", "");
+DEFINE_string(bag_addr, "", "");
+DEFINE_string(img_topic, "", "");
+DEFINE_string(match_method, "", "");
+
 struct raw_match
 {
     double timestamp;
@@ -80,12 +91,13 @@ void Export_Raw_MatchFile(std::string& path, std::vector<raw_match>& time_matchn
 int main(int argc, char* argv[]){
     ros::init(argc, argv, "vis_loc");
     ros::NodeHandle nh;
+    google::ParseCommandLineFlags(&argc, &argv, true);
     visualization::RVizVisualizationSink::init();
-    std::string res_root=argv[1];
-    std::string map_name=argv[2];
-    std::string bag_addr=argv[3];
-    std::string img_topic=argv[4];
-    std::string match_method=argv[5];
+    std::string res_root=FLAGS_res_root;
+    std::string map_name=FLAGS_map_name;
+    std::string bag_addr=FLAGS_bag_addr;
+    std::string img_topic=FLAGS_img_topic;
+    std::string match_method=FLAGS_match_method;
     
     vm::VisualMap map;
     vm::loader_visual_map(map, map_name);
@@ -125,6 +137,8 @@ int main(int argc, char* argv[]){
     std::vector<raw_match> time_matchnum_vec;
     ofstream f;
     f.open(res_root+"/frame_pose_opt.txt");
+    Eigen::Vector3d t_c_g;
+    t_c_g<<FLAGS_t_c_g_x,FLAGS_t_c_g_y,FLAGS_t_c_g_z;
     for(;it!=view.end();it++){
         if(!ros::ok()){
             break;
@@ -134,6 +148,9 @@ int main(int argc, char* argv[]){
         if(simg!=NULL){
             img_count++;
             if(img_count<0){
+                continue;
+            }
+            if(img_count%1!=0){
                 continue;
             }
             cv_bridge::CvImagePtr cv_ptr;
@@ -165,13 +182,17 @@ int main(int argc, char* argv[]){
                 time_matchnum_vec.push_back(su);
                 if(inliers_mp.size()>=20){
                     re_posis.push_back(pose.block(0,3,3,1));
+                    Eigen::Vector3d gps_posi=pose.block(0,0,3,3)*t_c_g+pose.block(0,3,3,1);
                     std::stringstream ss;
                     f<<ss_time.str()<<",";
 
-                    f << timestamp<<","<< pose(0,0) << "," << pose(0,1)  << "," << pose(0,2) << ","  << pose(0,3) << "," <<
-                        pose(1,0) << "," << pose(1,1)  << "," << pose(1,2) << ","  << pose(1,3) << "," <<
-                        pose(2,0) << "," << pose(2,1)  << "," << pose(2,2) << ","  << pose(2,3) << std::endl;
+//                     f << timestamp<<","<< pose(0,0) << "," << pose(0,1)  << "," << pose(0,2) << ","  << pose(0,3) << "," <<
+//                         pose(1,0) << "," << pose(1,1)  << "," << pose(1,2) << ","  << pose(1,3) << "," <<
+//                         pose(2,0) << "," << pose(2,1)  << "," << pose(2,2) << ","  << pose(2,3) << std::endl;
+                        f << gps_posi(0) << "," <<gps_posi(1) << "," << gps_posi(2) << std::endl;
                     
+                }else{
+                    f<<ss_time.str()<<std::endl;
                 }
                 if(img_count%5==0){
                     show_mp_as_cloud(re_posis, "global_match_test_traj");

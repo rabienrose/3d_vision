@@ -359,6 +359,8 @@ void Tracking::Track()
                 cout << "Track lost soon after initialisation, reseting..." << endl;
                 return;
             }
+            cout << "Track failded, and return!!!!!!!!!!!!!!!!!" << endl;
+            return;
         }
 
         if(!mCurrentFrame.mpReferenceKF)

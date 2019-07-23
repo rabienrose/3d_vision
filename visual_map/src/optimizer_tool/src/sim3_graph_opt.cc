@@ -20,6 +20,9 @@
 
 DEFINE_int32(opti_count, 100, "How many of the iteration of optimization");
 DEFINE_double(gps_weight, 0.0001, "The weight of GPS impact in optimization");
+DEFINE_double(t_c_g_x, 0, "gps position in camera coordinate");
+DEFINE_double(t_c_g_y, 0, "gps position in camera coordinate");
+DEFINE_double(t_c_g_z, 0, "gps position in camera coordinate");
 
 namespace g2o {
     class EdgePosePre : public BaseBinaryEdge<6, SE3Quat, VertexSE3Expmap, VertexSE3Expmap>{
@@ -221,6 +224,7 @@ namespace OptimizerTool
 
     void optimize_sim3_graph(std::string map_addr, std::string map_name){
         vm::VisualMap map;
+        std::cout<<"pose graph: "<<map_addr+"/"+map_name<<std::endl;
         vm::loader_visual_map(map, map_addr+"/"+map_name);
         map.ComputeUniqueId();
         std::vector<Eigen::Matrix4d> poses_out;

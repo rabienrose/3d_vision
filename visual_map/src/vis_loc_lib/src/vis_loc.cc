@@ -598,7 +598,7 @@ bool VisualLocalization::ComputeSim3Ransac(std::vector<Eigen::Vector3d>& P1,
     }
 
     float ransac_prob = 0.99;
-    int ransac_min_inliers = max(30,int(match_size * 0.30));
+    int ransac_min_inliers = max(60,int(match_size * 0.30));
     int ransac_max_iter = 300;
 
     // Adjust Parameters according to number of correspondences
@@ -671,7 +671,7 @@ bool VisualLocalization::ComputeSim3Ransac(std::vector<Eigen::Vector3d>& P1,
             // orb_slam::ComputeSim3(P3D1_inlier, P3D2_inlier, T12, scale_12);
             // int ninliers_final = CheckInliers(P3D1_inlier, P3D2_inlier, T12, scale_12, b_inliners);
             // if(ninliers_final > 0.5 * ninliers){
-            if(ninliers_final > 60){
+            if(ninliers_final > 20){
                 return true;
             }
         }

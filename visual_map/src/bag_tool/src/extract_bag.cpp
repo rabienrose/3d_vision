@@ -21,6 +21,10 @@
 #include <bag_tool/extract_bag.h>
 #include "CoorConv.h"
 #include <Eigen/Core>
+#include <gflags/gflags.h>
+DEFINE_double(gps_anchor_x, -1, "");
+DEFINE_double(gps_anchor_y, -1, "");
+DEFINE_double(gps_anchor_z, -1, "");
 
 void findNearGPS(int& gps1, int& gps2, std::vector<double>& gps_times, double frame_time){
     gps1=-1;
@@ -49,7 +53,7 @@ void interDouble(double v1, double v2, double t1, double t2, double& v3_out, dou
 
 
 void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_topic, std::string imu_topic, std::string gps_topic, bool isExtractImage){
-
+    
     std::string bag_addr=bag_addr_;
     std::string out_dir=out_addr_;
     rosbag::Bag bag;
@@ -128,7 +132,12 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
             ori_gps(1)=sgps->longitude;
             ori_gps(2)=sgps->altitude;
             if(gps_count==0){
-                anchorGps=ori_gps;
+                if(FLAGS_gps_anchor_x==-1 && FLAGS_gps_anchor_y==-1 && FLAGS_gps_anchor_z==-1){
+                    anchorGps=ori_gps;
+                }else{
+                    anchorGps<<FLAGS_gps_anchor_x, FLAGS_gps_anchor_y, FLAGS_gps_anchor_z; 
+                }
+                
                 std::stringstream ss1;
                 ss1<<std::setprecision (15)<<anchorGps(0)<<","<<anchorGps(1)<<","<<anchorGps(2)<<std::endl; 
                 outfile_gps_orth<<ss1.str();
@@ -140,7 +149,13 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
             outfile_gps_orth<<ss1.str();
             gps_times_hcov.push_back(sec);
             gps_orths_hcov.push_back(coor_gps);
-            gps_confid.push_back(sgps->position_covariance[0]);
+            if(sgps->status.status==sensor_msgs::NavSatStatus::STATUS_FIX){
+                gps_confid.push_back(0.05);
+                //gps_confid.push_back(sgps->position_covariance[0]);
+            }else{
+                gps_confid.push_back(100);
+            }
+            
         }
     }
     outfile_img_time.close();
@@ -187,7 +202,7 @@ void extract_bag(std::string out_addr_, std::string bag_addr_, std::string img_t
         }else{
             Eigen::Vector3d gps_temp= img_gpss[gps_id];
             outfile_gps_align<<img_names[i]<<","<<i
-            <<","<<gps_temp(0)<<","<<gps_temp(1)<<","<<gps_temp(2)<<","<<(int)new_gps_confid[gps_id]
+            <<","<<gps_temp(0)<<","<<gps_temp(1)<<","<<gps_temp(2)<<","<<new_gps_confid[gps_id]
             <<std::endl;
         }
     }

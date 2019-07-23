@@ -237,6 +237,13 @@ void ConvertFromVisualMap(std::string res_root, std::string map_name){
         exit(0);
     }
     
+    std::string gps_orth_addr=res_root+"/gps_orth.txt";
+    std::vector<Eigen::Vector3d> gps_orths;
+    std::vector<double> gps_times;
+    std::vector<int> gps_covs;
+    Eigen::Vector3d anchor_gps;
+    CHAMO::read_gps_orth(gps_orth_addr, gps_orths, gps_times, gps_covs, anchor_gps);
+    
     Eigen::Matrix3d cam_inter;
     Eigen::Vector4d cam_distort;
     Eigen::Matrix4d Tbc;
@@ -326,6 +333,7 @@ void ConvertFromVisualMap(std::string res_root, std::string map_name){
         map.frames[i]->gps_position=gps_alins[time_id];
         map.frames[i]->gps_accu=gps_accus[time_id];
     }
+    map.gps_anchor = anchor_gps;
     vm::save_visual_map(map, res_root+"/chamo.map");
 }
 

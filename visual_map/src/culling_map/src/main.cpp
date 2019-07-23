@@ -138,11 +138,11 @@ int main(int argc, char* argv[]){
                         if(diff<FLAGS_max_proj_desc_err){
                             
                             if(map.frames[i]->obss[k]==nullptr){
-                                std::cout<<"add: "<<i<<":"<<j<<":"<<k<<":"<<diff<<std::endl;
+                                //std::cout<<"add: "<<i<<":"<<j<<":"<<k<<":"<<diff<<std::endl;
                                 map.frames[i]->obss[k]=map.mappoints[j];
                             }else{
                                 if(map.mappoints[j]->id!=map.frames[i]->obss[k]->id){
-                                    std::cout<<"merge: "<<i<<":"<<j<<":"<<k<<":"<<diff<<std::endl;
+                                    //std::cout<<"merge: "<<i<<":"<<j<<":"<<k<<":"<<diff<<std::endl;
                                     MergeMP(map.mappoints[j], map.frames[i]->obss[k]);
                                 }
                             }

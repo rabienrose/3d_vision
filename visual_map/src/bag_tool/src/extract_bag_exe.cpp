@@ -15,12 +15,12 @@ DEFINE_string(imu_topic, "imu", "rostopic of imu");
 DEFINE_string(gps_topic, "gps", "rostopic of gps");
 DEFINE_string(out_dir, "", "address of output");
 
+
 int main(int argc, char **argv){
 
     google::ParseCommandLineFlags(&argc, &argv, true);
 
     if( !FLAGS_bag_addr.empty() && !FLAGS_out_dir.empty() ){
-
         extract_bag(FLAGS_out_dir, FLAGS_bag_addr, FLAGS_img_topic, FLAGS_imu_topic, FLAGS_gps_topic, FLAGS_isExtractImage);
 
     }

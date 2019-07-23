@@ -160,7 +160,7 @@ bool doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm:
                         max_frame=it->first;
                     }
                 }
-                if(max_frame!= nullptr && max_count>60){
+                if(max_frame!= nullptr && max_count>20){
                     connected_frames.push_back(max_frame);
                 }
                 //LOG(INFO)<<"connected_frames: "<<connected_frames.size();
@@ -243,9 +243,12 @@ bool doAMatch(std::vector<KP_INFO>& kp_info_list, vm::VisualMap& source_map, vm:
 }
 
 void simpleMerge(vm::VisualMap& base_map, vm::VisualMap& to_merge_map){
+    int start_frame=base_map.frames.size();
     for(int i=0; i<to_merge_map.frames.size(); i++){
         base_map.frames.push_back(to_merge_map.frames[i]);
     }
+    int end_frame=base_map.frames.size()-1;
+    std::cout<<"merge frame from "<<start_frame<<" to "<<end_frame<<std::endl;
     for(int i=0; i<to_merge_map.mappoints.size(); i++){
         base_map.mappoints.push_back(to_merge_map.mappoints[i]);
     }
@@ -328,6 +331,35 @@ int main(int argc, char* argv[]){
             desc_index_files.push_back(ss1.str());
         }
     }
+    
+    vm::VisualMap base_map=*maps[0];
+//     for(int j=1; j<maps.size(); j++){
+//         GpsConverter gps_conv1(base_map.gps_anchor(0), base_map.gps_anchor(1), false);
+//         GpsConverter gps_conv2(maps[j]->gps_anchor(0), maps[j]->gps_anchor(1), false);
+//         for(int i=0; i<maps[j]->frames.size(); i++){
+//             WGS84Corr latlon;
+//             gps_conv2.MapXYToLatLon(maps[j]->frames[i]->position.x(), maps[j]->frames[i]->position.y(), latlon);
+//             UTMCoor xy;
+//             gps_conv1.MapLatLonToXY(latlon.lat, latlon.log, xy);
+//             maps[j]->frames[i]->position.x()=xy.x;
+//             maps[j]->frames[i]->position.y()=xy.y;
+//             
+//             WGS84Corr latlon1;
+//             gps_conv2.MapXYToLatLon(maps[j]->frames[i]->gps_position.x(), maps[j]->frames[i]->gps_position.y(), latlon1);
+//             UTMCoor xy1;
+//             gps_conv1.MapLatLonToXY(latlon1.lat, latlon1.log, xy1);
+//             maps[j]->frames[i]->gps_position.x()=xy1.x;
+//             maps[j]->frames[i]->gps_position.y()=xy1.y;
+//         }
+//         for(int i=0; i<maps[j]->mappoints.size(); i++){
+//             WGS84Corr latlon;
+//             gps_conv2.MapXYToLatLon(maps[j]->mappoints[i]->position.x(), maps[j]->mappoints[i]->position.y(), latlon);
+//             UTMCoor xy;
+//             gps_conv1.MapLatLonToXY(latlon.lat, latlon.log, xy);
+//             maps[j]->mappoints[i]->position.x()=xy.x;
+//             maps[j]->mappoints[i]->position.y()=xy.y;
+//         }
+//     }
     
     std::vector<KP_INFO> kp_info_list;
     std::vector<Eigen::Matrix4d> T_tar_sour_list;
@@ -412,20 +444,6 @@ int main(int argc, char* argv[]){
     
     OptimizerTool::optimize_sim3_graph(gps_alin, gps_inlers, poses_out, pose_in, map_graph_sim3, map_graph_scale, map_graph_v1, map_graph_v2, graph_weight,  true);
     
-    vm::VisualMap base_map=*maps[0];
-    for(int j=1; j<maps.size(); j++){
-        GpsConverter gps_conv1(base_map.gps_anchor(0), base_map.gps_anchor(1), false);
-        GpsConverter gps_conv2(maps[j]->gps_anchor(0), maps[j]->gps_anchor(1), false);
-        for(int i=0; i<maps[j]->frames.size(); i++){
-            WGS84Corr latlon;
-            gps_conv2.MapXYToLatLon(maps[j]->frames[i]->position.x(), maps[j]->frames[i]->position.y(), latlon);
-            UTMCoor xy;
-            gps_conv1.MapLatLonToXY(latlon.lat, latlon.log, xy);
-            maps[j]->frames[i]->position.x()=xy.x;
-            maps[j]->frames[i]->position.y()=xy.y;
-        }
-    }
-    
     for(int j=1; j<maps.size(); j++){
         Eigen::Matrix4d T_1_t = poses_out[j];
         for(int i=0; i<maps[j]->frames.size(); i++){
@@ -440,7 +458,7 @@ int main(int argc, char* argv[]){
             posi_homo.block(0,0,3,1)=maps[j]->mappoints[i]->position;
             posi_homo(3)=1;
             Eigen::Vector4d posi_gps_homo = T_1_t*posi_homo;
-            maps[j]->mappoints[i]->position=posi_gps_homo.block(0,0,3,1);                       
+            maps[j]->mappoints[i]->position=posi_gps_homo.block(0,0,3,1);            
         }
         simpleMerge(base_map, *maps[j]);
     }

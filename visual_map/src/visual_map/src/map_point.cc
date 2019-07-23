@@ -1,9 +1,9 @@
 #include "visual_map/map_point.h"
-#include "visual_map/frame.h"
 #include <glog/logging.h>
-namespace vm{
-    
-    int DescriptorDistance(Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& a, Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& b){
+#include "visual_map/frame.h"
+namespace vm {
+
+int DescriptorDistance(Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& a, Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& b){
         const int *pa = (int*)a.data();
         const int *pb = (int*)b.data();
 
@@ -20,16 +20,16 @@ namespace vm{
         return dist;
     }
 
-    void TrackItem::getUV(float& x, float& y, int& octave){
-        CHECK_NOTNULL(frame);
-        if((size_t)kp_ind>=frame->kps.size()){
-            std::cout<<"[TrackItem::getUV][error]kp_ind>=frame->kps.size()"<<std::endl;
-            exit(0);
-        }
-        x = frame->kps[kp_ind].pt.x;
-        y = frame->kps[kp_ind].pt.y;
-        octave = frame->kps[kp_ind].octave;
+void TrackItem::getUV(float& x, float& y, int& octave)
+{
+    if ((size_t)kp_ind >= frame->kps.size()) {
+        std::cout << "[TrackItem::getUV][error]kp_ind>=frame->kps.size()" << std::endl;
+        exit(0);
     }
+    x = frame->kps[kp_ind].pt.x;
+    y = frame->kps[kp_ind].pt.y;
+    octave = frame->kps[kp_ind].octave;
+}
     
     void MapPoint::getALLDesc(Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>& descs){
         if(track.size()==0){
@@ -58,4 +58,5 @@ namespace vm{
         }
         return min_diff;
     }
-}
+
+}  // namespace vm
