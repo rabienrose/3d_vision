@@ -75,10 +75,10 @@ namespace orb_slam
         mR12i.create(3,3,P1.type());
 
         cv::Rodrigues(vec,mR12i); // computes the rotation matrix from angle-axis
-
         // Step 5: Rotate set 2
 
         cv::Mat P3 = mR12i*Pr2;
+        
 
         // Step 6: Scale
 
@@ -95,7 +95,6 @@ namespace orb_slam
                 den+=aux_P3.at<float>(i,j);
             }
         }
-
         ms12i = nom/den;
 
         // Step 7: Translation

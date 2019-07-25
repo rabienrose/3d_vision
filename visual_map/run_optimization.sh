@@ -10,7 +10,7 @@ ${OPTIMIZATION_ADDR} \
     --map_name=${MAP_NAME} \
     --opti_type="${TYPE}" \
     --opti_count=100 \
-    --gps_weight=0.000000001 \
+    --gps_weight=0.0000000000001 \
     --v=0 \
     --logtostderr=true \
     --colorlogtostderr=true
