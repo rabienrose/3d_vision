@@ -47,7 +47,7 @@ int main(int argc, char* argv[]){
                     //std::cout<<u<<":"<<v<<"     "<<uv.x<<":"<<uv.y<<std::endl;
                     
                     float proj_err=sqrt((uv.x-u)*(uv.x-u)+(uv.y-v)*(uv.y-v));
-                    if(proj_err>FLAGS_max_repro_err){
+                    if(proj_err>FLAGS_max_repro_err || proj_homo(2)<0){
                         del_edge_count++;
                         map.frames[i]->obss[j]=nullptr;
                     }

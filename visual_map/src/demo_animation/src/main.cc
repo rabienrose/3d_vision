@@ -45,9 +45,13 @@ int main(int argc, char* argv[]){
     std::vector<int> end_frame_ids;
     
     start_frame_ids.push_back(0);
-    start_frame_ids.push_back(300);
-    end_frame_ids.push_back(299);
-    end_frame_ids.push_back(500);
+    start_frame_ids.push_back(800);
+    start_frame_ids.push_back(1200);
+    start_frame_ids.push_back(2000);
+    end_frame_ids.push_back(800);
+    end_frame_ids.push_back(1200);
+    end_frame_ids.push_back(2000);
+    end_frame_ids.push_back(2690);
 
     vm::VisualMap map;
     vm::loader_visual_map(map, res_root);
@@ -66,8 +70,6 @@ int main(int argc, char* argv[]){
             }
         }
     }
-    
-    std::cout<<"1111"<<std::endl;
     
     ros::Rate loop_rate(10);
     std::vector<Eigen::Vector3d> all_mps;

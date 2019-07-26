@@ -333,33 +333,33 @@ int main(int argc, char* argv[]){
     }
     
     vm::VisualMap base_map=*maps[0];
-//     for(int j=1; j<maps.size(); j++){
-//         GpsConverter gps_conv1(base_map.gps_anchor(0), base_map.gps_anchor(1), false);
-//         GpsConverter gps_conv2(maps[j]->gps_anchor(0), maps[j]->gps_anchor(1), false);
-//         for(int i=0; i<maps[j]->frames.size(); i++){
-//             WGS84Corr latlon;
-//             gps_conv2.MapXYToLatLon(maps[j]->frames[i]->position.x(), maps[j]->frames[i]->position.y(), latlon);
-//             UTMCoor xy;
-//             gps_conv1.MapLatLonToXY(latlon.lat, latlon.log, xy);
-//             maps[j]->frames[i]->position.x()=xy.x;
-//             maps[j]->frames[i]->position.y()=xy.y;
-//             
-//             WGS84Corr latlon1;
-//             gps_conv2.MapXYToLatLon(maps[j]->frames[i]->gps_position.x(), maps[j]->frames[i]->gps_position.y(), latlon1);
-//             UTMCoor xy1;
-//             gps_conv1.MapLatLonToXY(latlon1.lat, latlon1.log, xy1);
-//             maps[j]->frames[i]->gps_position.x()=xy1.x;
-//             maps[j]->frames[i]->gps_position.y()=xy1.y;
-//         }
-//         for(int i=0; i<maps[j]->mappoints.size(); i++){
-//             WGS84Corr latlon;
-//             gps_conv2.MapXYToLatLon(maps[j]->mappoints[i]->position.x(), maps[j]->mappoints[i]->position.y(), latlon);
-//             UTMCoor xy;
-//             gps_conv1.MapLatLonToXY(latlon.lat, latlon.log, xy);
-//             maps[j]->mappoints[i]->position.x()=xy.x;
-//             maps[j]->mappoints[i]->position.y()=xy.y;
-//         }
-//     }
+    for(int j=1; j<maps.size(); j++){
+        GpsConverter gps_conv1(base_map.gps_anchor(0), base_map.gps_anchor(1), false);
+        GpsConverter gps_conv2(maps[j]->gps_anchor(0), maps[j]->gps_anchor(1), false);
+        for(int i=0; i<maps[j]->frames.size(); i++){
+            WGS84Corr latlon;
+            gps_conv2.MapXYToLatLon(maps[j]->frames[i]->position.x(), maps[j]->frames[i]->position.y(), latlon);
+            UTMCoor xy;
+            gps_conv1.MapLatLonToXY(latlon.lat, latlon.log, xy);
+            maps[j]->frames[i]->position.x()=xy.x;
+            maps[j]->frames[i]->position.y()=xy.y;
+            
+            WGS84Corr latlon1;
+            gps_conv2.MapXYToLatLon(maps[j]->frames[i]->gps_position.x(), maps[j]->frames[i]->gps_position.y(), latlon1);
+            UTMCoor xy1;
+            gps_conv1.MapLatLonToXY(latlon1.lat, latlon1.log, xy1);
+            maps[j]->frames[i]->gps_position.x()=xy1.x;
+            maps[j]->frames[i]->gps_position.y()=xy1.y;
+        }
+        for(int i=0; i<maps[j]->mappoints.size(); i++){
+            WGS84Corr latlon;
+            gps_conv2.MapXYToLatLon(maps[j]->mappoints[i]->position.x(), maps[j]->mappoints[i]->position.y(), latlon);
+            UTMCoor xy;
+            gps_conv1.MapLatLonToXY(latlon.lat, latlon.log, xy);
+            maps[j]->mappoints[i]->position.x()=xy.x;
+            maps[j]->mappoints[i]->position.y()=xy.y;
+        }
+    }
     
     std::vector<KP_INFO> kp_info_list;
     std::vector<Eigen::Matrix4d> T_tar_sour_list;

@@ -1,0 +1,1 @@
+/home/chamo/Documents/work/3d_vision/visual_map/devel/lib/convert_rtk_to_xyz/convert_rtk_to_xyz --raw_rtk_addr=/media/chamo/095d3ecf-bef8-469d-86a3-fe170aec49db/try_coarse_gps/rtk.csv --gps_anchor_x=31.1804924819419 --gps_anchor_y=121.605262089039 --gps_anchor_z=7.40132210183961

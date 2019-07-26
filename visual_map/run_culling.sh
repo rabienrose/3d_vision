@@ -11,7 +11,7 @@ ${CULLING_ADDR} \
     --map_addr=${MAP_ADDR} \
     --map_name=${MAP_NAME} \
     --culling_type=${TYPE} \
-    --max_repro_err=100 \
+    --max_repro_err=3 \
     --v=0 \
     --logtostderr=true \
     --colorlogtostderr=true

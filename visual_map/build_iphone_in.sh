@@ -23,7 +23,7 @@ DSO_ADDR=${EXE_ROOT}/devel/lib/dso/dso_test
 POSE_EXTRACTOR=${EXE_ROOT}/devel/lib/global_match_test/global_match_test 
 
 mkdir ${OUT_ADDR}/images
-${BAG_EXTRACT_ADDR} --bag_addr=${BAG_NAME} --out_dir=${OUT_ADDR} --img_topic=img --imu_topic=imu --gps_topic=gps --isExtractImage=false
+${BAG_EXTRACT_ADDR} --bag_addr=${BAG_NAME} --out_dir=${OUT_ADDR} --img_topic=img --imu_topic=imu --gps_topic=gps --isExtractImage=true
 ${ORB_SLAM_ADDR} --bag_addr=${BAG_NAME} --output_addr=${OUT_ADDR}/ --voc_addr=${OUT_ADDR}/FreakAll.bin --camera_config=${OUT_ADDR}/camera_config.txt --image_topic=img --min_frame=0 --max_frame=10000 --step_frame=1 --use_orb=false --feature_count=2000 --feature_scale_factor=1.2 --feature_level=8 --min_match_count=100 --max_step_KF=15 --v=0 --logtostderr=true --colorlogtostderr=true
 ${CONV_MAP_ADDR} --res_root=${OUT_ADDR} --map_name=chamo.map visualmap
 ${OPTI_ADDR} --map_addr=${OUT_ADDR} --map_name=chamo.map --opti_type=imu --opti_count=100 --gps_weight=0.00000001

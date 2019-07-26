@@ -69,7 +69,7 @@ int main(int argc, char* argv[]){
         CHECK_GT(splited.size(), z_index);
         if(accu_index!=-1){
             float accu=atof(splited[accu_index].c_str());
-            if(accu<1){
+            if(accu<10){
                 posi(0)=atof(splited[x_index].c_str());
                 posi(1)=atof(splited[y_index].c_str());
                 posi(2)=atof(splited[z_index].c_str());
